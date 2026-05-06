@@ -5351,6 +5351,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   function decorateRaciHeaders(){
+    // Phase 7 toma conta do render. Esta função vira no-op
+    // (os botões já estão no HTML inline).
+    return;
     const wrap = document.getElementById('raciTable');
     if (!wrap) return;
     // O header sticky (1ª linha) tem N divs após a 1ª (que é "Atividade")
@@ -5419,6 +5422,263 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 
+})();
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FASE 7 — Fix RACI render + UX nav tabs                             ║
+   ║  - Header maior (HDR=80) pra nomes não cortarem                     ║
+   ║  - Sticky activity name com bg branco sólido                        ║
+   ║  - Add-button INLINE no header + placeholder cells nas data rows   ║
+   ║  - Nav tabs mais visíveis (font/peso/contraste)                    ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+(function cbPhase7Fix(){
+  const css = `
+/* ── Nav tabs UX melhorada ── */
+.nav-tab{padding:9px 16px !important;font-size:13px !important;font-weight:600 !important;color:rgba(255,255,255,.78) !important;letter-spacing:.2px;border-radius:7px !important;}
+.nav-tab:hover{color:#fff !important;background:rgba(255,255,255,.13) !important;transform:translateY(-1px);}
+.nav-tab.active{background:var(--cb-coral) !important;color:#fff !important;box-shadow:0 3px 10px rgba(255,107,107,.45);font-weight:700 !important;}
+.nav-tabs-wrap{gap:5px !important;padding:0 4px;}
+.nav-divider{height:24px !important;}
+/* ── RACI sticky bg fix + visual polish ── */
+.raci-sticky-name{background:#fff !important;}
+.raci-data-row:hover .raci-sticky-name{background:#FBF8F5 !important;}
+.cb-rcol-cell{position:relative;}
+.cb-rcol-rm{position:absolute !important;top:3px !important;left:50% !important;transform:translateX(-50%) !important;background:#DC2626 !important;color:#fff !important;border:0 !important;width:16px !important;height:16px !important;border-radius:50% !important;font-size:10px !important;cursor:pointer !important;line-height:1 !important;display:none !important;align-items:center !important;justify-content:center !important;padding:0 !important;z-index:25 !important;font-weight:700 !important;}
+.cb-rcol-cell:hover .cb-rcol-rm{display:flex !important;}
+.cb-rcol-name{cursor:text;outline:none;}
+.cb-rcol-name:focus{background:#fff !important;color:#000 !important;border-radius:3px;padding:0 4px;}
+.cb-rcol-add-cell:hover{filter:brightness(.92);}
+`;
+  document.head.appendChild(Object.assign(document.createElement('style'), { id:'cb-phase7-css', textContent: css }));
+
+  const escHtml = (s) => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const RACI_CYCLE = ['', 'R', 'A', 'C', 'I', 'X', 'R/A', 'A/C', 'C/I'];
+  function nextRaciValue(cur){
+    const c = (cur||'').trim().toUpperCase();
+    const idx = RACI_CYCLE.indexOf(c);
+    if (idx < 0) return RACI_CYCLE[1];
+    return RACI_CYCLE[(idx + 1) % RACI_CYCLE.length];
+  }
+
+  function ensureRaciHelpBar(){
+    const wrap = document.querySelector('.raci-wrap');
+    if (!wrap || document.getElementById('cb-raci-help')) return;
+    const help = document.createElement('div');
+    help.id = 'cb-raci-help';
+    help.className = 'raci-help-bar';
+    help.innerHTML = `<div>💡 <strong>Clique numa célula</strong> pra alternar R/A/C/I/X. Clique em <strong>nomes</strong> (atividade, seção, coluna) pra renomear. <code>+</code> ao lado do grupo adiciona coluna; <code>+</code> na seção adiciona atividade. <code>×</code> remove.</div>`;
+    const filters = wrap.querySelector('.raci-filters');
+    if (filters && filters.nextSibling) wrap.insertBefore(help, filters.nextSibling);
+    else wrap.appendChild(help);
+  }
+
+  // ── renderRaciTable totalmente reescrito ─────────────────────────────
+  window.renderRaciTable = function(data){
+    const wrap = document.getElementById('raciTable');
+    if (!wrap || typeof RACI_COLS === 'undefined' || typeof RACI_COL_GROUPS === 'undefined') return;
+    const NC = RACI_COLS.length;
+    const NG = RACI_COL_GROUPS.length;
+    const CW = 72, LW = 280, ROW = 32, HDR = 84;
+    const ADD_W = 38;
+    const totalW = LW + NC*CW + NG*ADD_W + 2;
+
+    let html = `<div style="position:relative;min-width:${totalW}px;">`;
+
+    // Sticky header — nome das colunas (rotacionado)
+    html += `<div style="position:sticky;top:0;z-index:20;display:flex;background:var(--cb-navy);border-bottom:2px solid var(--cb-coral);min-width:${totalW}px;">`;
+    html += `<div style="width:${LW}px;min-width:${LW}px;padding:0 14px;display:flex;align-items:flex-end;padding-bottom:8px;font-family:'Cabinet Grotesk',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4);position:sticky;left:0;background:var(--cb-navy);z-index:2;border-right:2px solid rgba(255,255,255,.1);">Atividade</div>`;
+    RACI_COL_GROUPS.forEach((grp, gi) => {
+      grp.cols.forEach(ci => {
+        const name = RACI_COLS[ci];
+        html += `<div class="cb-rcol-cell" data-col-idx="${ci}" style="width:${CW}px;min-width:${CW}px;height:${HDR}px;display:flex;align-items:center;justify-content:center;background:${grp.light};border-right:1px solid ${grp.color}30;overflow:hidden;position:relative;" title="${escHtml(name)}"><span class="cb-rcol-name" contenteditable="true" spellcheck="false" data-col-idx="${ci}" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:10.5px;font-weight:700;color:${grp.color};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:${HDR-14}px;outline:none;line-height:1.1;">${escHtml(name)}</span><button class="cb-rcol-rm" data-col-idx="${ci}" title="Remover coluna">×</button></div>`;
+      });
+      // ADD button cell por grupo
+      html += `<div class="cb-rcol-add-cell" data-group-idx="${gi}" style="width:${ADD_W}px;min-width:${ADD_W}px;height:${HDR}px;display:flex;align-items:center;justify-content:center;background:${grp.light};border-right:2px solid ${grp.color}50;cursor:pointer;" title="Adicionar coluna em ${escHtml(grp.lbl)}"><span style="font-size:22px;font-weight:800;color:${grp.color};line-height:1;">+</span></div>`;
+    });
+    html += `</div>`;
+
+    // Sticky header — labels dos grupos
+    html += `<div style="position:sticky;top:${HDR}px;z-index:19;display:flex;background:#F0EDF8;border-bottom:1px solid #D8D2E8;min-width:${totalW}px;">`;
+    html += `<div style="width:${LW}px;min-width:${LW}px;position:sticky;left:0;background:#F0EDF8;z-index:2;border-right:2px solid #C0B8D0;"></div>`;
+    RACI_COL_GROUPS.forEach(grp => {
+      const w = grp.cols.length * CW + ADD_W;
+      html += `<div style="width:${w}px;min-width:${w}px;text-align:center;font-family:'Cabinet Grotesk',sans-serif;font-size:10px;font-weight:800;color:${grp.color};background:${grp.light};padding:4px 0;border-right:1px solid #D8D2E8;letter-spacing:.5px;">${escHtml(grp.lbl)}</div>`;
+    });
+    html += `</div>`;
+
+    // Data rows
+    data.forEach(row => {
+      const origIdx = RACI_DATA.indexOf(row);
+      if (row.g){
+        html += `<div data-rowtype="g" data-orig-idx="${origIdx}" style="display:flex;background:var(--cb-navy);min-width:${totalW}px;position:sticky;top:${HDR+24}px;z-index:18;"><div style="width:100%;padding:8px 14px;font-family:'Cabinet Grotesk',sans-serif;font-size:12px;font-weight:900;color:var(--cb-coral);letter-spacing:1px;text-transform:uppercase;"><span class="cb-raci-edit-name" data-edit-group="${origIdx}" tabindex="0">${escHtml(row.g)}</span></div></div>`;
+      } else if (row.section){
+        html += `<div data-rowtype="section" data-orig-idx="${origIdx}" style="display:flex;background:#EEEAF4;border-bottom:1px solid #D8D2E8;min-width:${totalW}px;">`;
+        html += `<div style="width:${LW}px;min-width:${LW}px;padding:6px 14px;font-family:'Cabinet Grotesk',sans-serif;font-size:11px;font-weight:800;color:#4A4650;position:sticky;left:0;background:#EEEAF4;z-index:1;border-right:2px solid #C0B8D0;display:flex;justify-content:space-between;align-items:center;gap:6px;">`;
+        html += `<span class="cb-raci-edit-name" data-edit-section="${origIdx}" tabindex="0" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(row.section)}</span>`;
+        html += `<span style="display:inline-flex;gap:2px;flex-shrink:0;"><button class="cb-raci-add-act" data-after-section="${origIdx}" title="Adicionar atividade nesta seção">+</button><button class="cb-raci-rm-section" data-orig-idx="${origIdx}" title="Remover seção">✕</button></span>`;
+        html += `</div>`;
+        // Cells por grupo + placeholder
+        RACI_COL_GROUPS.forEach(grp => {
+          grp.cols.forEach(() => {
+            html += `<div style="width:${CW}px;min-width:${CW}px;border-right:1px solid #E2DDE8;background:#EEEAF4;"></div>`;
+          });
+          html += `<div style="width:${ADD_W}px;min-width:${ADD_W}px;border-right:2px solid ${grp.color}40;background:#EEEAF4;"></div>`;
+        });
+        html += `</div>`;
+      } else {
+        // activity
+        html += `<div class="raci-data-row" data-rowtype="activity" data-orig-idx="${origIdx}" style="display:flex;min-width:${totalW}px;border-bottom:1px solid #F0EDF8;background:#fff;" onmouseenter="this.style.background='#FBF8F5'" onmouseleave="this.style.background='#fff'">`;
+        html += `<div class="raci-sticky-name" style="width:${LW}px;min-width:${LW}px;padding:0 8px 0 20px;display:flex;align-items:center;font-size:11.5px;color:#374151;height:${ROW}px;position:sticky;left:0;background:#fff;z-index:1;border-right:2px solid #E2DDE8;gap:4px;justify-content:space-between;">`;
+        html += `<span class="cb-raci-edit-name" data-edit-act="${origIdx}" tabindex="0" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(row.a)}</span>`;
+        html += `<button class="cb-raci-rm-row" data-orig-idx="${origIdx}" title="Remover atividade">✕</button>`;
+        html += `</div>`;
+        RACI_COL_GROUPS.forEach(grp => {
+          grp.cols.forEach(ci => {
+            const v = (row.v[ci]||'').trim();
+            html += `<div class="raci-table-cell" data-row="${origIdx}" data-col="${ci}" style="width:${CW}px;min-width:${CW}px;height:${ROW}px;display:flex;align-items:center;justify-content:center;border-right:1px solid #F0EDF8;${cellStyle(v)}"><span style="font-size:11px;">${escHtml(v)}</span></div>`;
+          });
+          html += `<div style="width:${ADD_W}px;min-width:${ADD_W}px;height:${ROW}px;border-right:2px solid ${grp.color}30;background:transparent;"></div>`;
+        });
+        html += `</div>`;
+      }
+    });
+    html += `</div>`;
+    wrap.innerHTML = html;
+    ensureRaciHelpBar();
+    attachAllRaciHandlers();
+  };
+
+  function attachAllRaciHandlers(){
+    const wrap = document.getElementById('raciTable');
+    if (!wrap) return;
+
+    // Cell click: cycle value
+    wrap.querySelectorAll('.raci-table-cell').forEach(cell => {
+      cell.onclick = () => {
+        const rowIdx = parseInt(cell.dataset.row, 10);
+        const colIdx = parseInt(cell.dataset.col, 10);
+        const row = RACI_DATA[rowIdx];
+        if (!row) return;
+        if (!Array.isArray(row.v)) row.v = new Array(RACI_COLS.length).fill('');
+        const next = nextRaciValue(row.v[colIdx]);
+        row.v[colIdx] = next;
+        cell.setAttribute('style', `width:72px;min-width:72px;height:32px;display:flex;align-items:center;justify-content:center;border-right:1px solid #F0EDF8;${cellStyle(next)}`);
+        cell.innerHTML = `<span style="font-size:11px;">${escHtml(next)}</span>`;
+        if (typeof renderTasks === 'function') renderTasks();
+      };
+    });
+
+    // Remove activity row
+    wrap.querySelectorAll('.cb-raci-rm-row').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.origIdx, 10);
+        const row = RACI_DATA[idx];
+        if (!row || !row.a) return;
+        if (!confirm(`Remover atividade "${row.a}" da matriz RACI?`)) return;
+        RACI_DATA.splice(idx, 1);
+        rebuild();
+      };
+    });
+
+    // Remove section
+    wrap.querySelectorAll('.cb-raci-rm-section').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.origIdx, 10);
+        const row = RACI_DATA[idx];
+        if (!row || !row.section) return;
+        let count = 0;
+        for (let i = idx + 1; i < RACI_DATA.length; i++){
+          if (RACI_DATA[i].section || RACI_DATA[i].g) break;
+          count++;
+        }
+        const msg = `Remover seção "${row.section}"${count>0 ? ` e suas ${count} atividade(s)` : ''}?`;
+        if (!confirm(msg)) return;
+        RACI_DATA.splice(idx, 1 + count);
+        rebuild();
+      };
+    });
+
+    // Add activity in section
+    wrap.querySelectorAll('.cb-raci-add-act').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const sectIdx = parseInt(btn.dataset.afterSection, 10);
+        const name = prompt('Nome da nova atividade nesta seção:');
+        if (!name || !name.trim()) return;
+        let insertAt = sectIdx + 1;
+        while (insertAt < RACI_DATA.length && !RACI_DATA[insertAt].section && !RACI_DATA[insertAt].g){
+          insertAt++;
+        }
+        RACI_DATA.splice(insertAt, 0, { a: name.trim(), v: new Array(RACI_COLS.length).fill('') });
+        rebuild();
+      };
+    });
+
+    // Edit activity/section/group name in place
+    wrap.querySelectorAll('.cb-raci-edit-name').forEach(span => {
+      span.contentEditable = 'true';
+      span.spellcheck = false;
+      span.onblur = () => {
+        const txt = (span.textContent || '').trim();
+        const ea = span.dataset.editAct;
+        const es = span.dataset.editSection;
+        const eg = span.dataset.editGroup;
+        let changed = false;
+        if (ea){
+          const i = parseInt(ea, 10);
+          if (RACI_DATA[i] && RACI_DATA[i].a !== txt){ RACI_DATA[i].a = txt || '(sem nome)'; changed = true; }
+        } else if (es){
+          const i = parseInt(es, 10);
+          if (RACI_DATA[i] && RACI_DATA[i].section !== txt){ RACI_DATA[i].section = txt; changed = true; }
+        } else if (eg){
+          const i = parseInt(eg, 10);
+          if (RACI_DATA[i] && RACI_DATA[i].g !== txt){ RACI_DATA[i].g = txt; changed = true; }
+        }
+        if (changed && typeof renderTasks === 'function') renderTasks();
+      };
+      span.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === 'Escape'){ e.preventDefault(); span.blur(); }
+      };
+    });
+
+    // Edit column name (header rotated span)
+    wrap.querySelectorAll('.cb-rcol-name').forEach(span => {
+      span.onblur = () => {
+        const idx = parseInt(span.dataset.colIdx, 10);
+        const txt = (span.textContent || '').trim();
+        if (typeof window.cbRenameRaciCol === 'function') window.cbRenameRaciCol(idx, txt);
+      };
+      span.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === 'Escape'){ e.preventDefault(); span.blur(); }
+      };
+    });
+
+    // Remove column (×)
+    wrap.querySelectorAll('.cb-rcol-rm').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.colIdx, 10);
+        if (typeof window.cbDeleteRaciCol === 'function') window.cbDeleteRaciCol(idx);
+      };
+    });
+
+    // Add column (+)
+    wrap.querySelectorAll('.cb-rcol-add-cell').forEach(cell => {
+      cell.onclick = () => {
+        const gi = parseInt(cell.dataset.groupIdx, 10);
+        if (typeof window.cbAddRaciCol === 'function') window.cbAddRaciCol(gi);
+      };
+    });
+  }
+
+  function rebuild(){
+    if (typeof raciBuilt !== 'undefined') raciBuilt = false;
+    if (typeof buildRaciTable === 'function') buildRaciTable();
+    if (typeof renderTasks === 'function') renderTasks();
+  }
 })();
 </script>
 </body>
