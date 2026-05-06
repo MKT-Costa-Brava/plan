@@ -1580,7 +1580,8 @@ document.addEventListener('DOMContentLoaded',()=>{
           tasks: TASKS,
           raci_data: RACI_DATA,
           team: window.TEAM || [],
-          branding: window.cbBrand || {}
+          branding: window.cbBrand || {},
+          raci_meta: { cols: RACI_COLS, groups: RACI_COL_GROUPS }
         })
         .eq('id', cfg.ROW_ID || 'main');
       if (error) throw error;
@@ -1613,6 +1614,21 @@ document.addEventListener('DOMContentLoaded',()=>{
         window.cbBrand = data.branding;
         if (typeof window.cbApplyBrandLogo === 'function') window.cbApplyBrandLogo();
       }
+      // Load raci_meta (cols + groups customizados)
+      if (data.raci_meta && typeof data.raci_meta === 'object'){
+        if (Array.isArray(data.raci_meta.cols) && data.raci_meta.cols.length){
+          if (typeof RACI_COLS !== 'undefined'){
+            RACI_COLS.length = 0;
+            data.raci_meta.cols.forEach(c => RACI_COLS.push(c));
+          }
+        }
+        if (Array.isArray(data.raci_meta.groups) && data.raci_meta.groups.length){
+          if (typeof RACI_COL_GROUPS !== 'undefined'){
+            RACI_COL_GROUPS.length = 0;
+            data.raci_meta.groups.forEach(g => RACI_COL_GROUPS.push(g));
+          }
+        }
+      }
       // Re-render tudo
       if (typeof renderHeader === 'function') renderHeader();
       if (typeof renderTasks === 'function') renderTasks();
@@ -1638,7 +1654,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     try {
       const { data, error } = await sb
         .from('roadmap_state')
-        .select('tasks, raci_data, team, branding, updated_at')
+        .select('tasks, raci_data, team, branding, raci_meta, updated_at')
         .eq('id', cfg.ROW_ID || 'main')
         .single();
       if (error) throw error;
@@ -5238,6 +5254,171 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', maybeShow);
   else maybeShow();
+})();
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FASE 6 — Colunas RACI editáveis                                    ║
+   ║  - Renomear (clique no nome rotacionado)                            ║
+   ║  - + Adicionar coluna por grupo                                     ║
+   ║  - ✕ Remover coluna (com sync das v[] em todas as rows)             ║
+   ║  Persiste em raci_meta {cols, groups} no Supabase.                  ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+(function cbPhase6RaciCols(){
+  const css = `
+.cb-rcol-cell{position:relative;}
+.cb-rcol-name{cursor:text;outline:none;display:inline-block;}
+.cb-rcol-name:hover{background:rgba(255,255,255,.1);border-radius:3px;}
+.cb-rcol-name:focus{background:#fff;color:#000 !important;border-radius:3px;padding:0 4px;}
+.cb-rcol-rm{position:absolute;top:2px;left:50%;transform:translateX(-50%);background:#DC2626;color:#fff;border:0;width:16px;height:16px;border-radius:50%;font-size:10px;cursor:pointer;line-height:1;display:none;align-items:center;justify-content:center;padding:0;z-index:25;font-weight:700;}
+.cb-rcol-cell:hover .cb-rcol-rm{display:flex;}
+.cb-rcol-add{display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:18px;font-weight:800;background:rgba(255,107,107,.25);border:1px dashed rgba(255,255,255,.3);transition:all .15s;flex-shrink:0;}
+.cb-rcol-add:hover{background:var(--cb-coral);color:#fff;border-color:var(--cb-coral);}
+.cb-rcol-add-tip{font-family:'Cabinet Grotesk',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,.85);text-align:center;writing-mode:vertical-rl;transform:rotate(180deg);}
+`;
+  document.head.appendChild(Object.assign(document.createElement('style'), { id:'cb-phase6-css', textContent: css }));
+
+  function escHtml(s){
+    return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function findGroupByCol(ci){
+    return RACI_COL_GROUPS.findIndex(g => g.cols.includes(ci));
+  }
+
+  // Renomear coluna
+  window.cbRenameRaciCol = function(idx, newName){
+    if (typeof RACI_COLS === 'undefined') return;
+    const trimmed = (newName||'').trim() || RACI_COLS[idx];
+    if (RACI_COLS[idx] === trimmed) return;
+    RACI_COLS[idx] = trimmed;
+    // dispara save (renderTasks aciona scheduleSave)
+    if (typeof renderTasks === 'function') renderTasks();
+  };
+
+  // Adicionar coluna ao grupo
+  window.cbAddRaciCol = function(groupIdx){
+    const name = prompt('Nome da nova coluna:', '');
+    if (!name || !name.trim()) return;
+    const newIdx = RACI_COLS.length;
+    RACI_COLS.push(name.trim());
+    if (RACI_COL_GROUPS[groupIdx]){
+      RACI_COL_GROUPS[groupIdx].cols.push(newIdx);
+    }
+    // Adiciona '' no v[] de cada row
+    RACI_DATA.forEach(row => {
+      if (!row.g && !row.section){
+        if (!Array.isArray(row.v)) row.v = [];
+        while (row.v.length < RACI_COLS.length) row.v.push('');
+      }
+    });
+    // Re-render RACI + dispara save
+    if (typeof raciBuilt !== 'undefined') raciBuilt = false;
+    if (typeof buildRaciTable === 'function') buildRaciTable();
+    if (typeof renderTasks === 'function') renderTasks();
+  };
+
+  // Remover coluna
+  window.cbDeleteRaciCol = function(idx){
+    if (typeof RACI_COLS === 'undefined' || idx < 0 || idx >= RACI_COLS.length) return;
+    const name = RACI_COLS[idx];
+    if (!confirm(`Remover coluna "${name}"?\n\nOs valores RACI dessa coluna em todas as atividades serão perdidos.`)) return;
+    // 1) Remove o nome
+    RACI_COLS.splice(idx, 1);
+    // 2) Atualiza groups: remove o índice e decrementa todos os índices > idx
+    RACI_COL_GROUPS.forEach(g => {
+      g.cols = (g.cols||[]).filter(c => c !== idx).map(c => c > idx ? c - 1 : c);
+    });
+    // 3) Splice v[idx] em todas as rows
+    RACI_DATA.forEach(row => {
+      if (!row.g && !row.section && Array.isArray(row.v)){
+        row.v.splice(idx, 1);
+      }
+    });
+    // 4) Re-render + save
+    if (typeof raciBuilt !== 'undefined') raciBuilt = false;
+    if (typeof buildRaciTable === 'function') buildRaciTable();
+    if (typeof renderTasks === 'function') renderTasks();
+  };
+
+  // Patch renderRaciTable com pós-processamento dos column headers
+  // (renderRaciTable foi reescrito na Fase 2.4; vamos hook depois dele rodar)
+  const _origRenderRaci_6 = window.renderRaciTable;
+  if (typeof _origRenderRaci_6 === 'function'){
+    window.renderRaciTable = function(data){
+      _origRenderRaci_6.call(this, data);
+      setTimeout(decorateRaciHeaders, 50);
+    };
+  }
+
+  function decorateRaciHeaders(){
+    const wrap = document.getElementById('raciTable');
+    if (!wrap) return;
+    // O header sticky (1ª linha) tem N divs após a 1ª (que é "Atividade")
+    // Cada um deles é um column header. Estão na ordem de iteração de
+    // RACI_COL_GROUPS, ou seja: g0.cols, g1.cols, etc.
+    const stickyHeaders = wrap.querySelectorAll(':scope > div > div:first-child > div');
+    if (!stickyHeaders.length) return;
+    // O primeiro é "Atividade", depois vêm os column cells em ordem
+    const colHeaderCells = Array.from(stickyHeaders).slice(1);
+    // Mapa de ordem: passa por cada grupo na ordem e atribui o índice de coluna
+    const orderedColIdx = [];
+    RACI_COL_GROUPS.forEach(g => g.cols.forEach(ci => orderedColIdx.push(ci)));
+    if (colHeaderCells.length !== orderedColIdx.length){
+      // adiciona o ➕ por grupo não vai bater — abort decoração
+      console.warn('[CB Phase6] header cell count mismatch', colHeaderCells.length, orderedColIdx.length);
+    }
+    colHeaderCells.forEach((cell, i) => {
+      const colIdx = orderedColIdx[i];
+      if (typeof colIdx !== 'number') return;
+      // Marca a célula
+      cell.classList.add('cb-rcol-cell');
+      cell.dataset.colIdx = colIdx;
+      // Trata o span (rotacionado) pra ser editável
+      const span = cell.querySelector('span');
+      if (span && !span.classList.contains('cb-rcol-name')){
+        span.classList.add('cb-rcol-name');
+        span.contentEditable = 'true';
+        span.spellcheck = false;
+        span.onkeydown = e => {
+          if (e.key === 'Enter' || e.key === 'Escape'){ e.preventDefault(); span.blur(); }
+        };
+        span.onblur = () => {
+          window.cbRenameRaciCol(colIdx, span.textContent || '');
+        };
+      }
+      // Adiciona ✕ pra remover
+      if (!cell.querySelector('.cb-rcol-rm')){
+        const rm = document.createElement('button');
+        rm.className = 'cb-rcol-rm';
+        rm.textContent = '×';
+        rm.title = 'Remover coluna';
+        rm.onclick = (e) => { e.stopPropagation(); window.cbDeleteRaciCol(colIdx); };
+        cell.appendChild(rm);
+      }
+    });
+    // Adiciona botão "+" no fim de cada grupo, depois do último cell daquele grupo
+    // Vamos calcular as posições. Cada grupo tem um trecho de células consecutivas.
+    let runningIdx = 0;
+    const headerRow = stickyHeaders[0]?.parentElement;
+    if (!headerRow) return;
+    // Remove "+" antigos pra não duplicar
+    headerRow.querySelectorAll('.cb-rcol-add').forEach(el => el.remove());
+    RACI_COL_GROUPS.forEach((g, gi) => {
+      const lastIdxInRun = runningIdx + g.cols.length - 1;
+      const lastCell = colHeaderCells[lastIdxInRun];
+      if (!lastCell) { runningIdx += g.cols.length; return; }
+      const addBtn = document.createElement('div');
+      addBtn.className = 'cb-rcol-add';
+      addBtn.style.cssText = `width:32px;min-width:32px;height:42px;`;
+      addBtn.title = `Adicionar coluna em "${g.lbl}"`;
+      addBtn.innerHTML = `<span style="font-size:18px;font-weight:800;color:${g.color};">+</span>`;
+      addBtn.onclick = () => window.cbAddRaciCol(gi);
+      // Insere logo após o último cell desse grupo
+      lastCell.parentElement.insertBefore(addBtn, lastCell.nextSibling);
+      runningIdx += g.cols.length;
+    });
+  }
+
 })();
 </script>
 </body>
