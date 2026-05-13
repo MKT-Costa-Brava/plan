@@ -5680,6 +5680,172 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (typeof renderTasks === 'function') renderTasks();
   }
 })();
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FASE 8 — Auth Microsoft REAL (Onda 2 ligada)                       ║
+   ║  - Ativa _cbAuthEnabled = true                                       ║
+   ║  - Override cbLoginMicrosoft pra OAuth Azure real                   ║
+   ║  - onAuthStateChange: carrega role do cb_users                      ║
+   ║  - Esconde "Pular login (modo dev)" e o banner amarelo              ║
+   ║  - Mostra pill com nome do usuário + logout                         ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+(function cbPhase8Auth(){
+  if (!window.supabase || !window.CB_SUPABASE){
+    console.warn('[CB Auth] Supabase indisponível');
+    return;
+  }
+
+  // Ativa auth — escondem o banner amarelo + preview bypass
+  window._cbAuthEnabled = true;
+
+  // Remove banner "Modo aberto" se já está no DOM
+  function removeModeBanner(){
+    document.getElementById('cb-mode-banner')?.remove();
+  }
+  // Remove link de bypass se já está no DOM
+  function removeBypassLink(){
+    document.querySelectorAll('.cb-login-help a').forEach(a => {
+      if ((a.getAttribute('onclick')||'').includes('cbBypassLogin')) a.remove();
+    });
+    document.querySelectorAll('.cb-login-status').forEach(el => el.remove());
+  }
+
+  // Cliente Supabase dedicado pra auth (persiste sessão em localStorage)
+  const cfg = window.CB_SUPABASE;
+  const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: window.localStorage
+    }
+  });
+  window._cbAuthClient = sb;
+
+  // CSS
+  const css = `
+.cb-user-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 5px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:99px;color:#fff;font-size:11px;margin-left:8px;cursor:pointer;font-family:'Epilogue',sans-serif;transition:all .15s;}
+.cb-user-pill:hover{background:rgba(255,255,255,.2);}
+.cb-user-pill .av{width:22px;height:22px;border-radius:50%;background:var(--cb-coral);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:'Cabinet Grotesk',sans-serif;}
+.cb-user-pill .nm{font-weight:700;}
+.cb-user-pill .lo{font-size:9px;opacity:.7;letter-spacing:.5px;text-transform:uppercase;}
+`;
+  document.head.appendChild(Object.assign(document.createElement('style'), { id:'cb-phase8-css', textContent: css }));
+
+  // Substitui cbLoginMicrosoft pelo OAuth real
+  window.cbLoginMicrosoft = async function(){
+    try {
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          scopes: 'email openid profile',
+          redirectTo: window.location.origin + window.location.pathname
+        }
+      });
+      if (error) throw error;
+      // Supabase redireciona pra Microsoft; não chega aqui em caso de sucesso
+    } catch (e) {
+      alert('Erro ao iniciar login Microsoft:\n' + e.message);
+    }
+  };
+
+  function initials(name){
+    if (!name) return '?';
+    const p = name.trim().split(/\s+/);
+    if (p.length === 1) return p[0].slice(0,2).toUpperCase();
+    return (p[0][0] + p[p.length-1][0]).toUpperCase();
+  }
+
+  function showUserBadge(user){
+    let pill = document.getElementById('cb-user-pill');
+    const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email;
+    const firstName = name.split(' ')[0];
+    if (!pill){
+      pill = document.createElement('div');
+      pill.id = 'cb-user-pill';
+      pill.className = 'cb-user-pill';
+      pill.title = 'Clique pra sair';
+      const right = document.querySelector('.topbar-right');
+      if (right) right.insertBefore(pill, right.firstChild);
+      pill.onclick = async () => {
+        if (!confirm('Sair da conta?')) return;
+        await sb.auth.signOut();
+        location.reload();
+      };
+    }
+    pill.innerHTML = `<span class="av">${initials(name)}</span><span class="nm">${firstName}</span><span class="lo">SAIR</span>`;
+  }
+
+  async function applyRoleFromUser(user){
+    window._cbCurrentEmail = user.email;
+    try {
+      const { data } = await sb.from('cb_users').select('role, name').eq('email', (user.email||'').toLowerCase()).single();
+      if (data){
+        window._cbRole = data.role;
+        console.log('[CB Auth] Logado como', user.email, '· role:', data.role);
+      } else {
+        window._cbRole = 'viewer';
+        console.warn('[CB Auth] Usuário', user.email, 'sem registro em cb_users — default viewer');
+      }
+    } catch(e){
+      window._cbRole = 'viewer';
+    }
+    // Atualiza pill de role no topbar (existente do Phase 5)
+    const badge = document.getElementById('cb-role-badge');
+    if (badge){
+      const role = window._cbRole || 'viewer';
+      const labels = { master:'👑 Master', adm:'⭐ ADM', normal:'👤 Normal', viewer:'👁 Visualizador' };
+      badge.textContent = labels[role] || role;
+      badge.className = 'cb-role-pill ' + role;
+    }
+    showUserBadge(user);
+  }
+
+  function hideLogin(){
+    document.getElementById('cb-login-ov')?.remove();
+    removeModeBanner();
+  }
+  function showLogin(){
+    sessionStorage.removeItem('cb_bypass_login');
+    if (typeof window.cbShowLogin === 'function') window.cbShowLogin();
+    // Remove bypass + preview status
+    setTimeout(removeBypassLink, 30);
+    setTimeout(removeBypassLink, 200);
+  }
+
+  // Listener pra mudanças de sessão (login, logout, refresh)
+  sb.auth.onAuthStateChange((event, session) => {
+    console.log('[CB Auth] state change:', event);
+    if (session && session.user){
+      hideLogin();
+      applyRoleFromUser(session.user);
+    } else if (event === 'SIGNED_OUT'){
+      showLogin();
+    }
+  });
+
+  // Sessão inicial
+  (async () => {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session && session.user){
+        hideLogin();
+        await applyRoleFromUser(session.user);
+      } else {
+        // Sem sessão — mostra login (preview já pode ter mostrado, mas garante sem bypass)
+        showLogin();
+      }
+    } catch(e){
+      console.warn('[CB Auth] getSession err:', e);
+      showLogin();
+    }
+  })();
+
+  // Hookups de limpeza inicial
+  setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 50);
+  setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 500);
+  setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 2000);
+})();
 </script>
 </body>
 </html>
