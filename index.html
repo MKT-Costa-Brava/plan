@@ -1543,7 +1543,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, {
-    auth: { persistSession: false }
+    auth: {
+      persistSession: false,
+      detectSessionInUrl: false  // ⚠️ deixa o cliente da Fase 8 (auth real) cuidar do hash OAuth
+    }
   });
 
   // ── Helpers de sincronização ─────────────────────────────────────────
@@ -5813,33 +5816,36 @@ document.addEventListener('DOMContentLoaded',()=>{
     setTimeout(removeBypassLink, 200);
   }
 
-  // Listener pra mudanças de sessão (login, logout, refresh)
+  // Listener pra mudanças de sessão (login, logout, refresh, INITIAL_SESSION)
+  // INITIAL_SESSION dispara após detectSessionInUrl terminar (caso haja hash OAuth)
+  let initialSessionHandled = false;
   sb.auth.onAuthStateChange((event, session) => {
-    console.log('[CB Auth] state change:', event);
-    if (session && session.user){
+    console.log('[CB Auth] state change:', event, 'has session:', !!session);
+    if (event === 'INITIAL_SESSION'){
+      initialSessionHandled = true;
+      if (session && session.user){
+        hideLogin();
+        applyRoleFromUser(session.user);
+      } else {
+        showLogin();
+      }
+    } else if (event === 'SIGNED_IN' && session && session.user){
       hideLogin();
       applyRoleFromUser(session.user);
     } else if (event === 'SIGNED_OUT'){
       showLogin();
+    } else if (event === 'TOKEN_REFRESHED' && session && session.user){
+      applyRoleFromUser(session.user);
     }
   });
 
-  // Sessão inicial
-  (async () => {
-    try {
-      const { data: { session } } = await sb.auth.getSession();
-      if (session && session.user){
-        hideLogin();
-        await applyRoleFromUser(session.user);
-      } else {
-        // Sem sessão — mostra login (preview já pode ter mostrado, mas garante sem bypass)
-        showLogin();
-      }
-    } catch(e){
-      console.warn('[CB Auth] getSession err:', e);
+  // Fallback: se INITIAL_SESSION não disparar em 3s, mostra login
+  setTimeout(() => {
+    if (!initialSessionHandled){
+      console.warn('[CB Auth] INITIAL_SESSION não disparou em 3s — fallback');
       showLogin();
     }
-  })();
+  }, 3000);
 
   // Hookups de limpeza inicial
   setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 50);
