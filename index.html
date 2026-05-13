@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Roadmap MKT — Costa Brava / TMC Brasil 2026</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23DC2626'/%3E%3Ccircle cx='32' cy='32' r='22' fill='%23ffffff'/%3E%3Ccircle cx='32' cy='32' r='15' fill='%23DC2626'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%23ffffff'/%3E%3Ccircle cx='32' cy='32' r='3' fill='%23DC2626'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Epilogue:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -2422,7 +2423,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       alert('Supabase não configurado.');
       return;
     }
-    const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+    const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
     const t = _currentTaskForPanel;
     if (!Array.isArray(t.attachments)) t.attachments = [];
     const prog = document.getElementById('tpAttachProgress');
@@ -2471,7 +2472,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (!confirm(`Remover "${a.name}"? (Apaga do storage também)`)) return;
     try {
       const cfg = window.CB_SUPABASE;
-      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       await sb.storage.from('roadmap-attachments').remove([a.path]);
     } catch(e){ console.warn('[remove storage]', e); }
     t.attachments.splice(idx, 1);
@@ -2665,7 +2666,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       }
       const cfg = window.CB_SUPABASE;
       if (!cfg || !window.supabase){ alert('Supabase não configurado.'); return; }
-      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       const ext = (file.name.split('.').pop() || 'png').toLowerCase();
       const path = `branding/logo_${Date.now()}.${ext}`;
       try {
@@ -2688,7 +2689,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const cfg = window.CB_SUPABASE;
     if (!cfg || !window.supabase) return;
     try {
-      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       const { data } = await sb.from('roadmap_state').select('branding').eq('id', 'main').single();
       if (data && data.branding && typeof data.branding === 'object'){
         window.cbBrand = data.branding;
@@ -3304,7 +3305,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       if (file.size > 4*1024*1024){ alert('Foto até 4MB'); return; }
       const cfg = window.CB_SUPABASE;
       if (!cfg || !window.supabase){ alert('Supabase indisponível'); return; }
-      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       const ext = (file.name.split('.').pop()||'png').toLowerCase();
       const path = `team/${memberId}_${Date.now()}.${ext}`;
       try {
@@ -4474,7 +4475,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     try {
       const cfg = window.CB_SUPABASE;
       if (!cfg || !window.supabase) return;
-      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       const id = localStorage.getItem('cb_iam');
       const m = id && window.cbFindMember ? cbFindMember(id) : null;
       const { error } = await sb.from('roadmap_history').insert({
@@ -4541,7 +4542,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   async function openHistoryModal(){
     const cfg = window.CB_SUPABASE;
     if (!cfg || !window.supabase){ alert('Supabase indisponível'); return; }
-    const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+    const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 
     const ov = document.createElement('div');
     ov.className = 'cb-hist-ov';
@@ -4697,11 +4698,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   const PERMS = {
     'view':              ['master','adm','normal','viewer'],
     'edit_status_notes': ['master','adm','normal'],   // status, observações, owners (chips)
-    'edit_dates':        ['master','adm'],            // datas, label, type, freq, drag/resize, +Nova
+    'edit_dates':        ['master'],            // datas, label, type, freq, drag/resize, +Nova
     'delete':            ['master'],                  // remover etapas / atividades
     'admin_raci':        ['master'],                  // editar RACI (células, +/×, renomear)
     'admin_team':        ['master'],                  // editar Equipe
-    'admin_users':       ['master']                   // gerenciar acessos
+    'admin_users':       ['master'],                  // gerenciar acessos
+    'admin_brand':       ['master'],                  // trocar logo / branding
+    'edit_attachments':  ['master','adm','normal']    // remover anexos próprios
   };
   window.cbCan = function(action){
     const role = cbCurrentRole();
@@ -4789,7 +4792,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     body.innerHTML = '<div style="padding:30px;color:#9CA3AF;text-align:center;font-size:12px;">Carregando…</div>';
     try {
       const cfg = window.CB_SUPABASE;
-      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       const { data: users, error } = await sb.from('cb_users').select('*').order('created_at', { ascending: true });
       if (error) throw error;
       body.innerHTML = `
@@ -4899,7 +4902,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (!name){ alert('Informa o nome'); return; }
     try {
       const cfg = window.CB_SUPABASE;
-      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY);
+      const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
       const { error } = await sb.from('cb_users').insert({ email, name, role, active: true });
       if (error) throw error;
       emailEl.value = ''; nameEl.value = ''; roleEl.value = 'viewer';
@@ -4926,7 +4929,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Delete (apenas master)
     wrapRestricted('deleteSeg', 'delete', 'Deletar etapa');
     wrapRestricted('cbRemoveTeamMember', 'admin_team', 'Remover integrante');
-    wrapRestricted('cbRemoveAttachment', 'admin', 'Remover anexo');
+    wrapRestricted('cbRemoveAttachment', 'edit_attachments', 'Remover anexo');
     // RACI (apenas master) — wrap do cbDuplicateSeg etc seria errado, RACI é via cells handlers
     // Equipe (apenas master)
     wrapRestricted('cbAddTeamMember', 'admin_team', 'Adicionar integrante');
@@ -4935,7 +4938,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     // Datas / atividades (master + adm)
     wrapRestricted('confirmAddRow', 'edit_dates', 'Adicionar atividade');
     // Brand
-    wrapRestricted('cbChangeLogo', 'admin', 'Trocar logo');
+    wrapRestricted('cbChangeLogo', 'admin_brand', 'Trocar logo');
     // Logo banner: mostrar role atual no topbar
     showRoleBadge();
   }
@@ -5688,6 +5691,175 @@ document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 50);
   setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 500);
   setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 2000);
+})();
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FASE 10 — Header responsivo (sem encavalamento)                     ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+(function cbPhase10_HeaderFix(){
+  if (document.getElementById('cb-phase10-style')) return;
+  const s = document.createElement('style');
+  s.id = 'cb-phase10-style';
+  s.textContent = `
+    .topbar{height:auto !important;min-height:64px !important;flex-wrap:wrap;row-gap:6px;padding:8px 18px;align-items:center;}
+    .topbar > .brand{flex:0 0 auto;}
+    .topbar > .nav-tabs-wrap{flex:1 1 auto;min-width:0;max-width:100%;order:2;}
+    .topbar > .topbar-right{flex:0 0 auto;order:3;flex-wrap:wrap;justify-content:flex-end;row-gap:6px;}
+    .gantt-controls{flex-wrap:wrap;row-gap:6px;}
+    @media (max-width:1280px){
+      .topbar{padding:6px 14px;row-gap:8px;}
+      .topbar > .nav-tabs-wrap{flex-basis:100%;order:3;overflow-x:auto;}
+      .topbar > .topbar-right{order:2;}
+      .legend{font-size:11px;}
+    }
+    @media (max-width:880px){
+      .topbar{padding:6px 10px;}
+      .legend .leg{padding:2px 6px;font-size:10px;}
+      .nav-tab{padding:5px 10px;font-size:11.5px;}
+    }
+    /* Garantir que pill de sync nunca corte */
+    .cb-sync-pill{flex-shrink:0;}
+  `;
+  document.head.appendChild(s);
+})();
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FASE 11 — Linha guia + tooltip de data ao arrastar / redimensionar  ║
+   ║  Mostra uma linha vertical sutil + chip com a data atual do mouse    ║
+   ║  durante drag/resize de barras do Gantt. Detecta via global mouse.   ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+(function cbPhase11_DragGuide(){
+  if (document.getElementById('cb-drag-guide')) return;
+
+  // CSS
+  if (!document.getElementById('cb-phase11-style')){
+    const s = document.createElement('style');
+    s.id = 'cb-phase11-style';
+    s.textContent = `
+      #cb-drag-guide{
+        position:fixed; top:0; bottom:0; width:1px;
+        background:linear-gradient(to bottom, rgba(224,92,42,.0), rgba(224,92,42,.55) 8%, rgba(224,92,42,.55) 92%, rgba(224,92,42,.0));
+        pointer-events:none; z-index:9990; display:none;
+        box-shadow:0 0 0 1px rgba(224,92,42,.15);
+      }
+      #cb-drag-guide.show{display:block;}
+      #cb-drag-guide-chip{
+        position:fixed; z-index:9991; display:none;
+        background:#0F2037; color:#fff; font-family:'Epilogue',sans-serif; font-weight:600; font-size:11px;
+        padding:4px 9px; border-radius:6px; box-shadow:0 4px 14px rgba(15,32,55,.35);
+        border:1px solid rgba(224,92,42,.5); white-space:nowrap; pointer-events:none;
+        transform:translate(-50%, -120%);
+      }
+      #cb-drag-guide-chip.show{display:block;}
+      #cb-drag-guide-chip::after{
+        content:''; position:absolute; left:50%; bottom:-5px; width:0; height:0;
+        border-left:5px solid transparent; border-right:5px solid transparent;
+        border-top:5px solid #0F2037; transform:translateX(-50%);
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Elementos
+  const guide = document.createElement('div');
+  guide.id = 'cb-drag-guide';
+  document.body.appendChild(guide);
+  const chip = document.createElement('div');
+  chip.id = 'cb-drag-guide-chip';
+  document.body.appendChild(chip);
+
+  // Detecção: durante drag/resize o body costuma ter cursor "col-resize" ou
+  // existem segmentos com .dragging / .resizing, ou seg-handle ativo (mousedown).
+  let isActive = false;
+  let activeRow = null;
+
+  function tryFindGanttRow(target){
+    // Sobe até achar uma .row (linha do Gantt com barras) ou uma .bar-seg
+    let el = target;
+    while (el && el !== document.body){
+      if (el.classList && (el.classList.contains('row') || el.classList.contains('cb-gantt-row') || el.classList.contains('bar-seg') || el.classList.contains('seg-handle'))){
+        // Procura a linha pai pra pegar bounding box completo
+        let row = el.closest('.row') || el.closest('.cb-gantt-row');
+        return row || el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function dateAtX(clientX){
+    // Tenta usar a função pxToDate global, ou cálculo aproximado via xp/dw inverso
+    if (typeof window.pxToDate === 'function') {
+      try { return window.pxToDate(clientX); } catch(e){}
+    }
+    // Fallback: pega o GANTT_START e dia atual via .header-day se existir
+    const hdr = document.querySelector('.dh, .gantt-header-day, [data-date]');
+    if (hdr){
+      // Pega todos os elementos data-date, encontra mais próximo
+      const days = [...document.querySelectorAll('[data-date]')];
+      if (days.length){
+        let best = days[0], bestDist = Infinity;
+        days.forEach(d => {
+          const r = d.getBoundingClientRect();
+          const cx = r.left + r.width/2;
+          const dist = Math.abs(cx - clientX);
+          if (dist < bestDist){ bestDist = dist; best = d; }
+        });
+        return best.getAttribute('data-date');
+      }
+    }
+    return null;
+  }
+
+  function fmtBR(iso){
+    if (!iso) return '';
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return iso;
+    const dias = ['dom','seg','ter','qua','qui','sex','sáb'];
+    const meses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    const d = new Date(+m[1], +m[2]-1, +m[3]);
+    return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]} ${m[1]}`;
+  }
+
+  function show(x, y, iso){
+    guide.style.left = x + 'px';
+    guide.classList.add('show');
+    chip.style.left = x + 'px';
+    chip.style.top  = y + 'px';
+    chip.textContent = fmtBR(iso) || '—';
+    chip.classList.add('show');
+  }
+  function hide(){
+    guide.classList.remove('show');
+    chip.classList.remove('show');
+    isActive = false;
+    activeRow = null;
+  }
+
+  // Detecta início de drag: mousedown em seg-handle, .bar-seg ou similar
+  document.addEventListener('mousedown', (e) => {
+    const t = e.target;
+    if (!t) return;
+    const isHandle = t.classList && (t.classList.contains('seg-handle') || t.classList.contains('seg-handle-l') || t.classList.contains('seg-handle-r'));
+    const isBar = t.classList && (t.classList.contains('bar-seg') || t.classList.contains('seg') || (t.closest && t.closest('.bar-seg, .seg, .cb-bar')));
+    if (isHandle || isBar){
+      isActive = true;
+      activeRow = tryFindGanttRow(t);
+    }
+  }, true);
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isActive) return;
+    const iso = dateAtX(e.clientX);
+    show(e.clientX, e.clientY, iso);
+  }, true);
+
+  document.addEventListener('mouseup', () => {
+    if (isActive) hide();
+  }, true);
+
+  // Escape pra fechar caso fique colado
+  document.addEventListener('mouseleave', hide, true);
 })();
 
 /* ╔══════════════════════════════════════════════════════════════════════╗
