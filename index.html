@@ -298,7 +298,22 @@ body{font-family:'Epilogue',sans-serif;background:var(--cb-sand);color:var(--cb-
   };
 </script>
 </head>
-<body>
+<body class="cb-pre-auth">
+<!-- Splash de pré-autenticação — cobre tudo até auth confirmada -->
+<style id="cb-pre-auth-style">
+body.cb-pre-auth #app{visibility:hidden;}
+#cb-splash{position:fixed;inset:0;z-index:9998;background:linear-gradient(135deg,#0F2037 0%,#1C3450 50%,#243B55 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Cabinet Grotesk','Epilogue',system-ui,sans-serif;}
+#cb-splash::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 22% 28%,rgba(255,107,107,.18) 0%,transparent 55%),radial-gradient(circle at 80% 72%,rgba(165,200,216,.14) 0%,transparent 50%);pointer-events:none;}
+#cb-splash .inner{text-align:center;position:relative;z-index:1;}
+#cb-splash .lg{font-family:'Cabinet Grotesk',sans-serif;font-weight:800;font-size:30px;letter-spacing:-.6px;}
+#cb-splash .sub{font-size:13px;opacity:.65;margin-top:8px;letter-spacing:.5px;}
+#cb-splash .spin{margin-top:18px;width:28px;height:28px;border:3px solid rgba(255,255,255,.15);border-top-color:#FF6B6B;border-radius:50%;animation:cb-spin 1s linear infinite;display:inline-block;}
+@keyframes cb-spin{to{transform:rotate(360deg);}}
+body.cb-auth-ready #cb-splash{opacity:0;pointer-events:none;transition:opacity .3s;}
+body.cb-auth-ready{}
+body.cb-auth-ready #app{visibility:visible;}
+</style>
+<div id="cb-splash"><div class="inner"><div class="lg">Costa Brava</div><div class="sub">Verificando sua sessão…</div><div class="spin"></div></div></div>
 <div id="app">
 <div class="topbar">
   <div class="brand">
@@ -1544,8 +1559,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, {
     auth: {
-      persistSession: false,
-      detectSessionInUrl: false  // ⚠️ deixa o cliente da Fase 8 (auth real) cuidar do hash OAuth
+      persistSession: true,           // ⚠️ compartilha sessão com Fase 8 (auth)
+      autoRefreshToken: true,
+      detectSessionInUrl: false        // ⚠️ Fase 8 cuida do hash OAuth — evita race
     }
   });
 
@@ -1729,10 +1745,20 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   // ── Boot ────────────────────────────────────────────────────────────
+  // ⚠️ NUNCA chama loadRemote sem auth confirmada (RLS exige JWT autenticado).
+  // Espera o evento 'cb-auth-valid' disparado pela Fase 8 ao confirmar sessão.
   function boot(){
     ensurePill();
     wrapWhenReady();
-    loadRemote().then(subscribeRealtime);
+    waitForAuthValid().then(() => {
+      loadRemote().then(subscribeRealtime);
+    });
+  }
+  function waitForAuthValid(){
+    return new Promise((resolve) => {
+      if (window._cbAuthValid) return resolve();
+      document.addEventListener('cb-auth-valid', () => resolve(), { once: true });
+    });
   }
 
   if (document.readyState === 'loading'){
@@ -5816,8 +5842,26 @@ document.addEventListener('DOMContentLoaded',()=>{
     setTimeout(removeBypassLink, 200);
   }
 
+  // ── Helpers do gate de pré-auth ─────────────────────────────────────
+  function markAuthValid(){
+    if (window._cbAuthValid) return;
+    window._cbAuthValid = true;
+    document.dispatchEvent(new Event('cb-auth-valid'));
+  }
+  function hideSplash(){
+    document.body.classList.remove('cb-pre-auth');
+    document.body.classList.add('cb-auth-ready');
+    setTimeout(() => document.getElementById('cb-splash')?.remove(), 400);
+  }
+  function showLoginGate(){
+    // Mostra login MAS mantém o app oculto (cb-pre-auth) até o login completar.
+    // Tira o splash pra revelar a tela de login.
+    document.getElementById('cb-splash')?.remove();
+    if (typeof window.cbShowLogin === 'function') window.cbShowLogin();
+    setTimeout(() => { removeBypassLink(); }, 30);
+  }
+
   // Listener pra mudanças de sessão (login, logout, refresh, INITIAL_SESSION)
-  // INITIAL_SESSION dispara após detectSessionInUrl terminar (caso haja hash OAuth)
   let initialSessionHandled = false;
   sb.auth.onAuthStateChange((event, session) => {
     console.log('[CB Auth] state change:', event, 'has session:', !!session);
@@ -5825,15 +5869,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       initialSessionHandled = true;
       if (session && session.user){
         hideLogin();
+        hideSplash();
+        markAuthValid();
         applyRoleFromUser(session.user);
       } else {
-        showLogin();
+        showLoginGate();
       }
     } else if (event === 'SIGNED_IN' && session && session.user){
       hideLogin();
+      hideSplash();
+      markAuthValid();
       applyRoleFromUser(session.user);
     } else if (event === 'SIGNED_OUT'){
-      showLogin();
+      // Recarrega pra resetar estado e voltar pro gate
+      location.reload();
     } else if (event === 'TOKEN_REFRESHED' && session && session.user){
       applyRoleFromUser(session.user);
     }
@@ -5843,7 +5892,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(() => {
     if (!initialSessionHandled){
       console.warn('[CB Auth] INITIAL_SESSION não disparou em 3s — fallback');
-      showLogin();
+      showLoginGate();
     }
   }, 3000);
 
