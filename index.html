@@ -825,219 +825,7 @@ function expandOccs(seg){
   return segs.length?segs:[seg];
 }
 function expandSegs(task){const out=[];task.segs.forEach(seg=>{expandOccs(seg).forEach(s=>out.push(s));});return out;}
-let TASKS=[
-  // ── BUSINESS TRAVEL ──────────────────────────────────────────────────────
-  // Wave 1 (04-18 mai): Fundação — habilita tudo mais
-  // Wave 2 (19 mai-01 jun): Ganhos rápidos de visibilidade e base comercial
-  // Wave 3 (02-22 jun): Ativação de canais
-  // Wave 4 (23 jun+): Escala e recorrência
-  {G:'✈️ BUSINESS TRAVEL'},
-  {id:'bt01',bu:['corp'],n:'BT | Conteúdo Orgânico no LinkedIn',o:'',pri:'Alta — imediata',
-   wave:1,waveNote:'Visibilidade imediata, custo zero, impacto rápido',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-11',lbl:'Estratégia'},
-         {t:'run',s:'2026-05-12',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'bt02',bu:['corp'],n:'BT | ABM Lite (Nichos)',o:'',pri:'Alta — imediata',
-   wave:2,waveNote:'Geração de demanda qualificada — ativa base de leads existente',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-01',lbl:'Estratégia'},
-         {t:'run',s:'2026-06-02',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'bt03',bu:['corp'],n:'BT | Réguas de Nutrição (Base Geral, Alagev, etc.)',o:'',pri:'Alta — imediata',
-   wave:2,waveNote:'Ativa base existente com baixo esforço e alto retorno',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-01',lbl:'Estratégia'},
-         {t:'run',s:'2026-06-02',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'bt04',bu:['corp'],n:'BT | Premiações | Viagens Corporativas',o:'',pri:'Alta — imediata',
-   wave:2,waveNote:'Posicionamento de marca — datas fixas não podem ser perdidas',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-01',lbl:'Estudo e definição'},
-         {t:'occ',s:'2026-06-02',e:'2027-04-30',lbl:'Conforme calendário de eventos'}]},
-  {id:'bt05',bu:['corp'],n:'BT | Newsletter via e-mail',o:'',pri:'Alta — imediata',
-   wave:3,waveNote:'Nutri base e mantém marca viva — inicia mensal antes de escalar',
-   segs:[{t:'build',s:'2026-06-02',e:'2026-06-15',lbl:'Estruturação e testes'},
-         {t:'launch',s:'2026-06-16',e:'2026-08-15',lbl:'Mensal (2 meses)',freq:'monthly'},
-         {t:'run',s:'2026-08-16',e:'2027-04-30',lbl:'Quinzenal',freq:'2x_month'}]},
-  {id:'bt06',bu:['corp'],n:'BT | Estratégia de SEO/GEO',o:'',pri:'Alta',
-   wave:3,waveNote:'Resultado de médio prazo — começar logo para colher em 3-4 meses',
-   segs:[{t:'build',s:'2026-06-02',e:'2026-06-15',lbl:'Estratégia (2 sem)'},
-         {t:'run',s:'2026-06-16',e:'2027-04-30',lbl:'2 publicações/semana',freq:'2x_week'}]},
-  {id:'bt07',bu:['corp'],n:'BT | Tráfego Pago (MOFU/TOFU/BOFU/Remarketing/ABM Ads)',o:'',pri:'Alta',
-   wave:3,waveNote:'Amplifica ABM Lite — depende de estratégia e criativos prontos',
-   segs:[{t:'build',s:'2026-06-16',e:'2026-06-29',lbl:'Definição de estratégia'},
-         {t:'run',s:'2026-06-30',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'bt08',bu:['corp'],n:'BT | Revisão de Propostas',o:'',pri:'Prioridade máxima',
-   wave:1,waveNote:'Impacto direto em conversão — precisa estar pronto antes de ativar ABM',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-18',lbl:'Revisão inicial'},
-         {t:'occ',s:'2026-11-01',e:'2026-11-15',lbl:'Revisão semestral'}]},
-  {id:'bt09',bu:['corp'],n:'BT | Sales Enablement (Playbooks, Battlecards, Apresentações)',o:'',pri:'Alta',
-   wave:2,waveNote:'Apoia ABM e ciclo de vendas — ganho rápido para equipe comercial',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-29',lbl:'Criação'},
-         {t:'occ',s:'2026-11-01',e:'2026-11-15',lbl:'Revisão semestral'}]},
-  {id:'bt10',bu:['corp'],n:'BT | Porta-vozes / Liderança no LinkedIn',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-06-30',e:'2026-07-13',lbl:'Definição de estratégia'},
-         {t:'run',s:'2026-07-14',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'bt11',bu:['corp'],n:'BT | Estudo de Feiras, Eventos e Patrocínios',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-06-30',e:'2026-07-31',lbl:'Estudo e definição'},
-         {t:'occ',s:'2026-08-01',e:'2027-04-30',lbl:'Conforme calendário'}]},
-  {id:'bt12',bu:['corp'],n:'BT | Co-criação de Conteúdo (Clientes e Fornecedores)',o:'',pri:'Média',
-   segs:[{t:'run',s:'2026-07-01',e:'2027-04-30',lbl:'Mensal',freq:'monthly'}]},
-  {id:'bt13',bu:['corp'],n:'BT | Costa Brava Experience',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-08-15',lbl:'Criação do mídia kit'},
-         {t:'occ',s:'2026-08-16',e:'2027-04-30',lbl:'Conforme programação'}]},
-
-  // ── CS — BUSINESS TRAVEL ─────────────────────────────────────────────────
-  {G:'🤝 CS — BUSINESS TRAVEL'},
-  {id:'cs01',bu:['cs'],n:'CS BT | Revisão de Processos de Alertas de Viagem',o:'',pri:'Alta',
-   wave:2,waveNote:'Melhora experiência imediata do cliente — processo único rápido',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-05-31',lbl:'Processo único'}]},
-  {id:'cs02',bu:['cs'],n:'CS BT | Comunicação de Produtos e Processos',o:'',pri:'Alta',
-   segs:[{t:'run',s:'2026-06-01',e:'2027-04-30',lbl:'Mínimo 2x/mês',freq:'2x_month'}]},
-  {id:'cs03',bu:['cs'],n:'CS BT | Criação de Portfólio de Cases e Depoimentos',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-08-31',lbl:'Criação inicial'},
-         {t:'run',s:'2026-09-01',e:'2027-04-30',lbl:'Acompanhamento mensal',freq:'monthly'}]},
-  {id:'cs04',bu:['cs'],n:'CS BT | Análise de NPS e CSAT e Plano de Ação',o:'',pri:'Média',
-   segs:[{t:'occ',s:'2026-08-01',e:'2027-04-30',lbl:'Trimestral',freq:'quarterly'}]},
-  {id:'cs05',bu:['cs'],n:'CS BT | Ações de BID Avoidance',o:'',pri:'Baixa',
-   segs:[{t:'build',s:'2026-08-01',e:'2026-09-15',lbl:'Definição de estratégia'},
-         {t:'run',s:'2026-09-16',e:'2027-04-30',lbl:'Conforme demanda'}]},
-  {id:'cs06',bu:['cs'],n:'CS BT | Comitê de Clientes',o:'',pri:'Baixa',
-   segs:[{t:'build',s:'2026-09-01',e:'2026-10-31',lbl:'Definição de estratégia'},
-         {t:'occ',s:'2026-11-01',e:'2027-04-30',lbl:'Conforme calendário'}]},
-
-  // ── LIVE MARKETING ───────────────────────────────────────────────────────
-  {G:'🎪 LIVE MARKETING'},
-  {id:'lm01',bu:['live'],n:'LM | Conteúdo Orgânico no LinkedIn',o:'',pri:'Alta — imediata',
-   wave:1,waveNote:'Espelha BT — visibilidade imediata e custo zero',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-11',lbl:'Estratégia'},
-         {t:'run',s:'2026-05-12',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'lm02',bu:['live'],n:'LM | ABM Lite (Nichos)',o:'',pri:'Alta — imediata',
-   wave:2,waveNote:'Prospecção B2B qualificada — core do negócio LM',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-01',lbl:'Estratégia'},
-         {t:'run',s:'2026-06-02',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'lm03',bu:['live'],n:'LM | Réguas de Nutrição (Base Geral)',o:'',pri:'Alta — imediata',
-   wave:2,waveNote:'Ativa base existente — resultado imediato sem investimento extra',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-01',lbl:'Estratégia'},
-         {t:'run',s:'2026-06-02',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'lm04',bu:['live'],n:'LM | Premiações',o:'',pri:'Alta — imediata',
-   wave:2,waveNote:'Calendário fixo — perder datas tem custo alto de oportunidade',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-01',lbl:'Estudo e definição'},
-         {t:'occ',s:'2026-06-02',e:'2027-04-30',lbl:'Conforme calendário'}]},
-  {id:'lm05',bu:['live'],n:'LM | Newsletter via e-mail',o:'',pri:'Alta — imediata',
-   wave:3,waveNote:'Nutrição da base — escala quinzenal após validação mensal',
-   segs:[{t:'build',s:'2026-06-02',e:'2026-06-15',lbl:'Estruturação e testes'},
-         {t:'launch',s:'2026-06-16',e:'2026-08-15',lbl:'Mensal (2 meses)',freq:'monthly'},
-         {t:'run',s:'2026-08-16',e:'2027-04-30',lbl:'Quinzenal',freq:'2x_month'}]},
-  {id:'lm06',bu:['live'],n:'LM | Estratégia de SEO/GEO',o:'',pri:'Alta — imediata',
-   wave:3,waveNote:'Médio prazo — iniciar para colher resultados em Set/26',
-   segs:[{t:'build',s:'2026-06-02',e:'2026-06-15',lbl:'Estratégia (2 sem)'},
-         {t:'run',s:'2026-06-16',e:'2027-04-30',lbl:'2 publicações/semana',freq:'2x_week'}]},
-  {id:'lm07',bu:['live'],n:'LM | Tráfego Pago',o:'',pri:'Alta',
-   wave:3,waveNote:'Amplifica ABM Lite — depende de criativos e landing pages',
-   segs:[{t:'build',s:'2026-06-16',e:'2026-06-29',lbl:'Definição de estratégia'},
-         {t:'run',s:'2026-06-30',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'lm08',bu:['live'],n:'LM | Sales Enablement (Playbooks, Battlecards, Apresentações)',o:'',pri:'Alta',
-   wave:2,waveNote:'Apoia time comercial — retorno imediato em conversão',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-29',lbl:'Criação'},
-         {t:'occ',s:'2026-11-01',e:'2026-11-15',lbl:'Revisão semestral'}]},
-  {id:'lm09',bu:['live'],n:'LM | Porta-vozes / Liderança no LinkedIn',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-06-30',e:'2026-07-13',lbl:'Definição de estratégia'},
-         {t:'run',s:'2026-07-14',e:'2027-04-30',lbl:'Recorrente'}]},
-  {id:'lm10',bu:['live'],n:'LM | Estudo de Feiras, Eventos e Patrocínios',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-06-30',e:'2026-07-31',lbl:'Estudo e definição'},
-         {t:'occ',s:'2026-08-01',e:'2027-04-30',lbl:'Conforme calendário'}]},
-  {id:'lm11',bu:['live'],n:'LM | Costa Brava Experience + Mídia Kit',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-08-15',lbl:'Criação do mídia kit'},
-         {t:'occ',s:'2026-08-16',e:'2027-04-30',lbl:'Conforme programação'}]},
-  {id:'lm12',bu:['live'],n:'LM | Co-criação de Conteúdo (Clientes e Fornecedores)',o:'',pri:'Média',
-   segs:[{t:'run',s:'2026-07-01',e:'2027-04-30',lbl:'Mensal',freq:'monthly'}]},
-  {id:'cs_lm01',bu:['cs'],n:'CS LM | Comunicação de Produtos e Processos',o:'',pri:'Média',
-   segs:[{t:'run',s:'2026-06-01',e:'2027-04-30',lbl:'Mínimo 2x/mês',freq:'2x_month'}]},
-  {id:'cs_lm02',bu:['cs'],n:'CS LM | Análise de NPS e CSAT e Plano de Ação',o:'',pri:'Média',
-   segs:[{t:'occ',s:'2026-08-01',e:'2027-04-30',lbl:'Trimestral',freq:'quarterly'}]},
-  {id:'cs_lm03',bu:['cs'],n:'CS LM | Criação de Portfólio de Cases e Depoimentos',o:'',pri:'Alta',
-   wave:2,waveNote:'Prova social — aceleradora de vendas, pode iniciar com casos existentes',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-30',lbl:'Criação inicial'},
-         {t:'run',s:'2026-07-01',e:'2027-04-30',lbl:'Conforme demanda'}]},
-
-  // ── YOU BY COSTA BRAVA ───────────────────────────────────────────────────
-  {G:'✨ YOU BY COSTA BRAVA'},
-  {id:'yo01',bu:['you'],n:'YOU | Revisar Estratégia de Conteúdos Orgânicos',o:'',pri:'Alta — imediata',
-   wave:1,waveNote:'Base para todos os canais YOU — precisa vir primeiro',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-18',lbl:'Processo único'}]},
-  {id:'yo02',bu:['you'],n:'YOU | Revisar Estratégia de Conteúdos para E-mail MKT',o:'',pri:'Alta',
-   wave:2,waveNote:'Canal de maior conversão no segmento luxo — ativar logo',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-05-31',lbl:'Revisão de estratégia'},
-         {t:'run',s:'2026-06-01',e:'2027-04-30',lbl:'Envios semanais',freq:'weekly'}]},
-  {id:'yo03',bu:['you'],n:'YOU | Catálogo Digital de Destinos por Estilo de Viagem',o:'',pri:'Alta',
-   wave:2,waveNote:'Asset comercial central — suporte direto a propostas e vendas',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-30',lbl:'Criação'},
-         {t:'run',s:'2026-07-01',e:'2027-04-30',lbl:'Alimentação conforme demanda'}]},
-  {id:'yo04',bu:['you'],n:'YOU | Revisão / Criação de Materiais e Comunicações de Venda',o:'',pri:'Alta',
-   wave:2,waveNote:'Impacto direto em fechamento — cresce conversão sem novos leads',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-30',lbl:'Criação'},
-         {t:'run',s:'2026-07-01',e:'2027-04-30',lbl:'Alimentação conforme demanda'}]},
-  {id:'yo05',bu:['you'],n:'YOU | Revisar / Criar Estratégia de Crosseling (B2B2C)',o:'',pri:'Alta',
-   wave:3,waveNote:'Expansão de receita em base existente — alto ROI',
-   segs:[{t:'build',s:'2026-06-02',e:'2026-06-30',lbl:'Processo único'}]},
-  {id:'yo06',bu:['you'],n:'YOU | Estratégia de SEO/GEO',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-07-14',lbl:'Estratégia (2 sem)'},
-         {t:'run',s:'2026-07-15',e:'2027-04-30',lbl:'2 publicações/semana',freq:'2x_week'}]},
-  {id:'yo07',bu:['you'],n:'YOU | Mapeamento de Eventos / Parceiros Regionais',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-08-15',lbl:'Definição de estratégia'},
-         {t:'occ',s:'2026-08-16',e:'2027-04-30',lbl:'Conforme calendário'}]},
-  {id:'yo08',bu:['you'],n:'YOU | Planejamento de Ações de Relacionamento',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-06-01',e:'2026-06-30',lbl:'Criação do planejamento'},
-         {t:'run',s:'2026-07-01',e:'2027-04-30',lbl:'Recorrente conforme demanda'}]},
-  {id:'yo09',bu:['you'],n:'YOU | Co-criação de Conteúdos com Fornecedores',o:'',pri:'Média',
-   segs:[{t:'run',s:'2026-07-01',e:'2027-04-30',lbl:'Mensal',freq:'monthly'}]},
-  {id:'yo10',bu:['you'],n:'YOU | Criar Programa de Cashback',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-08-01',e:'2026-09-15',lbl:'Criação'},
-         {t:'run',s:'2026-09-16',e:'2027-04-30',lbl:'2x/mês',freq:'2x_month'}]},
-  {id:'yo11',bu:['you'],n:'YOU | Diretório de Depoimentos de Clientes',o:'',pri:'Baixa',
-   segs:[{t:'build',s:'2026-08-01',e:'2026-09-30',lbl:'Criação'},
-         {t:'run',s:'2026-10-01',e:'2027-04-30',lbl:'Alimentação conforme demanda'}]},
-  {id:'yo12',bu:['you'],n:'YOU | Estudo de Microinfluenciadores (Luxo/Lifestyle/Local)',o:'',pri:'Baixa',
-   segs:[{t:'build',s:'2026-09-01',e:'2026-09-30',lbl:'Processo único'}]},
-  {id:'yo13',bu:['you'],n:'YOU | Revisar Opções de Kit de Viagem',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-07-31',lbl:'Processo único'}]},
-  {id:'yo14',bu:['you'],n:'YOU | Remodelar Produto Vale-viagem',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-07-31',lbl:'Processo único'}]},
-
-  // ── CI / ENDOMARKETING ───────────────────────────────────────────────────
-  {G:'📣 CI / ENDOMARKETING'},
-  {id:'ci01',bu:['endo'],n:'CI | Revisão do Plano Geral de CI e Endomarketing',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-31',lbl:'Processo único'}]},
-  {id:'ci02',bu:['endo'],n:'CI | Revisão dos Canais de Comunicação (Diário, LigaNews, CBTrends)',o:'',pri:'Alta',
-   wave:1,waveNote:'Infra interna — habilita endomkt e comunicação de lançamentos',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-31',lbl:'Processo único'}]},
-
-  // ── TECHHUB ──────────────────────────────────────────────────────────────
-  {G:'🔧 TECHHUB'},
-  {id:'th01',bu:['tech'],n:'TechHub | Apresentação Charlie Bravo',o:'',pri:'Alta',
-   wave:1,waveNote:'Base comunicacional do produto — habilita plano de comunicação',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-18',lbl:'Processo único'}]},
-  {id:'th02',bu:['tech'],n:'TechHub | Plano de Comunicação Charlie Bravo',o:'',pri:'Alta',
-   wave:2,waveNote:'Depende da apresentação — sequência natural',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-06-01',lbl:'Processo único'}]},
-  {id:'th03',bu:['tech'],n:'TechHub | Diretório de Tutoriais',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-06-02',e:'2026-07-31',lbl:'Criação'},
-         {t:'run',s:'2026-08-01',e:'2027-04-30',lbl:'Alimentação conforme demanda'}]},
-
-  // ── GERAL ─────────────────────────────────────────────────────────────────
-  {G:'🌐 GERAL'},
-  {id:'ge01',bu:['geral'],n:'Conclusão / Organização do CRM e RD Marketing',o:'',pri:'Em andamento',
-   wave:1,waveNote:'Infraestrutura base — tudo depende do CRM funcionando',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-06-15',lbl:'Em andamento'}]},
-  {id:'ge02',bu:['geral'],n:'Revisar Calendário de Datas Comemorativas',o:'',pri:'Alta',
-   wave:1,waveNote:'Quick win — garante oportunidades de comunicação não perdidas',
-   segs:[{t:'build',s:'2026-05-04',e:'2026-05-11',lbl:'Processo único'}]},
-  {id:'ge03',bu:['geral'],n:'Revisão Estrutural do Site Costa Brava',o:'',pri:'Alta',
-   wave:2,waveNote:'Suporta SEO e conversão — urgente mas depende de briefing inicial',
-   segs:[{t:'build',s:'2026-05-19',e:'2026-07-15',lbl:'Processo único'}]},
-  {id:'ge04',bu:['geral'],n:'Criação de Dashboard Geral de MKT',o:'',pri:'Alta',
-   wave:3,waveNote:'Gestão baseada em dados — faz sentido após canais ativos',
-   segs:[{t:'build',s:'2026-06-16',e:'2026-07-31',lbl:'Processo único'}]},
-  {id:'ge05',bu:['geral'],n:'Imprensa | Envio de Press Release',o:'',pri:'Em andamento',
-   segs:[{t:'run',s:'2026-05-04',e:'2027-04-30',lbl:'2 pautas/mês',freq:'2x_month'}]},
-  {id:'ge06',bu:['geral'],n:'Revisão da Estratégia de Crosseling',o:'',pri:'Média',
-   segs:[{t:'build',s:'2026-07-01',e:'2026-07-31',lbl:'Processo único'}]},
-];
+let TASKS=[];
 function taskMatch(t,bu){if(bu==='all')return true;return t.bu&&t.bu.includes(bu);}
 function visibleTasks(){const out=[];let i=0;while(i<TASKS.length){if(TASKS[i].G){const sub=[];let j=i+1;while(j<TASKS.length&&!TASKS[j].G){if(taskMatch(TASKS[j],activeBU))sub.push(TASKS[j]);j++;}if(sub.length){out.push(TASKS[i]);sub.forEach(t=>out.push(t));}i=j;}else{i++;}}return out;}
 function buBadges(bus){if(activeBU!=='all')return'';if(bus.includes('all'))return'<span class="bb all">ALL</span>';return bus.map(b=>`<span class="bb ${b}">${b.toUpperCase()}</span>`).join('');}
@@ -1279,7 +1067,7 @@ let roadmapBuilt=false;
 function buildRoadmapTable(){if(roadmapBuilt)return;roadmapBuilt=true;const months=[{n:'Mai',y:2026,c:'#0F2037'},{n:'Jun',y:2026,c:'#1C3450'},{n:'Jul',y:2026,c:'#0F2037'},{n:'Ago',y:2026,c:'#1C3450'},{n:'Set',y:2026,c:'#0F2037'},{n:'Out',y:2026,c:'#1C3450'},{n:'Nov',y:2026,c:'#0F2037'},{n:'Dez',y:2026,c:'#1C3450'},{n:'Jan',y:2027,c:'#0F2037'},{n:'Fev',y:2027,c:'#1C3450'},{n:'Mar',y:2027,c:'#0F2037'},{n:'Abr',y:2027,c:'#1C3450'}];function getCell(task,mi){const md=new Date(months[mi].y,['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].indexOf(months[mi].n),1);const me=new Date(md.getFullYear(),md.getMonth()+1,0);const rawSegs=task.segs;let cells=['','','',''];rawSegs.forEach(seg=>{const expanded=expandOccs(seg);expanded.forEach(es=>{const sd=pd(es.s),ed=pd(es.e);if(ed<md||sd>me)return;for(let w=0;w<4;w++){const ws=new Date(md.getFullYear(),md.getMonth(),w*7+1);const we=new Date(md.getFullYear(),md.getMonth(),Math.min((w+1)*7,me.getDate()));if(sd<=we&&ed>=ws){const t=es.t;cells[w]=t==='occ'?'occ':(cells[w]||t);}}});});return cells;}let h='<table class="roadmap-table"><thead>';h+=`<tr><th class="lbl-col">Iniciativa</th>`;months.forEach(m=>{h+=`<th colspan="4" style="background:${m.c};">${m.n}'${String(m.y).slice(2)}</th>`;});h+=`</tr><tr><th class="lbl-week"></th>`;months.forEach((_,mi)=>{['S1','S2','S3','S4'].forEach((w,wi)=>{h+=`<th class="${wi===3?'month-end':''}" style="background:${mi%2===0?'#243B55':'#1C3450'}">${w}</th>`;});});h+='</tr></thead><tbody>';const taskGroups=[];let curGroup=null;TASKS.forEach(t=>{if(t.G){curGroup={g:t.G,tasks:[]};taskGroups.push(curGroup);}else if(curGroup){curGroup.tasks.push(t);}});taskGroups.forEach(grp=>{h+=`<tr class="cat-row"><td>${grp.g}</td><td colspan="${months.length*4}"></td></tr>`;grp.tasks.forEach(task=>{h+=`<tr class="data-row"><td class="row-label">${task.n}</td>`;months.forEach((m,mi)=>{const cells=getCell(task,mi);cells.forEach((c,wi)=>{const mend=wi===3?' m-end':'';let inner='';if(c==='build')inner=`<span class="cell-bar bar-build">B</span>`;else if(c==='launch')inner=`<span class="cell-bar bar-launch">L</span>`;else if(c==='run')inner=`<span class="cell-bar bar-run">▬</span>`;else if(c==='occ')inner=`<span class="bar-occ-sm"></span>`;h+=`<td class="month-cell${mend}">${inner}</td>`;});});h+='</tr>';});});h+='</tbody></table>';document.getElementById('roadmapWrap').innerHTML=h;}
 const RACI_COLS=['Carlos','Muriel','Bianca','Marina','Analista 1 (Content)','Analista 2 (Sales)','Vendas BT','Vendas LM','CS BT','CS LM','YOU','LM OPS','Fornecedores','Tecnologia','RH','Lucas (Externo)','PR / Agência MKT','Freela','RD Station','Enriq. Dados','Adobe Stock','Creative Cloud','Lovable','Capcut'];
 const RACI_COL_GROUPS=[{lbl:'Equipe de MKT',cols:[0,1,2,3,4,5],color:'#1A3C6E',light:'#EBF0F8'},{lbl:'Áreas Parceiras',cols:[6,7,8,9,10,11,12,13,14],color:'#166534',light:'#DCFCE7'},{lbl:'Recursos Externos',cols:[15,16,17],color:'#B45309',light:'#FDF3E3'},{lbl:'Ferramentas',cols:[18,19,20,21,22,23],color:'#6B3FA0',light:'#F3EEF9'}];
-const RACI_DATA=[{g:'1. AQUISIÇÃO DE CLIENTES'},{section:'SEO e GEO'},{a:'Definição de Estratégia para cada BU',v:['I','A/C','R','','','','','','','','','','','','','R','','','','','','','','']},{a:'Ajustes e melhorias técnicos',v:['I','A','A','','','','','','','','','','','','','R','R','','','','','','','']},{a:'Criação de Conteúdo para blog',v:['','I','A','','R','R','I','I','','','I','','','','','','','','','','X','','','']},{a:'Backlinks',v:['','C/I','C/I','','','','','','','','','','','','','','R','','','','','','','']},{a:'Report',v:['I','A','A','','','','','','','','','','','','','R','','','','','','','','']},{section:'Gestão RD Station MKT e CRM'},{a:'Definição de escopo de trabalho',v:['A/I','R','R','','','C','R','R','','','R','','','','','R','','','','','','','','']},{a:'Enriquecimento de dados',v:['I','R','R','','','I','R','R','','','R','','','','','R','','','X','','','','','']},{a:'Automações e melhoria contínua',v:['I','A','R/A','','','R','R','R','','','R','','','C','','R','','','','X','','','','']},{section:'Awareness Ads (TOFU)'},{a:'Estratégia para cada BU (BT / LM)',v:['A','R/A','R','','','','I','I','','','','','','','','C','R','','','','','','','']},{a:'Criativos e LPs',v:['','R','R','R','','R','I','I','','','','','','','','C','R','','','','X','X','','']},{a:'Gestão de tráfego',v:['','A','A','','','','I','I','','','','','','','','','R','','','X','','','','']},{section:'PR e Assessoria de Imprensa'},{a:'Definição de Estratégia',v:['A','R','R','','C','','C','C','C','C','C','','','C','','','','','','','','','','']},{a:'Produção de pautas / releases',v:['A','A/C','A/C','','C','','C','C','C','C','C','','','C','','R','','','','','','','','']},{a:'Interface com portais / imprensa',v:['','I','I','','','','','','','','','','','','','R','','','','','','','','']},{a:'Participação em entrevistas',v:['R','C','C','','','','R','R','','','R','','','','','R','','','','','','','','']},{a:'Report',v:['I','A/I','A/I','','','','','','','','','','','','','R','','','','','','','','']},{section:'Patrocínio e Anúncios'},{a:'Estudo e validação de oportunidades',v:['A','R','R','','','C','','','','','','','','','','','','','','','','','','']},{a:'Conteúdo / Criativos',v:['A','A','A','R','','R','','','','','','','','','','','','','','','X','X','','']},{section:'Social Orgânico'},{a:'Definição de Estratégia para cada BU',v:['A/I','R/A','R','','I','I','R','R','','','R','','','','','R','R','','','','','','','']},{a:'Calendário de publicações',v:['','A','R','','R','R','','','','','','','','','','','','','','','','','','']},{a:'Produção do conteúdo',v:['','A/I','A','','R','R','','','','','','','','','','','','','','','','','','']},{a:'Criativo',v:['','A/I','A','R','C','C','','','','','','','','','','C','R','','','','X','X','X','X']},{a:'Report',v:['','','A','R','I','I','','','','','','','','','','C','R','','','','','','','']},{section:'Porta-vozes e Liderança no LinkedIn'},{a:'Definição de Estratégia',v:['A/I','R/A','R','','','C','','','','','','','','','','R','','','','','','','','']},{a:'Suporte e seleção de conteúdos',v:['A/I','R','C','','','','R','','','','','','','','','R','','','','','','','','']},{a:'Interação e conexões',v:['A/I','A/C','R','R','','','R','','','','','','','','','R','','','','','','','','']},{a:'Produção do conteúdo / Criativo',v:['A/I','A','R/A','','','R','','','','','','','','','','C','R','','','','X','X','X','X']},{section:'ABM Lite / ABM'},{a:'Definição de Estratégia (LM e BT)',v:['A/I','R/A','R','','','C','','','','','','','','','','R','','','','','','','','']},{a:'Mapeamento e seleção de empresas alvo',v:['A/I','R','C','','','','R','','','','','','','','','R','','','','','','','','']},{a:'Criação de conteúdo / cases',v:['A/I','A/C','R','R','','','R','','','','','','','','','R','','','','','X','X','X','X']},{a:'Produção do conteúdo / Criativo',v:['A/I','A','R/A','','','R','','','','','','','','','','C','R','','','','','','','']},{section:'Feiras e Premiações'},{a:'Mapeamento e seleção',v:['R/A','R','R','','','C','R','R','','','R','','','','','R','','','','','','','','']},{a:'Operação',v:['I','R','R','','','R','R','','','','','R','','','','R','','','','','','','','']},{a:'Comunicação',v:['I','A/C','R','R','','R','R','','','','','','','','','R','','','','','','','','']},{a:'Report',v:['I','R','R','','','','','','','','','','','','','C','R','','','','','','','']},{g:'2. NUTRIÇÃO DE LEADS'},{section:'Nutrição de Leads'},{a:'Criação de estratégias e réguas por funil',v:['I','R','R','','','C','R','R','','','C','','','','','R','','','','','','','','']},{a:'Newsletters',v:['I','A','R/A','R','R','R','C','C','','','C','','','','','','','','','','','','','']},{a:'LPs',v:['I','A/C','R/A','R','','R','C','C','','','C','','','','','','R','','','','','','','']},{a:'Conteúdos ricos (Whitepapers e E-books)',v:['I','R/A','R/A','R','','R','C','C','','','C','','','','','C','?','','','','','','','']},{a:'Report',v:['I','R/A','R','','','','I','I','','','I','','','','','','','','','','','','','']},{section:'Ads (MOFU) / Remarketing'},{a:'Estratégia para cada BU (BT / LM)',v:['A','R/A','R','','','','I','I','','','','','','','','C','R','','','','','','','']},{a:'Criativos e LPs',v:['','R','R','R','','R','I','I','','','','','','','','C','R','','','','X','X','','']},{a:'Gestão de tráfego',v:['','A','A','','','','I','I','','','','','','','','','R','','','X','','','','']},{section:'Eventos Próprios e Webinars'},{a:'Mapeamento e seleção',v:['R/A','R','R','','','C','R','R','','','R','','','','','','','','','','','','','']},{a:'Operação',v:['I','R','R','','','R','R','','','','','R','','','','','','','','','','','','']},{a:'Comunicação',v:['I','A/C','R','R','','R','R','','','','','','','','','','','','','','','','','']},{a:'Captação de recursos',v:['R','R','R','R','','','','','','','','','R','','','','','','','','','','','']},{a:'Report',v:['I','R','R','','','','','','','','','','','','','','','','','','','','','']},{section:'Sales Enablement'},{a:'Battlecards e playbooks',v:['A','R','R','','','','R','R','','','R','','','','','R','','','','','','','','']},{a:'Produção e revisão de materiais',v:['A','R/A','R/A','R','','R','R','R','','','','R','','','','I','','','','','','','','']},{g:'3. COMUNICAÇÃO COM CLIENTES'},{section:'Comunicação com Clientes'},{a:'Envio de informativos e alertas',v:['I','I/C','I/C','','','','','','R','','','','','C','','','','','','','','','','']},{a:'Newsletters / Notícias de mercado',v:['I','R','R','R','R','','','','C','','','','','','','','','','','','','','','']},{a:'Novas features / Comunicação de produto',v:['I','R','R','R','','R','','','R','','','','','R','','','','','','','','','','']},{section:'Ações de Relacionamento'},{a:'Connects, Camps e Almoços',v:['A/I','R','R','','','R','','','R','','','','','','','','','','','','','','','']},{a:'Produção e envio de brindes',v:['I','R','R','R','R','','','','R','','','','','','','','','','','','','','','']},{a:'Análise de indicadores',v:['R','R','R','R','','','R','R','R','','','','','R','','','','','','','','','','']},{a:'Ações para Bid Avoidance',v:['I','R','R','','','','','','R','','','','','','','','','','','','','','','']},{g:'4. POTENCIALIZAÇÃO DE CLIENTES'},{section:'Potencialização'},{a:'Crosselling e upselling / ABM expansão',v:['A/I','R','R','','','','R','R','R','','','R','','','','R','','','','','','','','']},{a:'Programas de indicação',v:['I','R','R','R','R','','','','R','','','','','','','','','','','','','','','']},{a:'Depoimentos e Cases / Advocacy',v:['I','R','R','R','','R','R','R','R','','','R','','','','I','','','','','','','','']},{section:'CI e Endomarketing'},{a:'Definição de estratégia e calendário',v:['','R','R','','','','','','','','','','','','R','','','','','','','','','']},{a:'Produção e envio de comunicações',v:['','A','A','','R','','','','','','','','','','A','','','','','','','','','']},{a:'Execução de ações de Endomarketing',v:['','A','R/A','','R','','','','','','','','','','R/A','','','','','','','','','']}];
+const RACI_DATA=[];
 let raciBuilt=false;
 function buildRaciTable(){if(raciBuilt)return;raciBuilt=true;const sel=document.getElementById('raciPerson');RACI_COLS.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});renderRaciTable(RACI_DATA);}
 function filterRaci(){const search=(document.getElementById('raciSearch').value||'').toLowerCase().trim();const person=document.getElementById('raciPerson').value;const role=document.getElementById('raciRole').value;const pi=person?RACI_COLS.indexOf(person):-1;const filtered=RACI_DATA.filter(row=>{if(row.g||row.section)return true;if(search&&!row.a.toLowerCase().includes(search))return false;if(pi>=0&&role){return(row.v[pi]||'').toUpperCase().includes(role.toUpperCase());}else if(pi>=0){const cell=(row.v[pi]||'').trim();return cell!==''&&cell!=='_';}else if(role){return row.v.some(c=>(c||'').toUpperCase().includes(role.toUpperCase()));}return true;});const clean=[];for(let i=0;i<filtered.length;i++){if(filtered[i].section){let found=false;for(let j=i+1;j<filtered.length;j++){if(filtered[j].g||filtered[j].section)break;found=true;break;}if(found)clean.push(filtered[i]);}else{clean.push(filtered[i]);}}renderRaciTable(clean);}
@@ -5900,6 +5688,116 @@ document.addEventListener('DOMContentLoaded',()=>{
   setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 50);
   setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 500);
   setTimeout(() => { removeModeBanner(); removeBypassLink(); }, 2000);
+})();
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FASE 9 — Storage Resolver (signed URLs + bucket privado)            ║
+   ║  Intercepta toda URL de storage e gera signed URL via API autenticada.║
+   ║  Permite tornar o bucket privado sem quebrar anexos/logos/fotos      ║
+   ║  já salvos (extrai path da URL pública antiga e re-assina).          ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+(function cbPhase9_StorageResolver(){
+  if (window.cbResolveStorageUrl) return;
+
+  const BUCKET = 'roadmap-attachments';
+  const cache = new Map();                              // path -> { url, expiresAt }
+  const TTL_MS = 1000 * 60 * 60 * 24 * 6;               // 6 dias (URL dura 7)
+  const SIGN_SECONDS = 60 * 60 * 24 * 7;                // 7 dias
+
+  function _extractPath(stored){
+    if (!stored) return null;
+    if (typeof stored !== 'string') return null;
+    // path puro
+    if (!/^https?:\/\//i.test(stored)) return stored;
+    // URL pública/assinada antiga: /storage/v1/object/(public|sign)/<bucket>/<path>
+    const re = new RegExp('/storage/v1/object/(?:public|sign)/' + BUCKET + '/([^?]+)');
+    const m = stored.match(re);
+    if (m) {
+      try { return decodeURIComponent(m[1]); } catch(_){ return m[1]; }
+    }
+    return null;
+  }
+
+  async function _signOne(path){
+    const cfg = window.CB_SUPABASE;
+    if (!cfg || !window.supabase) throw new Error('Supabase indisponível');
+    const sb = window.supabase.createClient(cfg.URL, cfg.ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    });
+    const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(path, SIGN_SECONDS);
+    if (error) throw error;
+    return data.signedUrl;
+  }
+
+  window.cbResolveStorageUrl = async function(stored){
+    const path = _extractPath(stored);
+    if (!path) return stored;                           // não é storage — devolve cru
+    const now = Date.now();
+    const hit = cache.get(path);
+    if (hit && hit.expiresAt > now) return hit.url;
+    try {
+      const url = await _signOne(path);
+      cache.set(path, { url, expiresAt: now + TTL_MS });
+      return url;
+    } catch(e){
+      console.warn('[Phase9] storage resolve fail', path, e && e.message);
+      return stored;                                    // fallback (vai 400 se bucket privado)
+    }
+  };
+
+  // Logo — patch cbApplyBrandLogo pra resolver async antes de setar src
+  const _origApplyLogo = window.cbApplyBrandLogo;
+  window.cbApplyBrandLogo = function(){
+    const img = document.getElementById('cb-brand-logo');
+    const fb  = document.getElementById('cb-brand-fallback');
+    const stored = window.cbBrand && window.cbBrand.logo_url;
+    if (img){
+      if (stored){
+        img.style.display = '';
+        if (fb) fb.style.display = 'none';
+        window.cbResolveStorageUrl(stored).then(u => { if (u) img.src = u; });
+      } else {
+        img.style.display = 'none';
+        if (fb) fb.style.display = '';
+      }
+    } else if (fb){
+      fb.style.display = stored ? 'none' : '';
+    }
+  };
+
+  // Anexos de tarefa — intercepta clique e resolve antes de abrir
+  document.addEventListener('click', async function(e){
+    const a = e.target && e.target.closest && e.target.closest('.cb-attach-item .name');
+    if (!a) return;
+    const href = a.getAttribute('href');
+    if (!href || !/storage\/v1\/object/.test(href)) return;
+    e.preventDefault();
+    try {
+      const resolved = await window.cbResolveStorageUrl(href);
+      window.open(resolved, '_blank', 'noopener');
+    } catch(err){
+      console.error('[Phase9] attach open', err);
+      window.open(href, '_blank', 'noopener');
+    }
+  }, true);
+
+  // Fotos de membro — patch cbRenderTeamPage pra re-resolver <img> após render
+  const _origRenderTeam = window.cbRenderTeamPage;
+  if (typeof _origRenderTeam === 'function'){
+    window.cbRenderTeamPage = function(){
+      _origRenderTeam.apply(this, arguments);
+      setTimeout(() => {
+        document.querySelectorAll('.cb-team-photo img').forEach(img => {
+          const src = img.getAttribute('src') || '';
+          if (/storage\/v1\/object/.test(src)){
+            window.cbResolveStorageUrl(src).then(u => {
+              if (u && u !== src) img.src = u;
+            });
+          }
+        });
+      }, 60);
+    };
+  }
 })();
 </script>
 </body>
