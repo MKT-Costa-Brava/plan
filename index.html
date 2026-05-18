@@ -4704,7 +4704,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     'admin_team':        ['master'],                  // editar Equipe
     'admin_users':       ['master'],                  // gerenciar acessos
     'admin_brand':       ['master'],                  // trocar logo / branding
-    'edit_attachments':  ['master','adm','normal']    // remover anexos próprios
+    'edit_attachments':  ['master','adm','normal'],   // remover anexos próprios
+    'add_activity':      ['master','adm']              // criar nova atividade (datas iniciais ok no modal)
   };
   window.cbCan = function(action){
     const role = cbCurrentRole();
@@ -4936,7 +4937,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     wrapRestricted('cbUpdateMemberField', 'admin_team', 'Alterar dados de integrante');
     wrapRestricted('cbUploadMemberPhoto', 'admin_team', 'Trocar foto');
     // Datas / atividades (master + adm)
-    wrapRestricted('confirmAddRow', 'edit_dates', 'Adicionar atividade');
+    wrapRestricted('confirmAddRow', 'add_activity', 'Adicionar atividade');
     // Brand
     wrapRestricted('cbChangeLogo', 'admin_brand', 'Trocar logo');
     // Logo banner: mostrar role atual no topbar
