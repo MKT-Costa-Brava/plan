@@ -6418,7 +6418,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     const host = document.getElementById('cb-newsletter-root');
     if (!host) return;
     try {
-      const src = atob(NL_SRC_B64);
+      const _bin = atob(NL_SRC_B64);
+      const _bytes = Uint8Array.from(_bin, c => c.charCodeAt(0));
+      const src = new TextDecoder('utf-8').decode(_bytes);
       const out = window.Babel.transform(src, { presets: ['react', 'env'] }).code;
       // Executa o código (define window.NewsletterBuilder)
       new Function(out)();
