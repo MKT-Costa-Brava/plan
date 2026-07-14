@@ -5695,6 +5695,62 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 
 /* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  FASE 13 — Aba Base de Alvos (iframe embed)                          ║
+   ║  Carrega alvos.html (arquivo separado no mesmo repo) via iframe pra  ║
+   ║  preservar CSS/estrutura originais.                                   ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+(function cbPhase13_AlvosTab(){
+  if (window.__cbAlvosMounted) return;
+  window.__cbAlvosMounted = true;
+
+  // CSS
+  if (!document.getElementById('cb-phase13-style')){
+    const s = document.createElement('style');
+    s.id = 'cb-phase13-style';
+    s.textContent = `
+      #vAlvos{display:none;padding:0;flex-direction:column;height:calc(100vh - 113px);background:#f4f4f4;}
+      #vAlvos.active{display:flex;}
+      #vAlvos > iframe{flex:1 1 0;width:100%;border:none;background:#fff;}
+    `;
+    document.head.appendChild(s);
+  }
+
+  // Adiciona aba no nav
+  function ensureTab(){
+    const nav = document.querySelector('.nav-tabs-wrap');
+    if (!nav || document.querySelector('[data-cb-alvos]')) return;
+    const b = document.createElement('button');
+    b.className = 'nav-tab';
+    b.dataset.cbAlvos = '1';
+    b.setAttribute('onclick', "setView('alvos')");
+    b.innerHTML = '🎯 Base de Alvos';
+    nav.appendChild(b);
+  }
+
+  // Cria view-page
+  function ensureView(){
+    if (document.getElementById('vAlvos')) return;
+    const v = document.createElement('div');
+    v.className = 'view-page';
+    v.id = 'vAlvos';
+    v.innerHTML = '<iframe id="cb-alvos-iframe" src="./alvos.html" title="Base de Alvos por Segmento & BU"></iframe>';
+    const app = document.getElementById('app');
+    if (app) app.appendChild(v);
+  }
+
+  // Registra na VIEWS map
+  function ensureRouted(){
+    if (typeof VIEWS !== 'undefined' && !VIEWS.alvos){
+      VIEWS.alvos = 'vAlvos';
+    }
+  }
+
+  ensureTab();
+  ensureView();
+  ensureRouted();
+})();
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
    ║  FASE 12 — Newsletter Builder (Diário de Bordo + futuros LM/BT)      ║
    ║  Lazy carrega React+Babel+Tabler na 1ª ativação. Componente em base64║
    ║  é decodificado, compilado pelo Babel, e renderizado no host.        ║
