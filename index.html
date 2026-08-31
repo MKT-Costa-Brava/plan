@@ -7218,25 +7218,24 @@ document.addEventListener('DOMContentLoaded',()=>{
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
 <style id="cb-onda-j-style">
   /* ═══ ONDA J — Menu retrátil estilo Supabase + limpeza topbar + avatar usuário no rail ═══ */
-  :root{ --cb-side-current:304px; }
-  body[data-side-collapsed] { --cb-side-current:60px; }
-  body #app{ padding-left:var(--cb-side-current) !important; transition:padding-left .18s; }
-  body .cb-side{ width:var(--cb-side-current) !important; transition:width .18s; overflow:hidden; }
-  body[data-side-collapsed] .cb-side{ width:60px !important; }
-  body[data-side-collapsed] .cb-ctx{ display:none !important; }
-  body[data-side-collapsed] .cb-rail{ border-right:1px solid #E4E9EF !important; }
-
-  /* Botão toggle no topo do painel */
-  .cb-side-toggle{
-    position:absolute; top:12px; right:8px; z-index:5;
-    width:24px; height:24px; border-radius:6px; border:1px solid #E4E9EF;
-    background:#FFFFFF; color:#6B7280; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    padding:0;
+  /* Rail sempre 60px — painel VIEWS aparece no hover como flyout */
+  body #app{ padding-left:60px !important; transition:padding-left .18s; }
+  body .cb-side{ width:60px !important; overflow:visible !important; }
+  body .cb-ctx{
+    position:absolute !important; left:60px !important; top:0; bottom:0;
+    width:244px !important;
+    transform:translateX(-104%) !important; opacity:0 !important; pointer-events:none !important;
+    transition:transform .18s ease, opacity .12s ease !important;
+    background:#FFFFFF !important;
+    box-shadow:6px 0 22px rgba(15,32,55,.08) !important;
+    border-right:1px solid #E4E9EF !important;
+    z-index:55 !important;
+    padding:16px 12px 14px !important;
   }
-  .cb-side-toggle:hover{ background:#F0F3F7; color:var(--cb-navy); }
-  .cb-side-toggle svg{ width:14px; height:14px; stroke:currentColor; stroke-width:1.8; fill:none; transition:transform .18s; }
-  body[data-side-collapsed] .cb-side-toggle{ position:fixed; left:66px; top:12px; right:auto; }
-  body[data-side-collapsed] .cb-side-toggle svg{ transform:rotate(180deg); }
+  body .cb-side:hover .cb-ctx,
+  body .cb-side.cb-pinned .cb-ctx{ transform:translateX(0) !important; opacity:1 !important; pointer-events:auto !important; }
+  /* Botão toggle removido — hover expand */
+  .cb-side-toggle{ display:none !important; }
 
   /* Header do painel com título grupo */
   .cb-side-title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:13.5px; font-weight:700; color:var(--cb-navy); padding:14px 12px 12px; letter-spacing:-.005em; }
@@ -7677,25 +7676,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   function setupToggle(){
-    const side = document.querySelector('.cb-side'); if (!side) return;
-    if (document.querySelector('.cb-side-toggle')) return;
-    const btn = document.createElement('button');
-    btn.className = 'cb-side-toggle';
-    btn.title = 'Recolher menu';
-    btn.innerHTML = svg('M15 18l-6-6 6-6');
-    // fica no .cb-side (não no ctx que some quando colapsado)
-    side.appendChild(btn);
-    // estado inicial do localStorage
-    if (localStorage.getItem('cbSideCollapsed') === '1') document.body.dataset.sideCollapsed = '1';
-    btn.addEventListener('click', () => {
-      if (document.body.dataset.sideCollapsed){
-        delete document.body.dataset.sideCollapsed;
-        localStorage.removeItem('cbSideCollapsed');
-      } else {
-        document.body.dataset.sideCollapsed = '1';
-        localStorage.setItem('cbSideCollapsed', '1');
-      }
-    });
+    // Onda J v2: hover expand. Limpa estado antigo e remove toggle se existir.
+    delete document.body.dataset.sideCollapsed;
+    localStorage.removeItem('cbSideCollapsed');
+    document.querySelector('.cb-side-toggle')?.remove();
   }
 
   function setupUserAvatar(){
@@ -7832,7 +7816,8 @@ document.addEventListener('DOMContentLoaded',()=>{
         <div>Escolha um módulo no menu ao lado.</div>
       </div>`;
     } else if (group.views.length){
-      html += `<div class="cb-i-section"><div class="cb-i-kicker">Views</div>`;
+      const kicker = (RAIL.find(r=>r.g===cur)?.title || 'Views');
+      html += `<div class="cb-i-section"><div class="cb-i-kicker">${kicker}</div>`;
       group.views.forEach(v => {
         const isActive = window.currentView === v.view;
         html += `<button class="cb-i-item${v.soon?' disabled':''}${isActive?' active':''}" data-view="${v.view}">
