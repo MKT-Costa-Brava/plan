@@ -5014,14 +5014,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     const url = (window.cbBrand && window.cbBrand.logo_url) || null;
     return `
       <div class="cb-login-card">
-        <span class="cb-login-status">Preview · sem auth real</span>
         ${url
           ? `<img class="cb-login-logo" src="${url}" alt="Costa Brava">`
           : `<div class="cb-login-fallback">Costa Brava</div>`
         }
         <h1>Roadmap de Marketing</h1>
         <div class="subtitle">TMC Brasil 2026 — área restrita</div>
-        <div class="cb-login-domain">🔒 Acesso para <code>@costabrava.com.br</code></div>
+        <div class="cb-login-domain">Acesso para <code>@costabrava.com.br</code></div>
+
         <button class="cb-ms-btn" onclick="cbLoginMicrosoft()">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23 23" aria-hidden="true">
             <rect x="1" y="1" width="10" height="10" fill="#f25022"/>
@@ -5031,14 +5031,32 @@ document.addEventListener('DOMContentLoaded',()=>{
           </svg>
           Entrar com Microsoft
         </button>
+
+        <div class="cb-login-sep"><span>ou</span></div>
+
+        <form class="cb-login-form" onsubmit="event.preventDefault();cbLoginPassword();">
+          <label>E-mail
+            <input type="email" id="cb-login-email" autocomplete="email" placeholder="voce@costabrava.com.br" required>
+          </label>
+          <label>Senha
+            <input type="password" id="cb-login-pass" autocomplete="current-password" placeholder="Sua senha" required>
+          </label>
+          <div class="cb-login-msg" id="cb-login-msg"></div>
+          <button type="submit" class="cb-login-btn">Entrar</button>
+        </form>
+
+        <div class="cb-login-actions">
+          <a onclick="cbLoginMagicLink()">Receber link mágico por e-mail</a>
+          <span class="cb-login-sep-dot">·</span>
+          <a onclick="cbLoginResetPass()">Redefinir senha</a>
+        </div>
+
         <div class="cb-login-help">
-          <a onclick="cbBypassLogin()">Pular login (modo dev / preview)</a>
-          <br><br>
-          Não tem acesso? Fale com <strong style="color:#0F2037;">Muriel Teixeira</strong>.
+          Sem cadastro? Fale com <strong style="color:#0F2037;">Muriel Teixeira</strong>.
         </div>
       </div>
       <div class="cb-login-footer">
-        © 2026 <strong>Costa Brava</strong> · Roadmap MKT v0.6 (Onda 1) · Login Microsoft <strong>aguarda credenciais TI</strong>
+        © 2026 <strong>Costa Brava</strong> · travel & events
       </div>
     `;
   }
@@ -5546,6 +5564,22 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // CSS
   const css = `
+.cb-login-sep{display:flex;align-items:center;gap:8px;margin:16px 0;color:#9CA3AF;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:600;}
+.cb-login-sep::before,.cb-login-sep::after{content:"";flex:1;height:1px;background:#E5E7EB;}
+.cb-login-form{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+.cb-login-form label{display:flex;flex-direction:column;gap:4px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#6B7280;font-weight:600;text-align:left;font-family:'Montserrat',sans-serif;}
+.cb-login-form input{padding:10px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:'Montserrat',sans-serif;color:#0F2037;background:#fff;transition:border-color .15s;text-transform:none;letter-spacing:normal;}
+.cb-login-form input:focus{outline:none;border-color:#8CB7C9;box-shadow:0 0 0 3px rgba(140,183,201,.15);}
+.cb-login-btn{padding:11px 16px;background:#0F2037;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .15s;letter-spacing:-.005em;}
+.cb-login-btn:hover{background:#000;}
+.cb-login-btn:disabled{background:#9CA3AF;cursor:not-allowed;}
+.cb-login-msg{font-size:11.5px;padding:8px 10px;border-radius:6px;text-align:left;line-height:1.4;display:none;}
+.cb-login-msg.error{display:block;background:#FEF2F2;color:#B91C1C;border:1px solid #FECACA;}
+.cb-login-msg.success{display:block;background:#ECFDF5;color:#065F46;border:1px solid #A7F3D0;}
+.cb-login-actions{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px;font-size:11.5px;}
+.cb-login-actions a{color:#5C8FA3;cursor:pointer;font-weight:500;text-decoration:none;}
+.cb-login-actions a:hover{text-decoration:underline;color:#0F2037;}
+.cb-login-sep-dot{color:#D4D4D4;font-weight:700;}
 .cb-user-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 5px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:99px;color:#fff;font-size:11px;margin-left:8px;cursor:pointer;font-family:'Montserrat',sans-serif;transition:all .15s;}
 .cb-user-pill:hover{background:rgba(255,255,255,.2);}
 .cb-user-pill .av{width:22px;height:22px;border-radius:50%;background:var(--cb-coral);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;font-family:'Space Grotesk',sans-serif;}
@@ -5568,6 +5602,74 @@ document.addEventListener('DOMContentLoaded',()=>{
       // Supabase redireciona pra Microsoft; não chega aqui em caso de sucesso
     } catch (e) {
       alert('Erro ao iniciar login Microsoft:\n' + e.message);
+    }
+  };
+
+  // Login com email + senha
+  window.cbLoginPassword = async function(){
+    const email = (document.getElementById('cb-login-email')?.value || '').trim().toLowerCase();
+    const pass = document.getElementById('cb-login-pass')?.value || '';
+    const msg = document.getElementById('cb-login-msg');
+    const btn = document.querySelector('.cb-login-btn');
+    function show(cls, text){ if(msg){ msg.className='cb-login-msg '+cls; msg.textContent=text; } }
+    if (!email.endsWith('@costabrava.com.br')){
+      show('error','Somente e-mails @costabrava.com.br são aceitos.');
+      return;
+    }
+    if (pass.length < 6){
+      show('error','Senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (btn){ btn.disabled=true; btn.textContent='Entrando…'; }
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      show('success','Autenticado. Carregando…');
+      setTimeout(()=>location.reload(), 400);
+    } catch(e){
+      show('error', e.message || 'Não foi possível entrar. Verifique e-mail e senha.');
+      if (btn){ btn.disabled=false; btn.textContent='Entrar'; }
+    }
+  };
+
+  // Magic link (OTP)
+  window.cbLoginMagicLink = async function(){
+    const email = (document.getElementById('cb-login-email')?.value || '').trim().toLowerCase();
+    const msg = document.getElementById('cb-login-msg');
+    function show(cls, text){ if(msg){ msg.className='cb-login-msg '+cls; msg.textContent=text; } }
+    if (!email.endsWith('@costabrava.com.br')){
+      show('error','Digite seu e-mail @costabrava.com.br no campo acima primeiro.');
+      return;
+    }
+    try {
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname, shouldCreateUser: false }
+      });
+      if (error) throw error;
+      show('success','Link enviado para '+email+'. Confira sua caixa de entrada.');
+    } catch(e){
+      show('error','Erro ao enviar link: ' + e.message);
+    }
+  };
+
+  // Reset de senha
+  window.cbLoginResetPass = async function(){
+    const email = (document.getElementById('cb-login-email')?.value || '').trim().toLowerCase();
+    const msg = document.getElementById('cb-login-msg');
+    function show(cls, text){ if(msg){ msg.className='cb-login-msg '+cls; msg.textContent=text; } }
+    if (!email.endsWith('@costabrava.com.br')){
+      show('error','Digite seu e-mail @costabrava.com.br no campo acima.');
+      return;
+    }
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname
+      });
+      if (error) throw error;
+      show('success','Link de redefinição enviado para '+email+'.');
+    } catch(e){
+      show('error','Erro: ' + e.message);
     }
   };
 
