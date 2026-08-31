@@ -7219,9 +7219,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 <style id="cb-onda-j-style">
   /* ═══ ONDA J — Menu retrátil estilo Supabase + limpeza topbar + avatar usuário no rail ═══ */
   /* Rail sempre 60px — painel VIEWS aparece no hover como flyout */
-  body #app{ padding-left:60px !important; transition:padding-left .18s; }
-  body .cb-side{ width:60px !important; overflow:visible !important; }
-  body .cb-ctx{
+  body div#app{ padding-left:60px !important; transition:padding-left .18s; }
+  body div.cb-side{ width:60px !important; overflow:visible !important; }
+  body div.cb-side > div.cb-ctx{
     position:absolute !important; left:60px !important; top:0; bottom:0;
     width:244px !important;
     transform:translateX(-104%) !important; opacity:0 !important; pointer-events:none !important;
@@ -7232,8 +7232,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     z-index:55 !important;
     padding:16px 12px 14px !important;
   }
-  body .cb-side.cb-open .cb-ctx,
-  body .cb-side.cb-pinned .cb-ctx{ transform:translateX(0) !important; opacity:1 !important; pointer-events:auto !important; }
+  body div.cb-side.cb-open > div.cb-ctx,
+  body div.cb-side.cb-pinned > div.cb-ctx{ transform:translateX(0) !important; opacity:1 !important; pointer-events:auto !important; }
   /* Botão toggle removido — hover expand */
   .cb-side-toggle{ display:none !important; }
 
