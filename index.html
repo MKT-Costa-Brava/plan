@@ -7641,6 +7641,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   function render(){
     const nav = document.getElementById('cb-ctx-nav') || document.querySelector('.cb-ctx > div:last-child');
     if (!nav) return;
+    // limpa classes de fases anteriores (accordion) que escondem o container
+    nav.className = ''; nav.id = 'cb-ctx-nav'; nav.style.display='block';
     const group = GROUPS[cur];
     let html = '';
     if (group.welcome){
