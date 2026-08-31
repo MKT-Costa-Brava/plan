@@ -7737,7 +7737,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   function boot(){
-    if (!document.querySelector('.cb-side')) { setTimeout(boot, 250); return; }
+    if (!document.querySelector('.cb-side') || !document.querySelector('.cb-side-footer')) { setTimeout(boot, 250); return; }
     // garante um #cb-ctx-nav dentro do .cb-ctx
     let nav = document.getElementById('cb-ctx-nav');
     if (!nav){
