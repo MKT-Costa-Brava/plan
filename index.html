@@ -7360,11 +7360,11 @@ document.addEventListener('DOMContentLoaded',()=>{
      tipografia editorial, mini-badge do pilar. Preserva 100% do comportamento (drag, resize, click). */
   .seg{ padding:0 8px !important; }
   .seg-lbl{
-    font-family:'Space Grotesk','Montserrat',sans-serif !important;
-    font-size:10.5px !important;
-    font-weight:700 !important;
-    letter-spacing:.06em !important;
-    text-transform:uppercase !important;
+    font-family:'Montserrat',sans-serif !important;
+    font-size:11px !important;
+    font-weight:600 !important;
+    letter-spacing:.005em !important;
+    text-transform:none !important;
     white-space:nowrap;
     overflow:hidden;
     text-overflow:ellipsis;
@@ -7374,12 +7374,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     pointer-events:none;
   }
   /* Mini-badge circular do pilar antes do texto */
-  .seg-lbl::before{
-    content:''; display:inline-block;
-    width:6px; height:6px; border-radius:50%;
-    background:currentColor; opacity:.65;
-    flex:none;
-  }
+  .seg-lbl::before{ display:none; }
   /* Barras estreitas: reduz label, esconde badge quando não cabe */
   .seg[style*="width: 2"] .seg-lbl::before,
   .seg[style*="width: 3"] .seg-lbl::before,
