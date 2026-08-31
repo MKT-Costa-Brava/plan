@@ -7216,6 +7216,43 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
+<style id="cb-onda-d-style">
+  /* ═══ ONDA D — Refino das barras do Gantt ═══ */
+  /* Labels internas das barras: sempre visíveis, sticky à esquerda quando barra ultrapassa o viewport,
+     tipografia editorial, mini-badge do pilar. Preserva 100% do comportamento (drag, resize, click). */
+  .seg{ padding:0 8px !important; }
+  .seg-lbl{
+    font-family:'Space Grotesk','Montserrat',sans-serif !important;
+    font-size:10.5px !important;
+    font-weight:700 !important;
+    letter-spacing:.06em !important;
+    text-transform:uppercase !important;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    position:sticky; left:8px;
+    display:inline-flex; align-items:center; gap:6px;
+    max-width:calc(100% - 8px);
+    pointer-events:none;
+  }
+  /* Mini-badge circular do pilar antes do texto */
+  .seg-lbl::before{
+    content:''; display:inline-block;
+    width:6px; height:6px; border-radius:50%;
+    background:currentColor; opacity:.65;
+    flex:none;
+  }
+  /* Barras estreitas: reduz label, esconde badge quando não cabe */
+  .seg[style*="width: 2"] .seg-lbl::before,
+  .seg[style*="width: 3"] .seg-lbl::before,
+  .seg[style*="width: 4"] .seg-lbl::before{ display:none; }
+  /* Reforça o borde/preenchimento (mantém as classes de pilar já existentes) */
+  .seg-build,.seg-launch,.seg-run,.seg-occ{ box-shadow:inset 0 0 0 1px rgba(0,0,0,.02); }
+  .seg-now{ box-shadow:0 0 0 1.5px #8CB7C9, inset 0 0 0 1px rgba(0,0,0,.02); }
+  /* Legenda: alinha ao novo estilo */
+  .leg{ font-family:'Space Grotesk','Montserrat',sans-serif; letter-spacing:.06em; text-transform:uppercase; }
+</style>
+
 <style id="cb-onda-b-style">
   :root{ --cb-rail-w:64px; --cb-ctx-w:236px; }
   /* Rail é a única coisa fixa — o contexto vira flyout */
