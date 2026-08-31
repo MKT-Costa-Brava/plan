@@ -7219,13 +7219,13 @@ document.addEventListener('DOMContentLoaded',()=>{
 <style id="cb-onda-i-style">
   /* ═══ ONDA I — Layout dupla rail branco + VIEWS + AÇÕES RÁPIDAS (fiel ao wireframe) ═══ */
   :root{ --cb-rail-w:60px !important; --cb-ctx-w:244px !important; --cb-side-w:304px !important; }
-  #app{ padding-left:304px !important; }
+  body #app{ padding-left:304px !important; }
 
   /* Sidebar container */
-  .cb-side{ width:304px !important; background:#FFFFFF !important; border-right:1px solid #E4E9EF !important; display:flex !important; }
+  body .cb-side{ width:304px !important; background:#FFFFFF !important; border-right:1px solid #E4E9EF !important; display:flex !important; }
 
   /* Rail — coluna estreita branca com ícones outline */
-  .cb-rail{ display:flex !important; width:60px !important; background:#FFFFFF !important; border-right:1px solid #F0F3F7 !important; flex-direction:column !important; align-items:center !important; padding:14px 0 12px !important; gap:6px !important; }
+  body .cb-rail{ display:flex !important; width:60px !important; background:#FFFFFF !important; border-right:1px solid #F0F3F7 !important; flex-direction:column !important; align-items:center !important; padding:14px 0 12px !important; gap:6px !important; }
   .cb-rail-logo{ width:32px !important; height:32px !important; background:transparent !important; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:8px; cursor:pointer; }
   .cb-rail-logo svg{ stroke:#8CB7C9 !important; }
   .cb-rail-btn{ width:42px !important; height:42px !important; border-radius:10px !important; color:#9CA3AF !important; background:transparent !important; display:flex !important; align-items:center !important; justify-content:center !important; gap:0 !important; }
@@ -7237,7 +7237,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cb-rail-user{ width:32px !important; height:32px !important; margin-top:auto; font-size:11px !important; }
 
   /* Contexto — painel branco 244px sempre visível */
-  .cb-ctx{ position:relative !important; left:0 !important; width:244px !important; transform:none !important; opacity:1 !important; pointer-events:auto !important; background:#FFFFFF !important; box-shadow:none !important; border-right:none !important; padding:18px 12px 14px !important; }
+  body .cb-ctx{ position:relative !important; left:0 !important; width:244px !important; transform:none !important; opacity:1 !important; pointer-events:auto !important; background:#FFFFFF !important; box-shadow:none !important; border-right:none !important; padding:18px 12px 14px !important; }
   /* Esconde o accordion da Onda H — usaremos layout VIEWS/AÇÕES */
   .cb-acc, .cb-acc-brand{ display:none !important; }
 
