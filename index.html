@@ -7683,9 +7683,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     btn.className = 'cb-side-toggle';
     btn.title = 'Recolher menu';
     btn.innerHTML = svg('M15 18l-6-6 6-6');
-    // adiciona ao ctx
-    const ctx = document.querySelector('.cb-ctx');
-    if (ctx) ctx.appendChild(btn); else side.appendChild(btn);
+    // fica no .cb-side (não no ctx que some quando colapsado)
+    side.appendChild(btn);
     // estado inicial do localStorage
     if (localStorage.getItem('cbSideCollapsed') === '1') document.body.dataset.sideCollapsed = '1';
     btn.addEventListener('click', () => {
