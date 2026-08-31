@@ -7216,6 +7216,83 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
+<style id="cb-onda-e-style">
+  /* ═══ ONDA E — Modo claro editorial (branco predominante, como nos wireframes) ═══ */
+  :root{
+    --cb-page-bg:#FAFBFC;
+    --cb-page-panel:#FFFFFF;
+    --cb-page-border:#E4E9EF;
+    --cb-page-border-soft:#F0F3F7;
+  }
+  body{ background:var(--cb-page-bg) !important; color:var(--cb-navy) !important; }
+
+  /* Topbar — branca, borda inferior sutil, texto navy */
+  .topbar{
+    background:#FFFFFF !important;
+    border-bottom:1px solid var(--cb-page-border) !important;
+    color:var(--cb-navy) !important;
+    box-shadow:0 1px 0 rgba(15,32,55,.02);
+  }
+  .topbar, .topbar *:not(.leg):not(.today-chip):not(.cb-sync-pill):not(button):not(.master-badge){ color:var(--cb-navy); }
+  /* Logo branco vira navy (via filtro) */
+  .topbar img{ filter:brightness(0) saturate(100%) invert(10%) sepia(21%) saturate(2074%) hue-rotate(180deg) brightness(93%) contrast(93%); }
+  .today-chip{ background:#EEF5F8 !important; color:var(--cb-navy) !important; border:1px solid #DDE9EF !important; }
+  .cb-topbar-btn{ background:var(--cb-page-bg) !important; color:var(--cb-navy) !important; border:1px solid var(--cb-page-border) !important; }
+  .cb-topbar-btn:hover{ background:#EEF5F8 !important; border-color:#8CB7C9 !important; }
+  /* Botões zoom do gantt */
+  .btn-z{ background:#F0F3F7 !important; color:var(--cb-navy) !important; border:1px solid var(--cb-page-border) !important; }
+  .btn-z:hover{ background:#EEF5F8 !important; border-color:#8CB7C9 !important; }
+  .zoom-lbl{ color:var(--cb-navy) !important; }
+  /* Legenda de pilar */
+  .legend{ color:var(--cb-navy); }
+  .leg{ background:#F0F3F7; padding:2px 8px; border-radius:99px; }
+
+  /* Filter-bar — branca */
+  .filter-bar{
+    background:#FFFFFF !important;
+    border-bottom:1px solid var(--cb-page-border) !important;
+    color:var(--cb-navy) !important;
+  }
+  .filter-lbl{ color:#6B7280 !important; }
+  .fbtn{ color:#4B5563 !important; background:transparent !important; }
+  .fbtn:hover{ background:#F0F3F7 !important; color:var(--cb-navy) !important; }
+  .fbtn.active{ background:#EEF5F8 !important; color:var(--cb-navy) !important; box-shadow:inset 0 0 0 1px #8CB7C9; }
+  .fdiv{ background:var(--cb-page-border) !important; }
+  .fcnt{ color:inherit !important; opacity:.6; }
+
+  /* Chip "em execução" */
+  .filter-bar > .chip, .filter-bar span[class*="exec"]{ background:#EEF5F8; color:var(--cb-navy); }
+
+  /* Grupos do Gantt (BU headers): navy → cinza claro com acento azul */
+  .g-row{
+    background:#F7F8FA !important;
+    color:var(--cb-navy) !important;
+    border-left:3px solid #8CB7C9 !important;
+    border-bottom:1px solid var(--cb-page-border) !important;
+  }
+
+  /* Header meses/dias */
+  .date-hdr{ background:#FFFFFF !important; border-bottom:1px solid var(--cb-page-border) !important; }
+  .hdr-months, .hdr-days{ background:#FFFFFF !important; }
+  .hdr-week{ color:#6B7280 !important; border-right-color:var(--cb-page-border-soft) !important; }
+  .hdr-week.month-end{ border-right-color:var(--cb-page-border) !important; }
+  .canvas-grid{ background:var(--cb-page-border-soft) !important; }
+  .month-sep{ background:var(--cb-page-border) !important; }
+
+  /* Área de canvas do gantt */
+  .gantt-chart-wrap{ background:var(--cb-page-bg) !important; }
+  .gantt-names{ background:#FFFFFF !important; border-right:1px solid var(--cb-page-border) !important; box-shadow:none !important; }
+  .t-name{ color:var(--cb-navy) !important; }
+
+  /* Home já é clara — reforça */
+  #vHome{ background:var(--cb-page-bg) !important; }
+
+  /* Splash de sincronização — mantém azul, não navy */
+  .cb-sync-pill{ background:#EEF5F8; color:var(--cb-navy); border:1px solid #DDE9EF; }
+  .cb-sync-pill.ok{ background:#DCFCE7; color:#166534; border-color:#86EFAC; }
+  .cb-sync-pill.err{ background:#FEE2E2; color:#991B1B; border-color:#FCA5A5; }
+</style>
+
 <style id="cb-onda-d-style">
   /* ═══ ONDA D — Refino das barras do Gantt ═══ */
   /* Labels internas das barras: sempre visíveis, sticky à esquerda quando barra ultrapassa o viewport,
