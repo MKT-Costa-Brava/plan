@@ -7216,6 +7216,65 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
+<style id="cb-onda-g-style">
+  /* ═══ ONDA G — Refinos wireframe ═══ */
+  /* 1. Esconde MASTER / Backup / Importar / Histórico da topbar (vão pra Configurações) */
+  .cb-topbar-btn{ display:none !important; }
+  /* 2. Remove borda esquerda das linhas de task */
+  .t-row{ border-left:none !important; }
+  /* 3. Esconde linha "22 em execução" */
+  #alertBar{ display:none !important; }
+  /* 4. Header meses do gantt em pill navy */
+  .date-hdr{ background:transparent !important; border-bottom:1px solid var(--cb-page-border) !important; }
+  .hdr-months{
+    background:var(--cb-navy) !important;
+    color:#fff !important;
+    height:28px !important;
+    font-family:'Space Grotesk','Montserrat',sans-serif !important;
+    font-size:11px !important;
+    font-weight:700 !important;
+    letter-spacing:.16em !important;
+    text-transform:uppercase !important;
+  }
+  .hdr-months > *{ color:#fff !important; }
+  .hdr-days{ background:#FFFFFF !important; border-bottom:1px solid var(--cb-page-border) !important; }
+  .hdr-week{ color:#6B7280 !important; font-size:10px !important; font-family:'Space Grotesk','Montserrat',sans-serif !important; font-weight:600 !important; }
+  .hdr-week.today, .hdr-week[class*="today"]{ background:#EEF5F8 !important; color:var(--cb-navy) !important; border-radius:99px !important; font-weight:800 !important; }
+  /* Chip "SEG 31/08" que aparece flutuando em cima da linha do hoje — vira estilo wireframe navy pill */
+  #todayChip, .today-chip{ background:var(--cb-navy) !important; color:#fff !important; border:none !important; border-radius:99px; padding:4px 12px; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+  /* 5. Grupo do gantt: fundo bem claro + acento navy à esquerda + ícone Lucide inline substitui emoji */
+  .g-row{
+    background:#F9FAFB !important;
+    color:var(--cb-navy) !important;
+    border-left:3px solid var(--cb-navy) !important;
+    padding-left:16px !important;
+    font-family:'Space Grotesk','Montserrat',sans-serif !important;
+    font-size:11px !important;
+    font-weight:700 !important;
+    letter-spacing:.16em !important;
+    text-transform:uppercase !important;
+  }
+  .cb-glyph{ width:15px; height:15px; margin-right:9px; stroke:currentColor; stroke-width:1.6; fill:none; flex-shrink:0; display:inline-block; vertical-align:middle; opacity:.9; }
+  /* 6. Tag BU (CORP/LIVE/etc): cinza clara arredondada, sem coloração forte */
+  .bb{ background:#F3F4F6 !important; color:#6B7280 !important; box-shadow:none !important; padding:3px 8px !important; border-radius:99px !important; font-size:9.5px !important; font-weight:700 !important; letter-spacing:.06em !important; border:1px solid transparent !important; }
+  /* 7. Chips "em execução" (não mostrados agora mas manter estilo caso reativem) */
+  .filter-bar .chip, .filter-bar > span{ background:#fff !important; border:1px solid var(--cb-page-border) !important; color:var(--cb-navy) !important; }
+  /* 8. Force Montserrat/Space Grotesk universal — evita fontes com cara de IA */
+  body, input, textarea, select, button{ font-family:'Montserrat',-apple-system,sans-serif !important; }
+  h1,h2,h3,h4,h5,.cb-ctx-title,.cb-home-h1,.cb-home-hi,.hdr-months,.g-row,.cb-nova{ font-family:'Space Grotesk','Montserrat',sans-serif !important; }
+  /* remove qualquer fonte serifada ou monospace remanescente */
+  code, kbd, pre, samp{ font-family:'Montserrat',sans-serif !important; }
+  /* Botão "Configurações" no rodapé da sidebar (ícone gear + label) */
+  .cb-side-config{ display:flex; align-items:center; gap:9px; padding:9px 12px; border-radius:8px; cursor:pointer; font-size:12.5px; font-weight:500; color:#6B7280; background:transparent; border:1px solid var(--cb-page-border-soft, #F0F3F7); font-family:'Montserrat',sans-serif; transition:all .15s; }
+  .cb-side-config:hover{ background:#F0F3F7; color:var(--cb-navy); }
+  .cb-side-config svg{ width:14px; height:14px; stroke:currentColor; stroke-width:1.7; fill:none; }
+  .cb-config-panel{ position:fixed; left:236px; bottom:82px; z-index:60; background:#FFFFFF; border:1px solid var(--cb-page-border); border-radius:10px; box-shadow:0 8px 32px rgba(15,32,55,.12); padding:8px; display:none; min-width:220px; }
+  .cb-config-panel.open{ display:block; }
+  .cb-config-panel button{ display:flex; align-items:center; gap:9px; width:100%; text-align:left; padding:8px 10px; border-radius:6px; border:none; background:transparent; cursor:pointer; font-family:'Montserrat',sans-serif; font-size:12.5px; color:var(--cb-navy); }
+  .cb-config-panel button:hover{ background:#F0F3F7; }
+  .cb-config-panel button svg{ width:14px; height:14px; stroke:currentColor; stroke-width:1.7; fill:none; }
+</style>
+
 <style id="cb-onda-f-style">
   /* ═══ ONDA F — Alinhamento fiel aos wireframes: sidebar branca única + tipografia editorial ═══ */
   :root{ --cb-side-w:236px !important; }
@@ -7449,6 +7508,107 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cb-home-badge.soon{ background:#FEF3C7; color:#92400E; }
   .cb-home-badge.new{ background:#DCFCE7; color:#166534; }
 </style>
+
+<script id="cb-onda-g-boot">
+(function(){
+  // === Mapa emoji → Lucide SVG path ===
+  const ICON = {
+    '✈️': 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z',
+    '✈': 'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z',
+    '🎉': 'M5.8 11.3 2 22l10.7-3.79M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2 17 7l-3-3-2 2 3 3-5 5-3-3-2 2 3 3-4 4M18 4l1 1M20 7l1 1',
+    '🎊': 'M5.8 11.3 2 22l10.7-3.79M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2 17 7l-3-3-2 2 3 3-5 5-3-3-2 2 3 3-4 4M18 4l1 1M20 7l1 1',
+    '💎': 'M6 3h12l4 6-10 12L2 9z M12 21 8.5 9M12 21 15.5 9M2 9h20',
+    '🤝': 'M11 17a3 3 0 0 1-4.24 0l-2.83-2.83a3 3 0 0 1 0-4.24l9.19-9.19M11 17l3.24-3.24a3 3 0 0 1 4.24 0L21 16.34M11 17l-2.83 2.83a3 3 0 0 1-4.24 0M17 8l4-4M8 17l-2 2',
+    '🔧': 'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
+    '💛': 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+    '❤': 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+    '📢': 'M3 11l18-5v12L3 14v-3zM11.6 16.8a3 3 0 1 1-5.8-1.6',
+    '⚙': 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+    '🚀': 'M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2zM9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5',
+  };
+  const EMOJI_RE = /^\s*([\p{Extended_Pictographic}️])+\s*/u;
+
+  function makeSvg(d){
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('class','cb-glyph');
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', d); p.setAttribute('stroke-linecap','round'); p.setAttribute('stroke-linejoin','round');
+    svg.appendChild(p); return svg;
+  }
+  function upgradeGroupRow(row){
+    if (row.dataset.cbUpgraded) return; row.dataset.cbUpgraded='1';
+    const first = row.firstChild;
+    if (!first) return;
+    const text = row.textContent || '';
+    const m = text.match(EMOJI_RE);
+    if (!m) return;
+    const emoji = m[1];
+    const d = ICON[emoji] || ICON['🔧']; // fallback wrench
+    const svg = makeSvg(d);
+    // remove emojis do início do texto no DOM
+    const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = walker.nextNode())){
+      const nm = n.nodeValue.match(EMOJI_RE);
+      if (nm){ n.nodeValue = n.nodeValue.replace(EMOJI_RE, ''); break; }
+    }
+    row.insertBefore(svg, row.firstChild);
+  }
+  function upgradeAllGroups(){
+    document.querySelectorAll('.g-row').forEach(upgradeGroupRow);
+  }
+
+  // === Configurações — dropdown com MASTER / Backup / Importar / Histórico ===
+  function ensureConfig(){
+    if (document.getElementById('cb-side-config')) return;
+    const foot = document.querySelector('.cb-side-footer'); if (!foot) return;
+    const btn = document.createElement('button');
+    btn.className='cb-side-config'; btn.id='cb-side-config';
+    btn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Configurações</span>`;
+    foot.insertBefore(btn, foot.firstChild);
+
+    const panel = document.createElement('div'); panel.className='cb-config-panel'; panel.id='cb-config-panel';
+    // busca botões originais escondidos
+    const findBtn = (rx) => Array.from(document.querySelectorAll('.cb-topbar-btn, button, [role=button]')).find(b => rx.test(b.textContent||''));
+    const items = [
+      { lbl:'Backup', icon:'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8', rx:/backup/i },
+      { lbl:'Importar', icon:'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12', rx:/importar/i },
+      { lbl:'Histórico', icon:'M1 4v6h6M3.51 15a9 9 0 1 0 2.13-9.36L1 10M12 7v5l4 2', rx:/histórico|historico/i },
+      { lbl:'Modo Master', icon:'M6 9l6 6 6-6', rx:/master/i },
+    ];
+    items.forEach(it => {
+      const b = document.createElement('button');
+      b.innerHTML = `<svg viewBox="0 0 24 24"><path d="${it.icon}"/></svg><span>${it.lbl}</span>`;
+      b.addEventListener('click', () => {
+        const src = findBtn(it.rx);
+        if (src) src.click();
+        panel.classList.remove('open');
+      });
+      panel.appendChild(b);
+    });
+    document.body.appendChild(panel);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && e.target !== btn) panel.classList.remove('open');
+    });
+  }
+
+  function boot(){
+    upgradeAllGroups();
+    ensureConfig();
+  }
+  const obs = new MutationObserver(() => { upgradeAllGroups(); });
+  function start(){
+    boot();
+    obs.observe(document.body, {childList:true, subtree:true});
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(start, 300));
+  else setTimeout(start, 300);
+})();
+</script>
 
 <script id="cb-onda-f-boot">
 (function(){
