@@ -7232,7 +7232,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     z-index:55 !important;
     padding:16px 12px 14px !important;
   }
-  body .cb-side:hover .cb-ctx,
+  body .cb-side.cb-open .cb-ctx,
   body .cb-side.cb-pinned .cb-ctx{ transform:translateX(0) !important; opacity:1 !important; pointer-events:auto !important; }
   /* Botão toggle removido — hover expand */
   .cb-side-toggle{ display:none !important; }
@@ -7676,10 +7676,28 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   function setupToggle(){
-    // Onda J v2: hover expand. Limpa estado antigo e remove toggle se existir.
+    // Onda J v2: hover expand controlado por JS.
     delete document.body.dataset.sideCollapsed;
     localStorage.removeItem('cbSideCollapsed');
     document.querySelector('.cb-side-toggle')?.remove();
+    const side = document.querySelector('.cb-side');
+    const ctx = document.querySelector('.cb-ctx');
+    if (!side || !ctx || side.dataset.cbHoverBound) return;
+    side.dataset.cbHoverBound = '1';
+    let leaveTimer;
+    const open = () => { clearTimeout(leaveTimer); side.classList.add('cb-open'); };
+    const close = () => { leaveTimer = setTimeout(()=>side.classList.remove('cb-open'), 150); };
+    side.addEventListener('mouseenter', open);
+    side.addEventListener('mouseleave', close);
+    ctx.addEventListener('mouseenter', open);
+    ctx.addEventListener('mouseleave', close);
+    // fecha ao clicar em qualquer view/link do menu
+    ctx.addEventListener('click', (e) => {
+      if (e.target.closest('.cb-i-item[data-view]')) {
+        clearTimeout(leaveTimer);
+        setTimeout(()=>side.classList.remove('cb-open'), 120);
+      }
+    });
   }
 
   function setupUserAvatar(){
