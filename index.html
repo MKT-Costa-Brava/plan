@@ -7217,15 +7217,16 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
 <style id="cb-onda-b-style">
-  :root{ --cb-rail-w:64px; --cb-side-w:280px; }
-  #app{ padding-left:var(--cb-side-w); box-sizing:border-box; }
+  :root{ --cb-rail-w:64px; --cb-ctx-w:236px; }
+  /* Rail é a única coisa fixa — o contexto vira flyout */
+  #app{ padding-left:var(--cb-rail-w); box-sizing:border-box; }
   .topbar{ padding-left:16px !important; }
 
-  .cb-side{ position:fixed; left:0; top:0; bottom:0; width:var(--cb-side-w); background:#FAFAFB; border-right:1px solid #E5E7EB; display:flex; z-index:50; font-family:'Montserrat',sans-serif; }
+  .cb-side{ position:fixed; left:0; top:0; bottom:0; width:var(--cb-rail-w); z-index:50; font-family:'Montserrat',sans-serif; }
 
-  .cb-rail{ width:var(--cb-rail-w); background:var(--cb-navy); display:flex; flex-direction:column; align-items:center; padding:14px 0 12px; gap:2px; }
-  .cb-rail-logo{ width:36px; height:36px; border-radius:8px; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
-  .cb-rail-btn{ width:44px; height:44px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; color:rgba(255,255,255,.55); background:transparent; border:none; transition:all .18s; font-family:inherit; padding:0; }
+  .cb-rail{ position:relative; z-index:2; width:var(--cb-rail-w); height:100%; background:var(--cb-navy); display:flex; flex-direction:column; align-items:center; padding:14px 0 12px; gap:2px; }
+  .cb-rail-logo{ width:36px; height:36px; border-radius:8px; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; margin-bottom:10px; cursor:pointer; }
+  .cb-rail-btn{ width:44px; height:44px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; color:rgba(255,255,255,.55); background:transparent; border:none; transition:all .18s; font-family:inherit; padding:0; position:relative; }
   .cb-rail-btn:hover:not(.disabled){ background:rgba(255,255,255,.06); color:#fff; }
   .cb-rail-btn.active{ background:var(--cb-coral); color:#fff; }
   .cb-rail-btn.disabled{ opacity:.32; cursor:not-allowed; }
@@ -7234,21 +7235,55 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cb-rail-spacer{ flex:1; }
   .cb-rail-user{ width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#8CB7C9,#5C8FA3); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; letter-spacing:.02em; cursor:pointer; border:2px solid rgba(255,255,255,.15); }
 
-  .cb-ctx{ flex:1; display:flex; flex-direction:column; padding:16px 12px 14px; overflow:hidden; }
-  .cb-ctx-header{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#6B7280; padding:4px 10px 12px; }
-  .cb-ctx-title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:18px; font-weight:700; letter-spacing:-.01em; color:var(--cb-navy); padding:0 10px 6px; line-height:1.15; }
-  .cb-ctx-sub{ font-size:11px; color:#9CA3AF; padding:0 10px 14px; }
+  /* Flyout de contexto — aparece só sob demanda, colapsa após clique */
+  .cb-ctx{ position:absolute; left:var(--cb-rail-w); top:0; bottom:0; width:var(--cb-ctx-w); background:#FFFFFF; border-right:1px solid #E5E7EB; box-shadow:6px 0 24px rgba(15,32,55,.08); display:flex; flex-direction:column; padding:16px 12px 14px; overflow:hidden; transform:translateX(-100%); opacity:0; pointer-events:none; transition:transform .22s ease, opacity .18s ease; z-index:1; }
+  .cb-side.open .cb-ctx{ transform:translateX(0); opacity:1; pointer-events:auto; }
+  .cb-ctx-header{ display:flex; align-items:center; justify-content:space-between; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#6B7280; padding:2px 8px 10px; }
+  .cb-ctx-close{ width:22px; height:22px; border-radius:5px; border:none; background:transparent; color:#9CA3AF; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cb-ctx-close:hover{ background:#F3F4F6; color:var(--cb-navy); }
+  .cb-ctx-close svg{ width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; }
+  .cb-ctx-title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:17px; font-weight:700; letter-spacing:-.01em; color:var(--cb-navy); padding:0 8px 4px; line-height:1.15; }
+  .cb-ctx-sub{ font-size:11px; color:#9CA3AF; padding:0 8px 14px; line-height:1.4; }
   .cb-ctx-nav{ display:flex; flex-direction:column; gap:1px; flex:1; overflow-y:auto; }
-  .cb-ctx-btn{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:7px; font-size:12.5px; font-weight:500; color:#4B5563; cursor:pointer; background:transparent; border:none; text-align:left; font-family:inherit; transition:all .15s; }
+  .cb-ctx-btn{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:7px; font-size:12.5px; font-weight:500; color:#4B5563; cursor:pointer; background:transparent; border:none; text-align:left; font-family:inherit; transition:all .15s; }
   .cb-ctx-btn:hover:not(.disabled){ background:#F0F1F3; color:var(--cb-navy); }
   .cb-ctx-btn.active{ background:#EEF5F8; color:var(--cb-navy); font-weight:600; }
   .cb-ctx-btn svg{ width:15px; height:15px; stroke:currentColor; stroke-width:1.7; fill:none; flex-shrink:0; }
-  .cb-ctx-badge{ margin-left:auto; font-size:9px; font-weight:700; letter-spacing:.06em; padding:2px 6px; border-radius:99px; background:#F3F4F6; color:#9CA3AF; text-transform:uppercase; }
+
+  /* backdrop suave quando flyout aberto */
+  .cb-ctx-backdrop{ position:fixed; inset:0 0 0 var(--cb-rail-w); background:rgba(15,32,55,0); pointer-events:none; transition:background .18s; z-index:40; }
+  .cb-side.open ~ .cb-ctx-backdrop{ background:rgba(15,32,55,.08); pointer-events:auto; }
+
+  /* ══════════ ONDA C — Home visual ══════════ */
+  #vHome{ background:#F7F8FA; overflow-y:auto !important; }
+  #vHome.active{ display:flex !important; }
+  .cb-home-wrap{ max-width:1140px; margin:0 auto; padding:34px 32px 60px; width:100%; }
+  .cb-home-hi{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#8CB7C9; margin-bottom:8px; }
+  .cb-home-h1{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:38px; font-weight:700; letter-spacing:-.02em; color:var(--cb-navy); line-height:1.05; margin-bottom:10px; }
+  .cb-home-sub{ font-size:14px; color:#6B7280; max-width:640px; line-height:1.55; margin-bottom:34px; }
+  .cb-home-section-lbl{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#9CA3AF; margin:22px 0 14px; display:flex; align-items:center; gap:10px; }
+  .cb-home-section-lbl::after{ content:''; flex:1; height:1px; background:#E5E7EB; }
+  .cb-home-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+  .cb-home-card{ background:#fff; border:1px solid #E5E7EB; border-radius:12px; padding:18px 18px 16px; cursor:pointer; transition:all .18s ease; text-align:left; font-family:inherit; position:relative; overflow:hidden; display:flex; flex-direction:column; gap:10px; }
+  .cb-home-card:hover{ border-color:var(--cb-coral); transform:translateY(-1px); box-shadow:0 6px 18px rgba(15,32,55,.06); }
+  .cb-home-card.soon{ opacity:.7; cursor:default; }
+  .cb-home-card.soon:hover{ transform:none; border-color:#E5E7EB; box-shadow:none; }
+  .cb-home-icon{ width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,#EEF5F8,#DDE9EF); display:flex; align-items:center; justify-content:center; color:var(--cb-navy); }
+  .cb-home-icon svg{ width:20px; height:20px; stroke:currentColor; stroke-width:1.6; fill:none; }
+  .cb-home-card.soon .cb-home-icon{ background:#F3F4F6; color:#9CA3AF; }
+  .cb-home-card-title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:16px; font-weight:700; letter-spacing:-.01em; color:var(--cb-navy); }
+  .cb-home-card-desc{ font-size:12px; color:#6B7280; line-height:1.5; }
+  .cb-home-card-tags{ display:flex; flex-wrap:wrap; gap:5px; margin-top:2px; }
+  .cb-home-tag{ font-size:10px; font-weight:600; letter-spacing:.02em; color:#4B5563; background:#F3F4F6; padding:3px 8px; border-radius:99px; }
+  .cb-home-badge{ position:absolute; top:14px; right:14px; font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:3px 8px; border-radius:99px; }
+  .cb-home-badge.soon{ background:#FEF3C7; color:#92400E; }
+  .cb-home-badge.new{ background:#DCFCE7; color:#166534; }
 </style>
 
 <script id="cb-onda-b-boot">
 (function(){
   const RAIL = [
+    { g:'home',    lbl:'Home',    icon:'M3 12l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z', direct:true },
     { g:'plan',    lbl:'Plan',    icon:'M4 6h16M4 12h10M4 18h16', title:'Planejamento', subtitle:'Gestão de tarefas e cadência' },
     { g:'time',    lbl:'Time',    icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM16 3.13a4 4 0 0 1 0 7.75', title:'Time', subtitle:'Squad e RACI da equipe de MKT' },
     { g:'content', lbl:'Conteúdo',icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6', title:'Conteúdo', subtitle:'Newsletters, e-mail marketing, artigos', soon:true },
@@ -7280,8 +7315,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   function buildRail(){
     const rail = document.createElement('div'); rail.className = 'cb-rail';
-    const logo = document.createElement('div'); logo.className = 'cb-rail-logo';
+    const logo = document.createElement('div'); logo.className = 'cb-rail-logo'; logo.title='Home';
     logo.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#8CB7C9" stroke-width="1.6"><path d="M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>`;
+    logo.addEventListener('click', () => setGroup('home'));
     rail.appendChild(logo);
     RAIL.forEach(r => {
       const b = document.createElement('button');
@@ -7300,13 +7336,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   function buildCtx(){
     const ctx = document.createElement('div'); ctx.className='cb-ctx';
     ctx.innerHTML = `
-      <div class="cb-ctx-header">MKT Cockpit 2026</div>
+      <div class="cb-ctx-header"><span>MKT Cockpit 2026</span><button class="cb-ctx-close" title="Fechar" id="cb-ctx-close-btn"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
       <div class="cb-ctx-title" id="cb-ctx-title">Planejamento</div>
       <div class="cb-ctx-sub" id="cb-ctx-sub">Gestão de tarefas e cadência</div>
       <div class="cb-ctx-nav" id="cb-ctx-nav"></div>
     `;
     return ctx;
   }
+  function openCtx(){ document.querySelector('.cb-side')?.classList.add('open'); }
+  function closeCtx(){ document.querySelector('.cb-side')?.classList.remove('open'); }
 
   function renderCtxNav(){
     const meta = RAIL.find(r => r.g===curGroup);
@@ -7333,10 +7371,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   function goView(v){
+    if (v === 'home') { showHome(); closeCtx(); return; }
+    hideHome();
     if (typeof window.setView === 'function') window.setView(v);
     document.querySelectorAll('#cb-ctx-nav .cb-ctx-btn').forEach(b=>{
       b.classList.toggle('active', b.dataset.view === v);
     });
+    closeCtx(); // recolhe o flyout após clique
   }
 
   function setGroup(g){
@@ -7344,12 +7385,73 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.querySelectorAll('.cb-rail-btn').forEach(b=>{
       b.classList.toggle('active', b.dataset.g === g);
     });
+    if (g === 'home'){ showHome(); closeCtx(); return; }
     renderCtxNav();
-    const list = GROUPS[g];
-    if (list && list.length){
-      const first = list[0].view;
-      if (window.currentView !== first) goView(first);
-    }
+    openCtx();
+  }
+
+  // ═════════ Onda C — Home ═════════
+  const HOME_GROUPS = [
+    { section:'Ativos agora', cards:[
+      { view:'gantt',   lbl:'Planejamento', desc:'Gantt, RACI, Visão Geral, Fases, Cadência e Maturidade da operação de MKT.', tags:['Gantt','RACI','Cadência'], icon:'M4 6h16M4 12h10M4 18h16', badge:null },
+      { view:'equipe',  lbl:'Time',         desc:'Squad de Marketing — quem faz o quê, RACI por atividade.',                     tags:['Squad','Papéis'],           icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87', badge:null },
+    ]},
+    { section:'Em breve', cards:[
+      { g:'content', lbl:'Conteúdo',     desc:'Newsletters, e-mail marketing, artigos e materiais ricos por BU.', tags:['Newsletter','E-mail MKT','Artigos'], icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6', badge:'em breve' },
+      { g:'intel',   lbl:'Inteligência', desc:'Alvos, segmentos, base de dados, eventos-alvo por BU.',           tags:['Alvos','Segmentos','Base'], icon:'M9.5 2a7.5 7.5 0 0 1 5.7 12.4L21 20l-1 1-5.6-5.8A7.5 7.5 0 1 1 9.5 2z', badge:'em breve' },
+      { g:'perf',    lbl:'Dashboards',   desc:'Performance e resultados — KPIs consolidados por BU e canal.',    tags:['KPIs','Funil','ROI'], icon:'M3 3v18h18M7 15l4-4 4 4 5-6', badge:'em breve' },
+      { g:'sys',     lbl:'Sistema',      desc:'Configurações, logs de auditoria e integrações.',                  tags:['Config','Logs','Integrações'], icon:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V19a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5', badge:'em breve' },
+    ]},
+  ];
+
+  function buildHome(){
+    if (document.getElementById('vHome')) return;
+    const app = document.getElementById('app'); if (!app) return;
+    const v = document.createElement('div'); v.id='vHome'; v.className='view-page';
+    v.style.cssText='overflow-y:auto;';
+    const now = new Date();
+    const olá = (now.getHours()<12?'Bom dia':(now.getHours()<18?'Boa tarde':'Boa noite'));
+    let html = `<div class="cb-home-wrap">
+      <div class="cb-home-hi">${olá}, Muriel</div>
+      <div class="cb-home-h1">MKT Cockpit Costa Brava</div>
+      <div class="cb-home-sub">Centro de comando da operação de marketing das quatro BUs (Business Travel, Live Marketing, YOU, CI/Endo). Escolha um módulo abaixo — ou use a barra lateral pra navegar.</div>`;
+    HOME_GROUPS.forEach(sec => {
+      html += `<div class="cb-home-section-lbl">${sec.section}</div><div class="cb-home-grid">`;
+      sec.cards.forEach(c => {
+        const soon = !!c.badge;
+        html += `<button class="cb-home-card${soon?' soon':''}" data-view="${c.view||''}" data-g="${c.g||''}" ${soon?'disabled':''}>
+          ${c.badge?`<span class="cb-home-badge soon">${c.badge}</span>`:''}
+          <div class="cb-home-icon"><svg viewBox="0 0 24 24"><path d="${c.icon}"/></svg></div>
+          <div class="cb-home-card-title">${c.lbl}</div>
+          <div class="cb-home-card-desc">${c.desc}</div>
+          <div class="cb-home-card-tags">${c.tags.map(t=>`<span class="cb-home-tag">${t}</span>`).join('')}</div>
+        </button>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+    v.innerHTML = html;
+    app.appendChild(v);
+    v.querySelectorAll('.cb-home-card:not(.soon)').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view; if (view) { setGroup(VIEW2GROUP[view]||'plan'); setTimeout(()=>goView(view), 10); }
+      });
+    });
+  }
+
+  function showHome(){
+    buildHome();
+    document.querySelectorAll('#app > .view-page').forEach(el => el.classList.remove('active'));
+    document.getElementById('vHome')?.classList.add('active');
+    // esconder controles do gantt no header
+    const gc = document.getElementById('ganttControls'); if (gc) gc.style.display='none';
+    // marca rail home ativo
+    document.querySelectorAll('.cb-rail-btn').forEach(b=>b.classList.toggle('active', b.dataset.g==='home'));
+    curGroup = 'home';
+    window.currentView = 'home';
+  }
+  function hideHome(){
+    document.getElementById('vHome')?.classList.remove('active');
   }
 
   function boot(){
@@ -7358,7 +7460,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     side.appendChild(buildRail());
     side.appendChild(buildCtx());
     document.body.appendChild(side);
+    const bk = document.createElement('div'); bk.className='cb-ctx-backdrop';
+    bk.addEventListener('click', closeCtx);
+    document.body.appendChild(bk);
+    document.getElementById('cb-ctx-close-btn')?.addEventListener('click', closeCtx);
+    buildHome();
     renderCtxNav();
+    // ESC fecha flyout
+    document.addEventListener('keydown', e => { if (e.key==='Escape') closeCtx(); });
     // sync grupo/view ativa quando setView legado for chamado
     const orig = window.setView;
     if (orig && !orig.__cbOndaB){
