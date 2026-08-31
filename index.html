@@ -7237,6 +7237,31 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* Botão toggle removido — hover expand */
   .cb-side-toggle{ display:none !important; }
 
+  /* Onda J v3 — Botão home + rodapé do painel com Config e Avatar */
+  body .cb-rail .cb-rail-user-btn,
+  body .cb-rail > button.cb-rail-btn[title="Configurações"]{ display:none !important; }
+  body .cb-rail-logo{ margin-bottom:4px !important; }
+  body .cb-rail-logo svg{ stroke:#4B5563 !important; }
+  body .cb-rail-logo:hover svg{ stroke:var(--cb-navy) !important; }
+
+  .cb-ctx-foot{
+    position:absolute; left:12px; right:12px; bottom:12px;
+    display:flex; gap:6px; padding-top:12px; border-top:1px solid #F0F3F7;
+  }
+  .cb-ctx-foot .cb-ctx-config,
+  .cb-ctx-foot .cb-ctx-user{
+    flex:1; display:flex; align-items:center; gap:8px; padding:7px 8px;
+    border-radius:8px; cursor:pointer; background:transparent; border:none;
+    font-family:'Montserrat',sans-serif; font-size:12px; color:var(--cb-navy);
+    text-align:left;
+  }
+  .cb-ctx-foot .cb-ctx-config:hover, .cb-ctx-foot .cb-ctx-user:hover{ background:#F0F3F7; }
+  .cb-ctx-foot .cb-ctx-config svg{ width:15px; height:15px; stroke:currentColor; stroke-width:1.6; fill:none; color:#6B7280; }
+  .cb-ctx-foot .cb-ctx-user .av{ width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,#8CB7C9,#5C8FA3); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; font-size:10.5px; font-weight:700; flex-shrink:0; }
+  .cb-ctx-foot .cb-ctx-user .nm{ font-weight:600; font-size:12.5px; line-height:1.1; }
+  .cb-ctx-foot .cb-ctx-user .rl{ font-size:10.5px; color:#9CA3AF; }
+  body div.cb-side > div.cb-ctx{ padding-bottom:70px !important; }
+
   /* Header do painel com título grupo */
   .cb-side-title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:13.5px; font-weight:700; color:var(--cb-navy); padding:14px 12px 12px; letter-spacing:-.005em; }
 
@@ -7774,10 +7799,32 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function closeProfile(){ document.getElementById('cb-profile-mask')?.classList.remove('open'); }
 
+  function setupCtxFooter(){
+    const ctx = document.querySelector('.cb-ctx'); if (!ctx) return;
+    if (ctx.querySelector('.cb-ctx-foot')) return;
+    const foot = document.createElement('div'); foot.className='cb-ctx-foot';
+    foot.innerHTML = `
+      <button class="cb-ctx-config" title="Configurações">
+        ${svg('M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z')}
+        <span>Configurações</span>
+      </button>
+      <button class="cb-ctx-user" title="Perfil">
+        <span class="av">${initials('Muriel Teixeira')}</span>
+        <div><div class="nm">Muriel</div><div class="rl">Marketing</div></div>
+      </button>
+    `;
+    ctx.appendChild(foot);
+    foot.querySelector('.cb-ctx-config').addEventListener('click', () => {
+      // clica no botão de config que já existe (dropdown com Backup/Importar/Histórico/Master)
+      document.getElementById('cb-side-config')?.click();
+    });
+    foot.querySelector('.cb-ctx-user').addEventListener('click', openProfile);
+  }
+
   function boot(){
     if (!document.querySelector('.cb-side') || !document.querySelector('.cb-rail')) { setTimeout(boot, 250); return; }
     setupToggle();
-    setupUserAvatar();
+    setupCtxFooter();
   }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(boot, 700));
   else setTimeout(boot, 700);
@@ -7899,7 +7946,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const rail = document.querySelector('.cb-rail'); if (!rail) return;
     rail.innerHTML = '';
     const logo = document.createElement('div'); logo.className='cb-rail-logo'; logo.title='Home';
-    logo.innerHTML = svg('M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z') + '<circle cx="12" cy="12" r="2.5" fill="none" stroke="#8CB7C9" stroke-width="1.6"/>';
+    logo.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M3 12l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z"/></svg>`;
     logo.addEventListener('click', ()=>setGroup('home'));
     rail.appendChild(logo);
     const div = document.createElement('div'); div.className='cb-rail-divider'; rail.appendChild(div);
