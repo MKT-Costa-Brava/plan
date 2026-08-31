@@ -7216,6 +7216,46 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
+<style id="cb-onda-i-style">
+  /* ═══ ONDA I — Layout dupla rail branco + VIEWS + AÇÕES RÁPIDAS (fiel ao wireframe) ═══ */
+  :root{ --cb-rail-w:60px !important; --cb-ctx-w:244px !important; --cb-side-w:304px !important; }
+  #app{ padding-left:304px !important; }
+
+  /* Sidebar container */
+  .cb-side{ width:304px !important; background:#FFFFFF !important; border-right:1px solid #E4E9EF !important; display:flex !important; }
+
+  /* Rail — coluna estreita branca com ícones outline */
+  .cb-rail{ display:flex !important; width:60px !important; background:#FFFFFF !important; border-right:1px solid #F0F3F7 !important; flex-direction:column !important; align-items:center !important; padding:14px 0 12px !important; gap:6px !important; }
+  .cb-rail-logo{ width:32px !important; height:32px !important; background:transparent !important; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:8px; cursor:pointer; }
+  .cb-rail-logo svg{ stroke:#8CB7C9 !important; }
+  .cb-rail-btn{ width:42px !important; height:42px !important; border-radius:10px !important; color:#9CA3AF !important; background:transparent !important; display:flex !important; align-items:center !important; justify-content:center !important; gap:0 !important; }
+  .cb-rail-btn .lbl{ display:none !important; }
+  .cb-rail-btn:hover:not(.disabled){ background:#F0F3F7 !important; color:var(--cb-navy) !important; }
+  .cb-rail-btn.active{ background:#EEF5F8 !important; color:var(--cb-navy) !important; }
+  .cb-rail-btn svg{ width:20px !important; height:20px !important; stroke:currentColor !important; stroke-width:1.6 !important; }
+  .cb-rail-divider{ width:24px; height:1px; background:#E4E9EF; margin:6px 0; }
+  .cb-rail-user{ width:32px !important; height:32px !important; margin-top:auto; font-size:11px !important; }
+
+  /* Contexto — painel branco 244px sempre visível */
+  .cb-ctx{ position:relative !important; left:0 !important; width:244px !important; transform:none !important; opacity:1 !important; pointer-events:auto !important; background:#FFFFFF !important; box-shadow:none !important; border-right:none !important; padding:18px 12px 14px !important; }
+  /* Esconde o accordion da Onda H — usaremos layout VIEWS/AÇÕES */
+  .cb-acc, .cb-acc-brand{ display:none !important; }
+
+  /* Layout VIEWS */
+  .cb-i-section{ margin-bottom:18px; }
+  .cb-i-kicker{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#9CA3AF; padding:0 10px 8px; display:flex; align-items:center; gap:10px; }
+  .cb-i-kicker::after{ content:''; flex:1; height:1px; background:#E4E9EF; }
+  .cb-i-item{ display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:500; color:var(--cb-navy); background:transparent; border:none; cursor:pointer; width:100%; text-align:left; transition:all .12s; }
+  .cb-i-item:hover:not(.disabled){ background:#F0F3F7; }
+  .cb-i-item.active{ background:#EEF5F8; font-weight:600; }
+  .cb-i-item.disabled{ opacity:.55; cursor:not-allowed; }
+  .cb-i-item svg{ width:16px; height:16px; stroke:currentColor; stroke-width:1.6; fill:none; flex-shrink:0; color:#6B7280; }
+  .cb-i-item.active svg{ color:var(--cb-navy); }
+  .cb-i-badge{ margin-left:auto; font-size:10px; font-weight:600; padding:2px 7px; border-radius:5px; background:#F3F4F6; color:#6B7280; letter-spacing:0; }
+  .cb-i-item.active .cb-i-badge{ background:#DDE9EF; color:var(--cb-navy); }
+  .cb-i-item .kbd{ margin-left:auto; font-family:'Montserrat',monospace; font-size:10.5px; color:#9CA3AF; background:#F3F4F6; padding:2px 6px; border-radius:4px; }
+</style>
+
 <style id="cb-onda-h-style">
   /* ═══ ONDA H — Sidebar accordion + placeholder "em breve" ═══ */
   .cb-side .cb-ctx{ padding-top:16px !important; }
@@ -7557,6 +7597,173 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cb-home-badge.soon{ background:#FEF3C7; color:#92400E; }
   .cb-home-badge.new{ background:#DCFCE7; color:#166534; }
 </style>
+
+<script id="cb-onda-i-boot">
+(function(){
+  const svg = d => `<svg viewBox="0 0 24 24"><path d="${d}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  // Rail: 4 grupos principais + Home + Configurações
+  const RAIL = [
+    { g:'home',        title:'Home',        icon:'M3 12l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z' },
+    { g:'plano',       title:'Plano',       icon:'M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z' },
+    { g:'dashboard',   title:'Dashboard',   icon:'M3 3v18h18M7 15l4-4 4 4 5-6' },
+    { g:'inteligencia',title:'Inteligência',icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z' },
+    { g:'conteudos',   title:'Conteúdos',   icon:'M4 4h16v16H4zM4 9h16' },
+  ];
+  const GROUPS = {
+    plano: {
+      views:[
+        { view:'gantt',    lbl:'Gantt',    icon:'M8 6h13M8 12h9M8 18h13M3 6h.01M3 12h.01M3 18h.01', badge:'60' },
+        { view:'raci',     lbl:'RACI',     icon:'M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18' },
+        { view:'equipe',   lbl:'Equipe',   icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
+        { view:'fases',    lbl:'Sprints',  icon:'M4 20l4-4 6 6 6-8M14 4h6v6' },
+        { view:'cadencia', lbl:'Cadência', icon:'M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z' },
+      ],
+      actions:true
+    },
+    dashboard: { views:[
+      { view:'visao', lbl:'Geral', icon:'M3 12h4l3-9 4 18 3-9h4' },
+      { view:'soon:execucao', lbl:'Execução de tarefas', icon:'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11', soon:true },
+    ], actions:false },
+    inteligencia: { views:[
+      { view:'soon:icps', lbl:'ICPs', icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z', soon:true },
+      { view:'soon:segmentos', lbl:'Segmentos', icon:'M9 3v18M3 9h18M3 15h18', soon:true },
+    ], actions:false },
+    conteudos: { views:[
+      { view:'soon:diario', lbl:'Diário de Bordo', icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5', soon:true },
+      { view:'soon:insights', lbl:'Insights e Reviews', icon:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M4 12H2M22 12h-2', soon:true },
+      { view:'soon:nutricao', lbl:'Nutrição (IA)', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6', soon:true },
+    ], actions:false },
+    home: { views:[], actions:false, welcome:true },
+  };
+  const VIEW2GROUP = { gantt:'plano', raci:'plano', equipe:'plano', fases:'plano', cadencia:'plano', visao:'dashboard' };
+  let cur = 'plano';
+
+  function render(){
+    const nav = document.getElementById('cb-ctx-nav') || document.querySelector('.cb-ctx > div:last-child');
+    if (!nav) return;
+    const group = GROUPS[cur];
+    let html = '';
+    if (group.welcome){
+      html = `<div style="padding:24px 12px;text-align:center;color:#6B7280;font-size:13px;">
+        <div style="font-family:'Space Grotesk','Montserrat',sans-serif;font-size:16px;font-weight:700;color:var(--cb-navy);margin-bottom:6px;">Bem-vinda, Muriel</div>
+        <div>Escolha um módulo no menu ao lado.</div>
+      </div>`;
+    } else if (group.views.length){
+      html += `<div class="cb-i-section"><div class="cb-i-kicker">Views</div>`;
+      group.views.forEach(v => {
+        const isActive = window.currentView === v.view;
+        html += `<button class="cb-i-item${v.soon?' disabled':''}${isActive?' active':''}" data-view="${v.view}">
+          ${svg(v.icon)}<span>${v.lbl}</span>${v.badge?`<span class="cb-i-badge">${v.badge}</span>`:''}${v.soon?'<span class="cb-i-badge">em breve</span>':''}
+        </button>`;
+      });
+      html += `</div>`;
+    }
+    if (group.actions){
+      html += `<div class="cb-i-section"><div class="cb-i-kicker">Ações Rápidas</div>
+        <button class="cb-i-item" data-act="undo">${svg('M3 7v6h6M21 17a9 9 0 0 0-15-6.7L3 13')}<span>Desfazer</span><span class="kbd">⌘Z</span></button>
+        <button class="cb-i-item" data-act="redo">${svg('M21 7v6h-6M3 17a9 9 0 0 1 15-6.7L21 13')}<span>Refazer</span></button>
+        <button class="cb-i-item" data-act="zoom">${svg('M11 5v6H5v2h6v6h2v-6h6v-2h-6V5z')}<span>Zoom · <span id="cbZoomLbl">Semanas</span></span></button>
+      </div>`;
+    }
+    nav.innerHTML = html;
+    // liga cliques
+    nav.querySelectorAll('.cb-i-item[data-view]').forEach(b => {
+      b.addEventListener('click', () => go(b.dataset.view));
+    });
+    nav.querySelectorAll('.cb-i-item[data-act]').forEach(b => {
+      b.addEventListener('click', () => act(b.dataset.act));
+    });
+  }
+
+  function go(view){
+    if (view.startsWith('soon:')){
+      // placeholder em breve
+      const meta = Object.values(GROUPS).flatMap(g=>g.views||[]).find(v=>v.view===view) || {lbl:view};
+      document.querySelectorAll('#app > .view-page').forEach(el=>el.classList.remove('active'));
+      let v = document.getElementById('vSoon');
+      if (!v){ v=document.createElement('div'); v.id='vSoon'; v.className='view-page'; v.style.cssText='overflow-y:auto;background:#F7F8FA;'; document.getElementById('app').appendChild(v); }
+      v.classList.add('active');
+      v.innerHTML = `<div class="cb-soon-view"><div class="cb-soon-icon">${svg(meta.icon||'')}</div><div class="badge">Em breve</div><h2>${meta.lbl}</h2><p>Este módulo está no roadmap e vai entrar numa próxima onda.</p></div>`;
+      const gc = document.getElementById('ganttControls'); if (gc) gc.style.display='none';
+      window.currentView = view;
+      render();
+      return;
+    }
+    document.getElementById('vSoon')?.classList.remove('active');
+    if (typeof window.setView==='function') window.setView(view);
+    render();
+  }
+
+  function act(kind){
+    if (kind==='undo'){ const b=document.querySelector('.cb-undo-btn'); if(b) b.click(); }
+    else if (kind==='redo'){ const b=document.querySelector('.cb-redo-btn'); if(b) b.click(); }
+    else if (kind==='zoom'){ const b=document.getElementById('bzIn'); if(b) b.click(); }
+  }
+
+  function setGroup(g){
+    cur = g;
+    document.querySelectorAll('.cb-rail-btn').forEach(b => b.classList.toggle('active', b.dataset.g===g));
+    render();
+  }
+
+  function rebuildRail(){
+    const rail = document.querySelector('.cb-rail'); if (!rail) return;
+    rail.innerHTML = '';
+    const logo = document.createElement('div'); logo.className='cb-rail-logo'; logo.title='Home';
+    logo.innerHTML = svg('M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z') + '<circle cx="12" cy="12" r="2.5" fill="none" stroke="#8CB7C9" stroke-width="1.6"/>';
+    logo.addEventListener('click', ()=>setGroup('home'));
+    rail.appendChild(logo);
+    const div = document.createElement('div'); div.className='cb-rail-divider'; rail.appendChild(div);
+    RAIL.forEach(r => {
+      if (r.g==='home') return; // home é o logo
+      const b = document.createElement('button');
+      b.className='cb-rail-btn' + (r.g===cur?' active':'');
+      b.dataset.g = r.g;
+      b.title = r.title;
+      b.innerHTML = svg(r.icon);
+      b.addEventListener('click', ()=>setGroup(r.g));
+      rail.appendChild(b);
+    });
+    // gear config
+    const gear = document.createElement('button');
+    gear.className='cb-rail-btn';
+    gear.title='Configurações';
+    gear.innerHTML = svg('M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z');
+    gear.style.marginTop='auto';
+    gear.addEventListener('click', () => document.getElementById('cb-side-config')?.click());
+    rail.appendChild(gear);
+  }
+
+  function boot(){
+    if (!document.querySelector('.cb-side')) { setTimeout(boot, 250); return; }
+    // garante um #cb-ctx-nav dentro do .cb-ctx
+    let nav = document.getElementById('cb-ctx-nav');
+    if (!nav){
+      const ctx = document.querySelector('.cb-ctx');
+      if (ctx){ nav = document.createElement('div'); nav.id='cb-ctx-nav'; ctx.appendChild(nav); }
+    }
+    rebuildRail();
+    render();
+
+    // hook setView pra sincronizar
+    const orig = window.setView;
+    if (orig && !orig.__cbOndaI){
+      const wrap = function(v){
+        document.getElementById('vSoon')?.classList.remove('active');
+        const r = orig.apply(this, arguments);
+        const g = VIEW2GROUP[v];
+        if (g && g!==cur){ cur=g; document.querySelectorAll('.cb-rail-btn').forEach(b=>b.classList.toggle('active', b.dataset.g===g)); render(); }
+        else render();
+        return r;
+      };
+      wrap.__cbOndaI = true;
+      window.setView = wrap;
+    }
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(boot, 500));
+  else setTimeout(boot, 500);
+})();
+</script>
 
 <script id="cb-onda-h-boot">
 (function(){
