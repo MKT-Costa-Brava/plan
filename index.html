@@ -7218,8 +7218,14 @@ document.addEventListener('DOMContentLoaded',()=>{
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
 <style id="cb-onda-g-style">
   /* ═══ ONDA G — Refinos wireframe ═══ */
-  /* 1. Esconde MASTER / Backup / Importar / Histórico da topbar (vão pra Configurações) */
-  .cb-topbar-btn{ display:none !important; }
+  /* 1. Esconde MASTER / Backup / Importar / Histórico / Logo-edit da topbar (vão pra Configurações) */
+  .cb-topbar-btn,
+  .cb-role-pill,
+  .cb-import-btn,
+  .cb-export-btn,
+  .cb-backup-btn,
+  .cb-history-btn,
+  .cb-logo-edit{ display:none !important; }
   /* 2. Remove borda esquerda das linhas de task */
   .t-row{ border-left:none !important; }
   /* 3. Esconde linha "22 em execução" */
@@ -7596,9 +7602,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
 
+  function hideTopbarActionButtons(){
+    // fallback: esconde por texto qualquer botão da topbar com Backup/Importar/Histórico/Master/Modo
+    const rx = /^\s*(👑|🔥)?\s*(master|modo\s*master|📥\s*importar|💾\s*backup|📜\s*hist[óo]rico|backup|importar|hist[óo]rico)\s*$/i;
+    document.querySelectorAll('.topbar button, .topbar span, .topbar-right button, .topbar-right span').forEach(el => {
+      const t = (el.textContent||'').trim();
+      if (rx.test(t)) el.style.display='none';
+    });
+  }
   function boot(){
     upgradeAllGroups();
     ensureConfig();
+    hideTopbarActionButtons();
   }
   const obs = new MutationObserver(() => { upgradeAllGroups(); });
   function start(){
