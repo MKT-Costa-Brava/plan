@@ -7744,6 +7744,20 @@ document.addEventListener('DOMContentLoaded',()=>{
       const ctx = document.querySelector('.cb-ctx');
       if (ctx){ nav = document.createElement('div'); nav.id='cb-ctx-nav'; ctx.appendChild(nav); }
     }
+    // move o footer (Configurações/Nova Atividade/Muriel) pra dentro do .cb-ctx no bottom
+    const foot = document.querySelector('.cb-side-footer');
+    const ctx = document.querySelector('.cb-ctx');
+    if (foot && ctx && foot.parentElement !== ctx){
+      ctx.style.display='flex';
+      ctx.style.flexDirection='column';
+      // move nav pra flex:1 e footer pra bottom
+      if (nav) nav.style.flex='1';
+      foot.style.marginTop='auto';
+      foot.style.borderTop='1px solid #F0F3F7';
+      foot.style.padding='12px 4px 0';
+      foot.style.background='transparent';
+      ctx.appendChild(foot);
+    }
     rebuildRail();
     render();
 
