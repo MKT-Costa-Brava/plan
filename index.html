@@ -7686,16 +7686,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     side.dataset.cbHoverBound = '1';
     let leaveTimer;
     const open = () => { clearTimeout(leaveTimer); side.classList.add('cb-open'); };
-    const close = () => { leaveTimer = setTimeout(()=>side.classList.remove('cb-open'), 150); };
+    const close = () => { clearTimeout(leaveTimer); leaveTimer = setTimeout(()=>{
+      // só fecha se o cursor NÃO estiver mais em cima de rail nem do ctx
+      if (!side.matches(':hover') && !ctx.matches(':hover')) side.classList.remove('cb-open');
+    }, 400); };
     side.addEventListener('mouseenter', open);
     side.addEventListener('mouseleave', close);
     ctx.addEventListener('mouseenter', open);
     ctx.addEventListener('mouseleave', close);
-    // fecha ao clicar em qualquer view/link do menu
+    // fecha só ao clicar em uma view — não em qualquer clique dentro do menu
     ctx.addEventListener('click', (e) => {
-      if (e.target.closest('.cb-i-item[data-view]')) {
+      if (e.target.closest('.cb-i-item[data-view]:not(.disabled)')) {
         clearTimeout(leaveTimer);
-        setTimeout(()=>side.classList.remove('cb-open'), 120);
+        setTimeout(()=>side.classList.remove('cb-open'), 250);
       }
     });
   }
