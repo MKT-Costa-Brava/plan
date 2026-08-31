@@ -7237,9 +7237,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* Botão toggle removido — hover expand */
   .cb-side-toggle{ display:none !important; }
 
-  /* Onda J v3 — Botão home + rodapé do painel com Config e Avatar */
-  body .cb-rail .cb-rail-user-btn,
-  body .cb-rail > button.cb-rail-btn[title="Configurações"]{ display:none !important; }
+  /* Onda J v4 — Config e Avatar no bottom do rail (revertido) */
+  body .cb-rail{ padding-bottom:14px !important; }
+  body .cb-rail > .cb-rail-btn[title="Configurações"]{ margin-top:auto !important; }
+  body .cb-rail .cb-rail-user-btn{ margin-top:6px !important; }
+  body .cb-ctx-foot{ display:none !important; }
   body .cb-rail-logo{ margin-bottom:4px !important; }
   body .cb-rail-logo svg{ stroke:#4B5563 !important; }
   body .cb-rail-logo:hover svg{ stroke:var(--cb-navy) !important; }
@@ -7824,7 +7826,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function boot(){
     if (!document.querySelector('.cb-side') || !document.querySelector('.cb-rail')) { setTimeout(boot, 250); return; }
     setupToggle();
-    setupCtxFooter();
+    setupUserAvatar();  // volta o avatar user no rail
   }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(boot, 700));
   else setTimeout(boot, 700);
