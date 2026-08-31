@@ -7216,6 +7216,49 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
+<style id="cb-onda-h-style">
+  /* ═══ ONDA H — Sidebar accordion + placeholder "em breve" ═══ */
+  .cb-side .cb-ctx{ padding-top:16px !important; }
+  .cb-side .cb-ctx-header, .cb-side .cb-ctx-title, .cb-side .cb-ctx-sub{ display:none !important; }
+  .cb-acc{ display:flex; flex-direction:column; padding:0 6px; }
+  .cb-acc-brand{ padding:4px 10px 14px; }
+  .cb-acc-brand .kicker{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#9CA3AF; }
+  .cb-acc-brand .title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:16px; font-weight:700; color:var(--cb-navy); margin-top:2px; }
+  .cb-acc-group{ margin-bottom:8px; }
+  .cb-acc-head{
+    width:100%; display:flex; align-items:center; gap:8px;
+    padding:8px 10px; border:none; background:transparent; cursor:pointer;
+    font-family:'Space Grotesk','Montserrat',sans-serif;
+    font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:#6B7280; text-align:left; border-radius:6px;
+  }
+  .cb-acc-head:hover{ background:#F0F3F7; color:var(--cb-navy); }
+  .cb-acc-caret{ margin-left:auto; width:12px; height:12px; stroke:currentColor; stroke-width:2; fill:none; transition:transform .18s; }
+  .cb-acc-group.collapsed .cb-acc-caret{ transform:rotate(-90deg); }
+  .cb-acc-list{ display:flex; flex-direction:column; gap:1px; padding:2px 0 4px; }
+  .cb-acc-group.collapsed .cb-acc-list{ display:none; }
+  .cb-acc-btn{
+    display:flex; align-items:center; gap:10px; padding:8px 10px 8px 22px; border-radius:7px;
+    font-family:'Montserrat',sans-serif; font-size:12.5px; font-weight:500; color:#4B5563;
+    background:transparent; border:none; cursor:pointer; text-align:left; transition:all .12s;
+    position:relative;
+  }
+  .cb-acc-btn::before{ content:''; position:absolute; left:11px; top:50%; transform:translateY(-50%); width:4px; height:4px; border-radius:50%; background:#D4DBE3; }
+  .cb-acc-btn:hover:not(.disabled){ background:#F0F3F7; color:var(--cb-navy); }
+  .cb-acc-btn:hover:not(.disabled)::before{ background:#8CB7C9; }
+  .cb-acc-btn.active{ background:#EEF5F8; color:var(--cb-navy); font-weight:600; }
+  .cb-acc-btn.active::before{ background:var(--cb-navy); }
+  .cb-acc-btn.disabled{ opacity:.55; cursor:not-allowed; }
+  .cb-acc-badge{ margin-left:auto; font-size:8.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 6px; border-radius:99px; background:#F3F4F6; color:#9CA3AF; }
+  /* Placeholder das views em breve */
+  .cb-soon-view{ display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; padding:60px 24px; color:#6B7280; text-align:center; }
+  .cb-soon-view .badge{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#8CB7C9; margin-bottom:12px; }
+  .cb-soon-view h2{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:28px; font-weight:700; color:var(--cb-navy); margin:0 0 12px; letter-spacing:-.015em; }
+  .cb-soon-view p{ max-width:520px; font-size:13.5px; line-height:1.6; margin:0 0 24px; }
+  .cb-soon-view .cb-soon-icon{ width:56px; height:56px; border-radius:14px; background:#EEF5F8; color:var(--cb-navy); display:flex; align-items:center; justify-content:center; margin-bottom:22px; }
+  .cb-soon-view .cb-soon-icon svg{ width:26px; height:26px; stroke:currentColor; stroke-width:1.5; fill:none; }
+</style>
+
 <style id="cb-onda-g-style">
   /* ═══ ONDA G — Refinos wireframe ═══ */
   /* 1. Esconde MASTER / Backup / Importar / Histórico / Logo-edit da topbar (vão pra Configurações) */
@@ -7515,6 +7558,137 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cb-home-badge.new{ background:#DCFCE7; color:#166534; }
 </style>
 
+<script id="cb-onda-h-boot">
+(function(){
+  const svg = d => `<svg viewBox="0 0 24 24"><path d="${d}"/></svg>`;
+  const COLLAPSED = JSON.parse(localStorage.getItem('cbAccCollapsed')||'{}');
+
+  function renderAccordion(){
+    const nav = document.getElementById('cb-ctx-nav'); if (!nav) return;
+    const RAIL = window.CB_RAIL, GROUPS = window.CB_GROUPS;
+    if (!RAIL || !GROUPS) return;
+    // limpa e injeta accordion
+    const wrap = document.createElement('div'); wrap.className='cb-acc';
+    // brand
+    const brand = document.createElement('div'); brand.className='cb-acc-brand';
+    brand.innerHTML = `<div class="kicker">MKT Cockpit 2026</div><div class="title">Costa Brava</div>`;
+    wrap.appendChild(brand);
+    RAIL.forEach(rail => {
+      const list = GROUPS[rail.g] || [];
+      const g = document.createElement('div'); g.className='cb-acc-group' + (COLLAPSED[rail.g]?' collapsed':'');
+      g.dataset.g = rail.g;
+      const head = document.createElement('button'); head.className='cb-acc-head';
+      head.innerHTML = `<span>${rail.title||rail.lbl}</span><svg class="cb-acc-caret" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>`;
+      head.addEventListener('click', () => {
+        g.classList.toggle('collapsed');
+        COLLAPSED[rail.g] = g.classList.contains('collapsed');
+        localStorage.setItem('cbAccCollapsed', JSON.stringify(COLLAPSED));
+      });
+      g.appendChild(head);
+      const ul = document.createElement('div'); ul.className='cb-acc-list';
+      list.forEach(it => {
+        const b = document.createElement('button'); b.className='cb-acc-btn' + (it.soon?' disabled':'');
+        b.dataset.view = it.view;
+        b.innerHTML = `<span>${it.lbl}</span>${it.soon?'<span class="cb-acc-badge">em breve</span>':''}`;
+        if (window.currentView === it.view) b.classList.add('active');
+        b.addEventListener('click', () => {
+          if (it.soon) { showSoon(it); markActive(it.view); return; }
+          if (typeof window.setView === 'function') window.setView(it.view);
+          markActive(it.view);
+        });
+        ul.appendChild(b);
+      });
+      g.appendChild(ul);
+      wrap.appendChild(g);
+    });
+    nav.parentNode.replaceChild(wrap, nav);
+    wrap.id = 'cb-ctx-nav';
+  }
+
+  function markActive(v){
+    document.querySelectorAll('#cb-ctx-nav .cb-acc-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  }
+
+  function showSoon(it){
+    // esconde outras view-pages
+    document.querySelectorAll('#app > .view-page').forEach(el => el.classList.remove('active'));
+    let v = document.getElementById('vSoon');
+    if (!v){ v = document.createElement('div'); v.id='vSoon'; v.className='view-page'; v.style.cssText='overflow-y:auto;background:#F7F8FA;';
+      document.getElementById('app').appendChild(v);
+    }
+    v.classList.add('active');
+    v.innerHTML = `<div class="cb-soon-view">
+      <div class="cb-soon-icon">${svg(it.icon||'M9 12l2 2 4-4M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z')}</div>
+      <div class="badge">Em breve</div>
+      <h2>${it.lbl}</h2>
+      <p>Este módulo está no roadmap e vai entrar numa próxima onda. Se quiser priorizar, me avise que já entra.</p>
+    </div>`;
+    const gc = document.getElementById('ganttControls'); if (gc) gc.style.display='none';
+    window.currentView = it.view;
+  }
+
+  window.addEventListener('cb-set-view', e => markActive(e.detail));
+
+  // Expor RAIL/GROUPS pro escopo global (o cb-onda-b-boot os define locais)
+  const rawScript = document.getElementById('cb-onda-b-boot')?.textContent || '';
+  // Se ainda não expostos, parseia via fallback fixo já reformado
+  function ensureData(){
+    if (window.CB_RAIL && window.CB_GROUPS) return true;
+    // fallback duplicando as constantes reformadas
+    window.CB_RAIL = [
+      { g:'plano',        lbl:'Plano',        title:'Plano' },
+      { g:'dashboard',    lbl:'Dashboard',    title:'Dashboard' },
+      { g:'inteligencia', lbl:'Inteligência', title:'Inteligência' },
+      { g:'conteudos',    lbl:'Conteúdos',    title:'Conteúdos' },
+    ];
+    window.CB_GROUPS = {
+      plano: [
+        { view:'gantt', lbl:'Gantt' },
+        { view:'raci', lbl:'RACI' },
+        { view:'equipe', lbl:'Equipe' },
+        { view:'fases', lbl:'Sprints' },
+        { view:'cadencia', lbl:'Cadência' },
+      ],
+      dashboard: [
+        { view:'visao', lbl:'Geral' },
+        { view:'soon:execucao', lbl:'Execução de tarefas', soon:true, icon:'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11' },
+      ],
+      inteligencia: [
+        { view:'soon:icps', lbl:'ICPs', soon:true, icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z' },
+        { view:'soon:segmentos', lbl:'Segmentos', soon:true, icon:'M9 3v18M3 9h18' },
+      ],
+      conteudos: [
+        { view:'soon:diario', lbl:'Diário de Bordo', soon:true, icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
+        { view:'soon:insights', lbl:'Insights e Reviews', soon:true, icon:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z' },
+        { view:'soon:nutricao', lbl:'Nutrição (IA)', soon:true, icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
+      ],
+    };
+    return true;
+  }
+
+  function boot(){
+    if (!document.getElementById('cb-ctx-nav')) { setTimeout(boot, 200); return; }
+    ensureData();
+    renderAccordion();
+    // hook em setView pra sincronizar active
+    const orig = window.setView;
+    if (orig && !orig.__cbOndaH){
+      const wrap = function(v){
+        // se tem vSoon ativo, tira
+        document.getElementById('vSoon')?.classList.remove('active');
+        const r = orig.apply(this, arguments);
+        markActive(v);
+        return r;
+      };
+      wrap.__cbOndaH = true;
+      window.setView = wrap;
+    }
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(boot, 400));
+  else setTimeout(boot, 400);
+})();
+</script>
+
 <script id="cb-onda-g-boot">
 (function(){
   // === Mapa emoji → Lucide SVG path ===
@@ -7660,32 +7834,36 @@ document.addEventListener('DOMContentLoaded',()=>{
 <script id="cb-onda-b-boot">
 (function(){
   const RAIL = [
-    { g:'home',    lbl:'Home',    icon:'M3 12l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z', direct:true },
-    { g:'plan',    lbl:'Plan',    icon:'M4 6h16M4 12h10M4 18h16', title:'Planejamento', subtitle:'Gestão de tarefas e cadência' },
-    { g:'time',    lbl:'Time',    icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM16 3.13a4 4 0 0 1 0 7.75', title:'Time', subtitle:'Squad e RACI da equipe de MKT' },
-    { g:'content', lbl:'Conteúdo',icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6', title:'Conteúdo', subtitle:'Newsletters, e-mail marketing, artigos', soon:true },
-    { g:'intel',   lbl:'Intel.',  icon:'M9.5 2a7.5 7.5 0 0 1 5.7 12.4L21 20l-1 1-5.6-5.8A7.5 7.5 0 1 1 9.5 2zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z', title:'Inteligência', subtitle:'Alvos, segmentos, base de dados', soon:true },
-    { g:'perf',    lbl:'Perf.',   icon:'M3 3v18h18M7 15l4-4 4 4 5-6', title:'Performance', subtitle:'Dashboards e resultados', soon:true },
-    { g:'sys',     lbl:'Sistema', icon:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z', title:'Sistema', subtitle:'Configurações e logs', soon:true },
+    { g:'plano',        lbl:'Plano',        title:'Plano',        subtitle:'Gestão de tarefas e cadência' },
+    { g:'dashboard',    lbl:'Dashboard',    title:'Dashboard',    subtitle:'Panorama de execução da operação' },
+    { g:'inteligencia', lbl:'Inteligência', title:'Inteligência', subtitle:'ICPs, segmentos e base de conhecimento' },
+    { g:'conteudos',    lbl:'Conteúdos',    title:'Conteúdos',    subtitle:'Diário, insights e conteúdo assistido por IA' },
   ];
 
   const GROUPS = {
-    plan: [
-      { view:'gantt',      lbl:'Gantt',        icon:'M8 6h13M8 12h9M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
-      { view:'raci',       lbl:'RACI',         icon:'M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18' },
-      { view:'visao',      lbl:'Visão Geral',  icon:'M1 6l7-3 8 3 7-3v15l-7 3-8-3-7 3zM8 3v15M16 6v15' },
-      { view:'fases',      lbl:'Fases',        icon:'M4 20l4-4 6 6 6-8M14 4h6v6' },
-      { view:'cadencia',   lbl:'Cadência',     icon:'M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z' },
-      { view:'maturidade', lbl:'Maturidade',   icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z' },
+    plano: [
+      { view:'gantt',    lbl:'Gantt',    icon:'M8 6h13M8 12h9M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
+      { view:'raci',     lbl:'RACI',     icon:'M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18' },
+      { view:'equipe',   lbl:'Equipe',   icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
+      { view:'fases',    lbl:'Sprints',  icon:'M4 20l4-4 6 6 6-8M14 4h6v6' },
+      { view:'cadencia', lbl:'Cadência', icon:'M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z' },
     ],
-    time: [
-      { view:'equipe', lbl:'Squad de MKT', icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
-      { view:'raci',   lbl:'RACI (atalho)', icon:'M3 3h18v18H3zM3 9h18M3 15h18' },
+    dashboard: [
+      { view:'visao',    lbl:'Geral',                icon:'M3 12h4l3-9 4 18 3-9h4' },
+      { view:'soon:execucao', lbl:'Execução de tarefas', icon:'M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11', soon:true },
+    ],
+    inteligencia: [
+      { view:'soon:icps',      lbl:'ICPs',      icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z', soon:true },
+      { view:'soon:segmentos', lbl:'Segmentos', icon:'M9 3v18M3 9h18', soon:true },
+    ],
+    conteudos: [
+      { view:'soon:diario',    lbl:'Diário de Bordo',   icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5', soon:true },
+      { view:'soon:insights',  lbl:'Insights e Reviews',icon:'M12 2v4M12 18v4M4 12H2M22 12h-2M6 6l-2-2M18 18l2 2M6 18l-2 2M18 6l2-2M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z', soon:true },
+      { view:'soon:nutricao',  lbl:'Nutrição (IA)',     icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h4M8 17h6M8 9h2', soon:true },
     ],
   };
 
-  // grupo padrão de cada view — pra ativar rail correto quando view muda por fora
-  const VIEW2GROUP = { gantt:'plan', raci:'plan', visao:'plan', fases:'plan', cadencia:'plan', maturidade:'plan', equipe:'time' };
+  const VIEW2GROUP = { gantt:'plano', raci:'plano', equipe:'plano', fases:'plano', cadencia:'plano', visao:'dashboard', maturidade:'plano' };
 
   const svg = d => `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="${d}"/></svg>`;
   let curGroup = 'plan';
