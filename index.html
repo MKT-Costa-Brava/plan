@@ -7216,6 +7216,74 @@ document.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 <!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
+<style id="cb-onda-j-style">
+  /* ═══ ONDA J — Menu retrátil estilo Supabase + limpeza topbar + avatar usuário no rail ═══ */
+  :root{ --cb-side-current:304px; }
+  body[data-side-collapsed] { --cb-side-current:60px; }
+  body #app{ padding-left:var(--cb-side-current) !important; transition:padding-left .18s; }
+  body .cb-side{ width:var(--cb-side-current) !important; transition:width .18s; overflow:hidden; }
+  body[data-side-collapsed] .cb-side{ width:60px !important; }
+  body[data-side-collapsed] .cb-ctx{ display:none !important; }
+  body[data-side-collapsed] .cb-rail{ border-right:1px solid #E4E9EF !important; }
+
+  /* Botão toggle no topo do painel */
+  .cb-side-toggle{
+    position:absolute; top:12px; right:8px; z-index:5;
+    width:24px; height:24px; border-radius:6px; border:1px solid #E4E9EF;
+    background:#FFFFFF; color:#6B7280; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    padding:0;
+  }
+  .cb-side-toggle:hover{ background:#F0F3F7; color:var(--cb-navy); }
+  .cb-side-toggle svg{ width:14px; height:14px; stroke:currentColor; stroke-width:1.8; fill:none; transition:transform .18s; }
+  body[data-side-collapsed] .cb-side-toggle{ position:fixed; left:66px; top:12px; right:auto; }
+  body[data-side-collapsed] .cb-side-toggle svg{ transform:rotate(180deg); }
+
+  /* Header do painel com título grupo */
+  .cb-side-title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:13.5px; font-weight:700; color:var(--cb-navy); padding:14px 12px 12px; letter-spacing:-.005em; }
+
+  /* Esconde: Ações Rápidas, botões Nova Atividade / Configurações duplicados, footer inteiro (avatar vai pro rail) */
+  body .cb-i-section:has(.cb-i-item[data-act]){ display:none !important; }
+  body .cb-side-footer{ display:none !important; }
+
+  /* Rail bottom: user + gear */
+  body .cb-rail{ padding:14px 0 14px !important; gap:4px !important; justify-content:flex-start !important; }
+  body .cb-rail::after{ content:''; flex:1; }
+  .cb-rail-user-btn{
+    width:36px; height:36px; border-radius:50%; margin:6px 0 0;
+    background:linear-gradient(135deg,#8CB7C9,#5C8FA3); color:#fff;
+    border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk','Montserrat',sans-serif; font-size:12px; font-weight:700; letter-spacing:.02em;
+  }
+  .cb-rail-user-btn:hover{ transform:scale(1.05); }
+
+  /* Topbar — remove chip sincronizado, remove user pill */
+  .topbar .cb-sync-pill, .topbar .cb-user-pill{ display:none !important; }
+
+  /* Modal Perfil */
+  .cb-profile-mask{ position:fixed; inset:0; background:rgba(15,32,55,.4); z-index:100; display:none; align-items:center; justify-content:center; }
+  .cb-profile-mask.open{ display:flex; }
+  .cb-profile-modal{ background:#fff; border-radius:14px; box-shadow:0 20px 60px rgba(15,32,55,.25); width:min(420px, 92vw); padding:0; overflow:hidden; font-family:'Montserrat',sans-serif; }
+  .cb-profile-hero{ background:linear-gradient(135deg,#0F2037,#243B55); color:#fff; padding:26px 24px 22px; text-align:center; position:relative; }
+  .cb-profile-avatar{ width:74px; height:74px; border-radius:50%; margin:0 auto 12px; background:linear-gradient(135deg,#8CB7C9,#5C8FA3); display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:26px; font-weight:700; color:#fff; border:3px solid rgba(255,255,255,.15); cursor:pointer; position:relative; overflow:hidden; }
+  .cb-profile-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .cb-profile-avatar::after{ content:'trocar'; position:absolute; inset:0; background:rgba(15,32,55,.7); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; opacity:0; transition:opacity .18s; }
+  .cb-profile-avatar:hover::after{ opacity:1; }
+  .cb-profile-name{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:18px; font-weight:700; margin:0 0 2px; }
+  .cb-profile-email{ font-size:12px; opacity:.75; }
+  .cb-profile-close{ position:absolute; top:12px; right:12px; width:26px; height:26px; border-radius:6px; background:rgba(255,255,255,.1); border:none; color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .cb-profile-body{ padding:20px 24px 24px; }
+  .cb-profile-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #F0F3F7; font-size:13px; }
+  .cb-profile-row:last-child{ border-bottom:none; }
+  .cb-profile-row .k{ color:#6B7280; }
+  .cb-profile-row .v{ color:var(--cb-navy); font-weight:600; }
+  .cb-profile-role-pill{ display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:99px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; background:#EEF5F8; color:var(--cb-navy); }
+  .cb-profile-actions{ display:flex; gap:8px; margin-top:16px; }
+  .cb-profile-actions button{ flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer; font-family:inherit; font-weight:600; font-size:12.5px; }
+  .cb-profile-signout{ background:#FEE2E2; color:#991B1B; }
+  .cb-profile-signout:hover{ background:#FCA5A5; color:#7F1D1D; }
+</style>
+
 <style id="cb-onda-i-style">
   /* ═══ ONDA I — Layout dupla rail branco + VIEWS + AÇÕES RÁPIDAS (fiel ao wireframe) ═══ */
   :root{ --cb-rail-w:60px !important; --cb-ctx-w:244px !important; --cb-side-w:304px !important; }
@@ -7597,6 +7665,120 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cb-home-badge.soon{ background:#FEF3C7; color:#92400E; }
   .cb-home-badge.new{ background:#DCFCE7; color:#166534; }
 </style>
+
+<script id="cb-onda-j-boot">
+(function(){
+  const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+
+  function initials(name){
+    if (!name) return 'U';
+    const p = name.trim().split(/\s+/);
+    return (p[0][0] + (p[1]?p[1][0]:'')).toUpperCase();
+  }
+
+  function setupToggle(){
+    const side = document.querySelector('.cb-side'); if (!side) return;
+    if (document.querySelector('.cb-side-toggle')) return;
+    const btn = document.createElement('button');
+    btn.className = 'cb-side-toggle';
+    btn.title = 'Recolher menu';
+    btn.innerHTML = svg('M15 18l-6-6 6-6');
+    // adiciona ao ctx
+    const ctx = document.querySelector('.cb-ctx');
+    if (ctx) ctx.appendChild(btn); else side.appendChild(btn);
+    // estado inicial do localStorage
+    if (localStorage.getItem('cbSideCollapsed') === '1') document.body.dataset.sideCollapsed = '1';
+    btn.addEventListener('click', () => {
+      if (document.body.dataset.sideCollapsed){
+        delete document.body.dataset.sideCollapsed;
+        localStorage.removeItem('cbSideCollapsed');
+      } else {
+        document.body.dataset.sideCollapsed = '1';
+        localStorage.setItem('cbSideCollapsed', '1');
+      }
+    });
+  }
+
+  function setupUserAvatar(){
+    const rail = document.querySelector('.cb-rail'); if (!rail) return;
+    if (rail.querySelector('.cb-rail-user-btn')) return;
+    // pega email/nome
+    const email = window._cbCurrentEmail || 'muriel.teixeira@costabrava.com.br';
+    const name = 'Muriel Teixeira';
+    const btn = document.createElement('button');
+    btn.className = 'cb-rail-user-btn';
+    btn.textContent = initials(name);
+    btn.title = name + ' — clique pra abrir perfil';
+    btn.addEventListener('click', openProfile);
+    rail.appendChild(btn);
+  }
+
+  function openProfile(){
+    let mask = document.getElementById('cb-profile-mask');
+    if (!mask){
+      mask = document.createElement('div'); mask.id='cb-profile-mask'; mask.className='cb-profile-mask';
+      document.body.appendChild(mask);
+      mask.addEventListener('click', (e) => { if (e.target === mask) closeProfile(); });
+    }
+    const email = window._cbCurrentEmail || 'muriel.teixeira@costabrava.com.br';
+    const name = 'Muriel Teixeira';
+    const role = window._cbRole || 'viewer';
+    const rolePt = { master:'Master', adm:'ADM', normal:'Normal', viewer:'Visualizador' }[role] || role;
+    mask.innerHTML = `
+      <div class="cb-profile-modal">
+        <div class="cb-profile-hero">
+          <button class="cb-profile-close" title="Fechar">${svg('M18 6L6 18M6 6l12 12')}</button>
+          <div class="cb-profile-avatar" id="cb-profile-avatar-btn">${initials(name)}</div>
+          <div class="cb-profile-name">${name}</div>
+          <div class="cb-profile-email">${email}</div>
+        </div>
+        <div class="cb-profile-body">
+          <div class="cb-profile-row"><span class="k">Permissão</span><span class="v"><span class="cb-profile-role-pill">${rolePt}</span></span></div>
+          <div class="cb-profile-row"><span class="k">E-mail</span><span class="v">${email}</span></div>
+          <div class="cb-profile-actions">
+            <button class="cb-profile-signout" id="cb-profile-signout">Sair da conta</button>
+          </div>
+          <input type="file" accept="image/*" id="cb-profile-avatar-input" style="display:none;">
+        </div>
+      </div>
+    `;
+    mask.classList.add('open');
+    mask.querySelector('.cb-profile-close').addEventListener('click', closeProfile);
+    mask.querySelector('#cb-profile-avatar-btn').addEventListener('click', () => {
+      mask.querySelector('#cb-profile-avatar-input').click();
+    });
+    mask.querySelector('#cb-profile-avatar-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      // upload no supabase storage e updata cb_users
+      try {
+        const sb = window.sb;
+        const path = 'avatars/' + (window._cbCurrentEmail||'user').replace(/[^a-z0-9]/gi,'_') + '_' + Date.now() + '.' + file.name.split('.').pop();
+        const { error } = await sb.storage.from('cb-avatars').upload(path, file, { upsert:true });
+        if (error){ alert('Erro upload: '+error.message); return; }
+        const { data: pub } = sb.storage.from('cb-avatars').getPublicUrl(path);
+        await sb.from('cb_users').update({ photo_url: pub.publicUrl }).eq('email', (window._cbCurrentEmail||'').toLowerCase());
+        // update visual
+        const el = mask.querySelector('#cb-profile-avatar-btn');
+        el.innerHTML = `<img src="${pub.publicUrl}">`;
+      } catch(e){ alert('Erro: '+e.message); }
+    });
+    mask.querySelector('#cb-profile-signout').addEventListener('click', async () => {
+      if (!confirm('Sair da conta?')) return;
+      await window.sb.auth.signOut();
+      location.reload();
+    });
+  }
+  function closeProfile(){ document.getElementById('cb-profile-mask')?.classList.remove('open'); }
+
+  function boot(){
+    if (!document.querySelector('.cb-side') || !document.querySelector('.cb-rail')) { setTimeout(boot, 250); return; }
+    setupToggle();
+    setupUserAvatar();
+  }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', ()=>setTimeout(boot, 700));
+  else setTimeout(boot, 700);
+})();
+</script>
 
 <script id="cb-onda-i-boot">
 (function(){
