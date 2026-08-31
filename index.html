@@ -7274,6 +7274,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* Rail bottom: user + gear */
   body .cb-rail{ padding:14px 0 14px !important; gap:4px !important; justify-content:flex-start !important; }
   /* body .cb-rail::after removido — deixava gear/user grudados após os grupos */
+
+  /* Onda J v5 — Filter bar simplificada como no wireframe */
+  body .filter-bar{ flex-wrap:wrap !important; row-gap:6px !important; height:auto !important; min-height:44px; padding:8px 14px !important; gap:6px !important; }
+  body .filter-lbl{ font-size:10.5px !important; font-weight:700 !important; letter-spacing:.14em !important; color:#6B7280 !important; }
+  body .fbtn{ background:#FFFFFF !important; border:1px solid #E4E9EF !important; color:var(--cb-navy) !important; padding:5px 10px !important; border-radius:8px !important; font-size:12px !important; font-weight:500 !important; box-shadow:none !important; display:inline-flex; align-items:center; gap:7px; }
+  body .fbtn:hover:not(.active){ background:#F0F3F7 !important; }
+  body .fbtn.active{ background:var(--cb-navy) !important; color:#FFFFFF !important; border-color:var(--cb-navy) !important; }
+  body .fbtn.active .fcnt{ background:rgba(255,255,255,.15) !important; color:#FFFFFF !important; }
+  body .fcnt{ background:#F3F4F6 !important; color:#6B7280 !important; padding:1px 6px !important; border-radius:5px !important; font-size:11px !important; font-weight:600 !important; opacity:1 !important; margin-left:2px; }
+  body .fbu-dot{ width:6px !important; height:6px !important; border-radius:50% !important; }
+  body .fdiv{ display:none !important; }
   .cb-rail-user-btn{
     width:36px; height:36px; border-radius:50%; margin:6px 0 0;
     background:linear-gradient(135deg,#8CB7C9,#5C8FA3); color:#fff;
