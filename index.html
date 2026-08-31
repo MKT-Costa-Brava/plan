@@ -325,15 +325,14 @@ body.cb-auth-ready #app{visibility:visible;}
     <span style="color:rgba(255,255,255,.75);font-weight:600;font-size:13px;letter-spacing:.02em;">TMC MKT 2026</span>
     <span id="todayChip" class="today-chip"></span>
   </div>
-  <div class="nav-tabs-wrap">
-    <button class="nav-tab active" onclick="setView('gantt')">📊 Gantt</button>
-    <button class="nav-tab" onclick="setView('raci')">📋 RACI</button>
-    <div class="nav-divider"></div>
-    <button class="nav-tab" onclick="setView('visao')">🗺 Visão Geral</button>
-    <button class="nav-tab" onclick="setView('equipe')">👥 Equipe</button>
-    <button class="nav-tab" onclick="setView('fases')">🚀 Fases</button>
-    <button class="nav-tab" onclick="setView('cadencia')">📅 Cadência</button>
-    <button class="nav-tab" onclick="setView('maturidade')">🎯 Maturidade</button>
+  <div class="nav-tabs-wrap" id="cb-legacy-navtabs" style="display:none;">
+    <button class="nav-tab active" onclick="setView('gantt')">Gantt</button>
+    <button class="nav-tab" onclick="setView('raci')">RACI</button>
+    <button class="nav-tab" onclick="setView('visao')">Visão Geral</button>
+    <button class="nav-tab" onclick="setView('equipe')">Equipe</button>
+    <button class="nav-tab" onclick="setView('fases')">Fases</button>
+    <button class="nav-tab" onclick="setView('cadencia')">Cadência</button>
+    <button class="nav-tab" onclick="setView('maturidade')">Maturidade</button>
   </div>
   <div class="topbar-right">
     <div class="gantt-controls" id="ganttControls">
@@ -7215,5 +7214,176 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 })();
 </script>
+
+<!-- ══════════════════════ ONDA B — Sidebar dupla + navegação em 6 grupos ══════════════════════ -->
+<style id="cb-onda-b-style">
+  :root{ --cb-rail-w:64px; --cb-side-w:280px; }
+  #app{ padding-left:var(--cb-side-w); box-sizing:border-box; }
+  .topbar{ padding-left:16px !important; }
+
+  .cb-side{ position:fixed; left:0; top:0; bottom:0; width:var(--cb-side-w); background:#FAFAFB; border-right:1px solid #E5E7EB; display:flex; z-index:50; font-family:'Montserrat',sans-serif; }
+
+  .cb-rail{ width:var(--cb-rail-w); background:var(--cb-navy); display:flex; flex-direction:column; align-items:center; padding:14px 0 12px; gap:2px; }
+  .cb-rail-logo{ width:36px; height:36px; border-radius:8px; background:rgba(255,255,255,.06); display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+  .cb-rail-btn{ width:44px; height:44px; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; color:rgba(255,255,255,.55); background:transparent; border:none; transition:all .18s; font-family:inherit; padding:0; }
+  .cb-rail-btn:hover:not(.disabled){ background:rgba(255,255,255,.06); color:#fff; }
+  .cb-rail-btn.active{ background:var(--cb-coral); color:#fff; }
+  .cb-rail-btn.disabled{ opacity:.32; cursor:not-allowed; }
+  .cb-rail-btn svg{ width:18px; height:18px; stroke:currentColor; stroke-width:1.7; fill:none; }
+  .cb-rail-btn .lbl{ font-size:8.5px; font-weight:600; letter-spacing:.02em; line-height:1; opacity:.95; text-transform:uppercase; }
+  .cb-rail-spacer{ flex:1; }
+  .cb-rail-user{ width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#8CB7C9,#5C8FA3); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; letter-spacing:.02em; cursor:pointer; border:2px solid rgba(255,255,255,.15); }
+
+  .cb-ctx{ flex:1; display:flex; flex-direction:column; padding:16px 12px 14px; overflow:hidden; }
+  .cb-ctx-header{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#6B7280; padding:4px 10px 12px; }
+  .cb-ctx-title{ font-family:'Space Grotesk','Montserrat',sans-serif; font-size:18px; font-weight:700; letter-spacing:-.01em; color:var(--cb-navy); padding:0 10px 6px; line-height:1.15; }
+  .cb-ctx-sub{ font-size:11px; color:#9CA3AF; padding:0 10px 14px; }
+  .cb-ctx-nav{ display:flex; flex-direction:column; gap:1px; flex:1; overflow-y:auto; }
+  .cb-ctx-btn{ display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:7px; font-size:12.5px; font-weight:500; color:#4B5563; cursor:pointer; background:transparent; border:none; text-align:left; font-family:inherit; transition:all .15s; }
+  .cb-ctx-btn:hover:not(.disabled){ background:#F0F1F3; color:var(--cb-navy); }
+  .cb-ctx-btn.active{ background:#EEF5F8; color:var(--cb-navy); font-weight:600; }
+  .cb-ctx-btn svg{ width:15px; height:15px; stroke:currentColor; stroke-width:1.7; fill:none; flex-shrink:0; }
+  .cb-ctx-badge{ margin-left:auto; font-size:9px; font-weight:700; letter-spacing:.06em; padding:2px 6px; border-radius:99px; background:#F3F4F6; color:#9CA3AF; text-transform:uppercase; }
+</style>
+
+<script id="cb-onda-b-boot">
+(function(){
+  const RAIL = [
+    { g:'plan',    lbl:'Plan',    icon:'M4 6h16M4 12h10M4 18h16', title:'Planejamento', subtitle:'Gestão de tarefas e cadência' },
+    { g:'time',    lbl:'Time',    icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M23 21v-2a4 4 0 0 0-3-3.87M9 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM16 3.13a4 4 0 0 1 0 7.75', title:'Time', subtitle:'Squad e RACI da equipe de MKT' },
+    { g:'content', lbl:'Conteúdo',icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h6', title:'Conteúdo', subtitle:'Newsletters, e-mail marketing, artigos', soon:true },
+    { g:'intel',   lbl:'Intel.',  icon:'M9.5 2a7.5 7.5 0 0 1 5.7 12.4L21 20l-1 1-5.6-5.8A7.5 7.5 0 1 1 9.5 2zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z', title:'Inteligência', subtitle:'Alvos, segmentos, base de dados', soon:true },
+    { g:'perf',    lbl:'Perf.',   icon:'M3 3v18h18M7 15l4-4 4 4 5-6', title:'Performance', subtitle:'Dashboards e resultados', soon:true },
+    { g:'sys',     lbl:'Sistema', icon:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z', title:'Sistema', subtitle:'Configurações e logs', soon:true },
+  ];
+
+  const GROUPS = {
+    plan: [
+      { view:'gantt',      lbl:'Gantt',        icon:'M8 6h13M8 12h9M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
+      { view:'raci',       lbl:'RACI',         icon:'M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18' },
+      { view:'visao',      lbl:'Visão Geral',  icon:'M1 6l7-3 8 3 7-3v15l-7 3-8-3-7 3zM8 3v15M16 6v15' },
+      { view:'fases',      lbl:'Fases',        icon:'M4 20l4-4 6 6 6-8M14 4h6v6' },
+      { view:'cadencia',   lbl:'Cadência',     icon:'M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z' },
+      { view:'maturidade', lbl:'Maturidade',   icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z' },
+    ],
+    time: [
+      { view:'equipe', lbl:'Squad de MKT', icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
+      { view:'raci',   lbl:'RACI (atalho)', icon:'M3 3h18v18H3zM3 9h18M3 15h18' },
+    ],
+  };
+
+  // grupo padrão de cada view — pra ativar rail correto quando view muda por fora
+  const VIEW2GROUP = { gantt:'plan', raci:'plan', visao:'plan', fases:'plan', cadencia:'plan', maturidade:'plan', equipe:'time' };
+
+  const svg = d => `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="${d}"/></svg>`;
+  let curGroup = 'plan';
+
+  function buildRail(){
+    const rail = document.createElement('div'); rail.className = 'cb-rail';
+    const logo = document.createElement('div'); logo.className = 'cb-rail-logo';
+    logo.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#8CB7C9" stroke-width="1.6"><path d="M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6z"/><circle cx="12" cy="12" r="2.5"/></svg>`;
+    rail.appendChild(logo);
+    RAIL.forEach(r => {
+      const b = document.createElement('button');
+      b.className = 'cb-rail-btn' + (r.soon?' disabled':'') + (r.g==='plan'?' active':'');
+      b.dataset.g = r.g;
+      b.innerHTML = svg(r.icon) + `<span class="lbl">${r.lbl}</span>`;
+      b.title = (r.title||r.lbl) + (r.soon?' — em breve':'');
+      if (!r.soon) b.addEventListener('click', () => setGroup(r.g));
+      rail.appendChild(b);
+    });
+    const sp = document.createElement('div'); sp.className='cb-rail-spacer'; rail.appendChild(sp);
+    const u = document.createElement('div'); u.className='cb-rail-user'; u.textContent='M'; u.title='Muriel'; rail.appendChild(u);
+    return rail;
+  }
+
+  function buildCtx(){
+    const ctx = document.createElement('div'); ctx.className='cb-ctx';
+    ctx.innerHTML = `
+      <div class="cb-ctx-header">MKT Cockpit 2026</div>
+      <div class="cb-ctx-title" id="cb-ctx-title">Planejamento</div>
+      <div class="cb-ctx-sub" id="cb-ctx-sub">Gestão de tarefas e cadência</div>
+      <div class="cb-ctx-nav" id="cb-ctx-nav"></div>
+    `;
+    return ctx;
+  }
+
+  function renderCtxNav(){
+    const meta = RAIL.find(r => r.g===curGroup);
+    if (meta){
+      document.getElementById('cb-ctx-title').textContent = meta.title || meta.lbl;
+      document.getElementById('cb-ctx-sub').textContent   = meta.subtitle || '';
+    }
+    const nav = document.getElementById('cb-ctx-nav'); nav.innerHTML='';
+    const list = GROUPS[curGroup];
+    if (!list){
+      const p=document.createElement('div');
+      p.style.cssText='padding:14px 12px;font-size:11.5px;color:#9CA3AF;line-height:1.55;';
+      p.innerHTML='Em breve — este módulo entra na próxima onda de melhorias.';
+      nav.appendChild(p); return;
+    }
+    list.forEach(it => {
+      const b=document.createElement('button'); b.className='cb-ctx-btn';
+      if (window.currentView===it.view) b.classList.add('active');
+      b.dataset.view = it.view;
+      b.innerHTML = svg(it.icon) + `<span>${it.lbl}</span>`;
+      b.addEventListener('click', () => goView(it.view));
+      nav.appendChild(b);
+    });
+  }
+
+  function goView(v){
+    if (typeof window.setView === 'function') window.setView(v);
+    document.querySelectorAll('#cb-ctx-nav .cb-ctx-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.view === v);
+    });
+  }
+
+  function setGroup(g){
+    curGroup = g;
+    document.querySelectorAll('.cb-rail-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.g === g);
+    });
+    renderCtxNav();
+    const list = GROUPS[g];
+    if (list && list.length){
+      const first = list[0].view;
+      if (window.currentView !== first) goView(first);
+    }
+  }
+
+  function boot(){
+    if (document.querySelector('.cb-side')) return;
+    const side = document.createElement('div'); side.className='cb-side';
+    side.appendChild(buildRail());
+    side.appendChild(buildCtx());
+    document.body.appendChild(side);
+    renderCtxNav();
+    // sync grupo/view ativa quando setView legado for chamado
+    const orig = window.setView;
+    if (orig && !orig.__cbOndaB){
+      const wrap = function(v){
+        const r = orig.apply(this, arguments);
+        const g = VIEW2GROUP[v];
+        if (g && g!==curGroup){
+          curGroup = g;
+          document.querySelectorAll('.cb-rail-btn').forEach(b=>b.classList.toggle('active', b.dataset.g===g));
+          renderCtxNav();
+        }
+        document.querySelectorAll('#cb-ctx-nav .cb-ctx-btn').forEach(b=>{
+          b.classList.toggle('active', b.dataset.view === v);
+        });
+        return r;
+      };
+      wrap.__cbOndaB = true;
+      window.setView = wrap;
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+</script>
+
 </body>
 </html>
