@@ -8588,6 +8588,25 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cbk-matrix td:first-child, .cbk-matrix th:first-child{ padding-left:16px; }
   .cbk-matrix .cell-empty{ color:#D4DBE3; font-size:11px; }
   .cbk-matrix .cell-filled{ color:#0F766E; font-size:12px; }
+
+  /* Toast */
+  .cbk-toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(30px); background:var(--cb-navy); color:#FFF; padding:12px 22px; border-radius:99px; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:600; z-index:200; box-shadow:0 10px 30px rgba(15,32,55,.25); opacity:0; pointer-events:none; transition:all .28s ease; display:flex; align-items:center; gap:8px; }
+  .cbk-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .cbk-toast.ok::before{ content:'✓'; color:#4ADE80; font-weight:900; }
+  .cbk-toast.err{ background:#991B1B; }
+  .cbk-toast.err::before{ content:'✕'; color:#FCA5A5; font-weight:900; }
+
+  /* Modo View (readonly) vs Edit */
+  .cbk-view-mode{ background:#F7F8FA; }
+  .cbk-view-mode .cbk-field{ padding:0; margin-bottom:16px; }
+  .cbk-view-mode .cbk-field .val{ font-size:13px; color:var(--cb-navy); line-height:1.55; white-space:pre-wrap; padding:4px 0 0; }
+  .cbk-view-mode .cbk-field .val.empty{ color:#9CA3AF; font-style:italic; }
+  .cbk-edit-mode{ background:#FFFFFF; border:2px solid #8CB7C9; box-shadow:0 4px 16px rgba(140,183,201,.15); }
+  .cbk-edit-mode .cbk-modal-h::before{ content:'✎ '; color:#8CB7C9; }
+
+  .cbk-meta{ font-size:11px; color:#9CA3AF; margin-top:8px; font-style:italic; }
+  .cbk-role-hint{ font-size:11.5px; color:#6B7280; padding:8px 12px; background:#F0F3F7; border-radius:6px; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .cbk-role-hint::before{ content:'🔒'; font-size:14px; }
 </style>
 
 <script id="cb-onda-k-boot">
@@ -8601,8 +8620,22 @@ document.addEventListener('DOMContentLoaded',()=>{
     { key:'tech', nome:'Tech Hub' },
   ];
   const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const nl2br = s => esc(s).replace(/\n/g,'<br>');
   const email = () => window._cbCurrentEmail || 'muriel.teixeira@costabrava.com.br';
   const isMaster = () => window._cbRole === 'master';
+  const canEdit = () => ['master','adm'].includes(window._cbRole);
+  const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  // Toast global
+  function toast(msg, kind='ok'){
+    let t = document.getElementById('cbk-toast');
+    if (!t){ t = document.createElement('div'); t.id='cbk-toast'; t.className='cbk-toast'; document.body.appendChild(t); }
+    t.textContent = msg;
+    t.className = 'cbk-toast show ' + kind;
+    clearTimeout(t._to);
+    t._to = setTimeout(()=>{ t.classList.remove('show'); }, 3000);
+  }
+  window.cbkToast = toast;
 
   // ═════════ Cria as 4 view-pages e registra em VIEWS ═════════
   function ensureViews(){
@@ -8655,33 +8688,58 @@ document.addEventListener('DOMContentLoaded',()=>{
     v.querySelectorAll('.cbk-tab').forEach(t => t.addEventListener('click', () => { activeBU = t.dataset.bu; renderBaseNegocio(); }));
     await loadBUForm();
   }
+  let buEditMode = false;
+  const BU_FIELDS = [
+    ['descricao','Descrição da BU'],
+    ['visao_negocio','Visão de negócio & posicionamento'],
+    ['produtos','Produtos e serviços'],
+    ['diferenciais','Diferenciais competitivos'],
+    ['cases','Cases de sucesso relevantes'],
+    ['tom_voz','Tom de voz'],
+    ['regras','Regras editoriais / do que evitar'],
+  ];
   async function loadBUForm(){
     const holder = document.getElementById('cbk-bu-form'); if (!holder) return;
     holder.innerHTML = `<div class="cbk-card">Carregando…</div>`;
     const { data, error } = await sb.from('cb_bu_knowledge').select('*').eq('bu', activeBU).single();
     if (error){ holder.innerHTML = `<div class="cbk-card">Erro: ${esc(error.message)}</div>`; return; }
     const bu = data || { bu:activeBU };
-    const f = (k, lbl, ta=true) => `<div class="cbk-field"><label>${lbl}</label>${ta?`<textarea data-k="${k}">${esc(bu[k])}</textarea>`:`<input data-k="${k}" value="${esc(bu[k])}">`}</div>`;
-    holder.innerHTML = `<div class="cbk-card">
-      ${f('descricao','Descrição da BU')}
-      ${f('visao_negocio','Visão de negócio & posicionamento')}
-      ${f('produtos','Produtos e serviços')}
-      ${f('diferenciais','Diferenciais competitivos')}
-      ${f('cases','Cases de sucesso relevantes')}
-      ${f('tom_voz','Tom de voz')}
-      ${f('regras','Regras editoriais / do que evitar')}
-      <div class="cbk-actions">
-        <span class="cbk-saved" id="cbk-bu-saved">Salvo ✓</span>
-        <button class="cbk-btn cbk-btn-primary" id="cbk-bu-save">Salvar</button>
-      </div>
-    </div>`;
-    document.getElementById('cbk-bu-save').addEventListener('click', async () => {
-      const payload = { bu:activeBU, nome:BUS.find(x=>x.key===activeBU).nome, updated_at:new Date().toISOString(), updated_by:email() };
-      holder.querySelectorAll('[data-k]').forEach(el => payload[el.dataset.k] = el.value);
-      const { error } = await sb.from('cb_bu_knowledge').upsert(payload, { onConflict:'bu' });
-      if (error) { alert('Erro salvando: '+error.message); return; }
-      const s = document.getElementById('cbk-bu-saved'); s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 2000);
-    });
+    if (buEditMode && canEdit()){
+      // Modo edição
+      const f = (k, lbl) => `<div class="cbk-field"><label>${lbl}</label><textarea data-k="${k}">${esc(bu[k])}</textarea></div>`;
+      holder.innerHTML = `<div class="cbk-card cbk-edit-mode">
+        <div class="cbk-modal-h">Editando ${BUS.find(x=>x.key===activeBU).nome}</div>
+        <div class="cbk-modal-s">Preencha os campos e clique Salvar. Todos os campos são opcionais mas quanto mais informação, melhor a IA responde.</div>
+        ${BU_FIELDS.map(([k,l])=>f(k,l)).join('')}
+        <div class="cbk-actions">
+          <button class="cbk-btn cbk-btn-ghost" id="cbk-bu-cancel">Cancelar</button>
+          <button class="cbk-btn cbk-btn-primary" id="cbk-bu-save">Salvar tudo</button>
+        </div>
+      </div>`;
+      document.getElementById('cbk-bu-cancel').addEventListener('click', () => { buEditMode=false; loadBUForm(); });
+      document.getElementById('cbk-bu-save').addEventListener('click', async () => {
+        const btn = document.getElementById('cbk-bu-save'); btn.disabled=true; btn.textContent='Salvando…';
+        const payload = { bu:activeBU, nome:BUS.find(x=>x.key===activeBU).nome, updated_at:new Date().toISOString(), updated_by:email() };
+        holder.querySelectorAll('[data-k]').forEach(el => payload[el.dataset.k] = el.value);
+        const { error } = await sb.from('cb_bu_knowledge').upsert(payload, { onConflict:'bu' });
+        if (error) { toast('Erro ao salvar: '+error.message, 'err'); btn.disabled=false; btn.textContent='Salvar tudo'; return; }
+        toast(`Base de ${BUS.find(x=>x.key===activeBU).nome} salva com sucesso`);
+        buEditMode = false;
+        loadBUForm();
+      });
+    } else {
+      // Modo visualização
+      const allEmpty = BU_FIELDS.every(([k])=>!(bu[k]||'').trim());
+      const f = (k, lbl) => `<div class="cbk-field"><label>${lbl}</label><div class="val${(bu[k]||'').trim()?'':' empty'}">${(bu[k]||'').trim() ? nl2br(bu[k]) : 'Não preenchido'}</div></div>`;
+      const hint = !canEdit() ? `<div class="cbk-role-hint">Somente Master e ADM podem editar. Sua permissão atual é <strong>${window._cbRole||'viewer'}</strong> — modo leitura.</div>` : '';
+      holder.innerHTML = `<div class="cbk-card cbk-view-mode">
+        ${hint}
+        ${allEmpty ? '<div class="cbk-empty" style="margin-bottom:16px;">Ainda sem informação para esta BU. Clique em Editar para começar.</div>' : BU_FIELDS.map(([k,l])=>f(k,l)).join('')}
+        <div class="cbk-meta">Última atualização: ${fmt(bu.updated_at)}${bu.updated_by?` · por ${esc(bu.updated_by)}`:''}</div>
+        ${canEdit() ? `<div class="cbk-actions"><button class="cbk-btn cbk-btn-primary" id="cbk-bu-edit">✎ Editar ${BUS.find(x=>x.key===activeBU).nome}</button></div>` : ''}
+      </div>`;
+      document.getElementById('cbk-bu-edit')?.addEventListener('click', () => { buEditMode=true; loadBUForm(); });
+    }
   }
 
   // ═════════ Segmentos ═════════
@@ -8691,10 +8749,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       <div class="cbk-hi">Inteligência</div>
       <div class="cbk-h1">Segmentos de mercado</div>
       <div class="cbk-sub">Setores em que a Costa Brava atua. Cada segmento tem um perfil de consumo por BU.</div>
-      <div style="margin-bottom:14px;"><button class="cbk-btn cbk-btn-primary" id="cbk-seg-new">+ Novo segmento</button></div>
+      ${!canEdit() ? `<div class="cbk-role-hint">Somente Master e ADM podem criar/editar segmentos. Sua permissão é <strong>${window._cbRole||'viewer'}</strong> — modo leitura.</div>` : `<div style="margin-bottom:14px;"><button class="cbk-btn cbk-btn-primary" id="cbk-seg-new">+ Novo segmento</button></div>`}
       <div id="cbk-seg-list" class="cbk-list"></div>
     </div>`;
-    document.getElementById('cbk-seg-new').addEventListener('click', () => openSegmentModal());
+    document.getElementById('cbk-seg-new')?.addEventListener('click', () => openSegmentModal());
     await loadSegments();
   }
   async function loadSegments(){
@@ -8722,7 +8780,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function openSegmentModal(seg){
     const isNew = !seg; seg = seg || { nome:'', descricao:'' };
-    let html = `<div class="cbk-modal-h">${isNew?'Novo segmento':`Editar: ${esc(seg.nome)}`}</div>
+    if (!canEdit()){ openSegmentView(seg); return; }
+    let html = `<div class="cbk-modal-h">${isNew?'✎ Novo segmento':`✎ Editando: ${esc(seg.nome)}`}</div>
       <div class="cbk-modal-s">Nome e descrição geral. O perfil por BU é editado abaixo.</div>
       <div class="cbk-card">
         <div class="cbk-field"><label>Nome do segmento *</label><input id="seg-nome" value="${esc(seg.nome)}"></div>
@@ -8770,25 +8829,28 @@ document.addEventListener('DOMContentLoaded',()=>{
       };
       if (!payload.nome) { alert('Nome é obrigatório'); return; }
       let segmentId = seg.id;
+      const btn = document.getElementById('cbk-seg-save'); btn.disabled=true; btn.textContent='Salvando…';
+      let savedCount = 1;
       if (isNew){
         payload.created_by = email();
         const { data, error } = await sb.from('cb_segments').insert(payload).select().single();
-        if (error){ alert('Erro: '+error.message); return; }
+        if (error){ toast('Erro: '+error.message,'err'); btn.disabled=false; btn.textContent='Criar'; return; }
         segmentId = data.id;
       } else {
         const { error } = await sb.from('cb_segments').update(payload).eq('id', segmentId);
-        if (error){ alert('Erro: '+error.message); return; }
-        // upserts BU perfis
+        if (error){ toast('Erro: '+error.message,'err'); btn.disabled=false; btn.textContent='Salvar tudo'; return; }
         for (const b of BUS){
           const card = document.querySelector(`.cbk-card[data-bu="${b.key}"]`);
           if (!card) continue;
           const bp = { bu:b.key, segment_id:segmentId, updated_at:new Date().toISOString(), updated_by:email() };
           card.querySelectorAll('[data-bsk]').forEach(el => bp[el.dataset.bsk] = el.value);
-          await sb.from('cb_bu_segments').upsert(bp, { onConflict:'bu,segment_id' });
+          const { error: bpErr } = await sb.from('cb_bu_segments').upsert(bp, { onConflict:'bu,segment_id' });
+          if (bpErr) { console.error('[cb_bu_segments]', b.key, bpErr); toast(`Falha ao salvar perfil ${b.nome}: ${bpErr.message}`,'err'); btn.disabled=false; btn.textContent='Salvar tudo'; return; }
+          savedCount++;
         }
       }
-      const s = document.getElementById('cbk-seg-saved'); s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 2000);
-      if (isNew) { closeModal(); loadSegments(); }
+      toast(`Segmento salvo (${savedCount} ${savedCount>1?'registros':'registro'})`);
+      closeModal(); loadSegments();
     });
   }
 
@@ -8799,10 +8861,10 @@ document.addEventListener('DOMContentLoaded',()=>{
       <div class="cbk-hi">Inteligência</div>
       <div class="cbk-h1">Personas de ICP</div>
       <div class="cbk-sub">Perfis de tomadores de decisão. Cada persona tem comportamento específico por BU × Segmento.</div>
-      <div style="margin-bottom:14px;"><button class="cbk-btn cbk-btn-primary" id="cbk-per-new">+ Nova persona</button></div>
+      ${!canEdit() ? `<div class="cbk-role-hint">Somente Master e ADM podem criar/editar personas. Sua permissão é <strong>${window._cbRole||'viewer'}</strong> — modo leitura.</div>` : `<div style="margin-bottom:14px;"><button class="cbk-btn cbk-btn-primary" id="cbk-per-new">+ Nova persona</button></div>`}
       <div id="cbk-per-list" class="cbk-list"></div>
     </div>`;
-    document.getElementById('cbk-per-new').addEventListener('click', () => openPersonaModal());
+    document.getElementById('cbk-per-new')?.addEventListener('click', () => openPersonaModal());
     await loadPersonas();
   }
   async function loadPersonas(){
@@ -8830,7 +8892,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   async function openPersonaModal(persona){
     const isNew = !persona; persona = persona || { nome:'', descricao:'', cargo_areas:'' };
-    let html = `<div class="cbk-modal-h">${isNew?'Nova persona':`Editar: ${esc(persona.nome)}`}</div>
+    if (!canEdit()){ openPersonaView(persona); return; }
+    let html = `<div class="cbk-modal-h">${isNew?'✎ Nova persona':`✎ Editando: ${esc(persona.nome)}`}</div>
       <div class="cbk-modal-s">Nome do cargo/papel e descrição geral. O comportamento por segmento é editado abaixo.</div>
       <div class="cbk-card">
         <div class="cbk-field"><label>Nome da persona * (ex: CFO, Head de MKT)</label><input id="per-nome" value="${esc(persona.nome)}"></div>
@@ -8892,25 +8955,29 @@ document.addEventListener('DOMContentLoaded',()=>{
       };
       if (!payload.nome) { alert('Nome é obrigatório'); return; }
       let personaId = persona.id;
+      const btn = document.getElementById('cbk-per-save'); btn.disabled=true; btn.textContent='Salvando…';
+      let savedCount = 1;
       if (isNew){
         payload.created_by = email();
         const { data, error } = await sb.from('cb_personas').insert(payload).select().single();
-        if (error){ alert('Erro: '+error.message); return; }
+        if (error){ toast('Erro: '+error.message,'err'); btn.disabled=false; btn.textContent='Criar'; return; }
         personaId = data.id;
       } else {
         const { error } = await sb.from('cb_personas').update(payload).eq('id', personaId);
-        if (error){ alert('Erro: '+error.message); return; }
-        // upserts todas as combinações preenchidas
+        if (error){ toast('Erro: '+error.message,'err'); btn.disabled=false; btn.textContent='Salvar tudo'; return; }
         const cards = document.querySelectorAll('.cbk-card[data-bu][data-seg]');
         for (const card of cards){
           const row = { bu:card.dataset.bu, segment_id:card.dataset.seg, persona_id:personaId, updated_at:new Date().toISOString(), updated_by:email() };
           let hasAny = false;
-          card.querySelectorAll('[data-bspk]').forEach(el => { row[el.dataset.bspk] = el.value; if (el.value.trim()) hasAny = true; });
-          if (hasAny) await sb.from('cb_bu_segment_personas').upsert(row, { onConflict:'bu,segment_id,persona_id' });
+          card.querySelectorAll('[data-bspk]').forEach(el => { row[el.dataset.bspk] = el.value; if ((el.value||'').trim()) hasAny = true; });
+          if (!hasAny) continue;
+          const { error: rowErr } = await sb.from('cb_bu_segment_personas').upsert(row, { onConflict:'bu,segment_id,persona_id' });
+          if (rowErr){ console.error('[cb_bu_segment_personas]', rowErr); toast(`Falha ao salvar comportamento: ${rowErr.message}`,'err'); btn.disabled=false; btn.textContent='Salvar tudo'; return; }
+          savedCount++;
         }
       }
-      const s = document.getElementById('cbk-per-saved'); s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 2000);
-      if (isNew) { closeModal(); loadPersonas(); }
+      toast(`Persona salva (${savedCount} ${savedCount>1?'registros':'registro'})`);
+      closeModal(); loadPersonas();
     });
   }
 
@@ -8950,6 +9017,60 @@ document.addEventListener('DOMContentLoaded',()=>{
           <td>${cs.length} <span style="color:#9CA3AF;font-size:11px;">(${cs.filter(x=>x.status==='approved').length} aprovados)</span></td>
         </tr>`;
       }).join('')}</tbody></table></div>`;
+  }
+
+  // ═════════ View readonly de Segmento e Persona ═════════
+  async function openSegmentView(seg){
+    const [{data:bs}] = await Promise.all([sb.from('cb_bu_segments').select('*').eq('segment_id', seg.id)]);
+    let html = `<div class="cbk-modal-h">${esc(seg.nome)}</div>
+      <div class="cbk-modal-s">${esc(seg.descricao)||'Sem descrição.'}</div>
+      <div class="cbk-hi" style="margin:14px 0 8px;">Perfil por BU</div>`;
+    BUS.forEach(b => {
+      const row = (bs||[]).find(r=>r.bu===b.key) || {};
+      const anyFilled = ['perfil_consumo','dores','oportunidades','cases','observacoes'].some(k => (row[k]||'').trim());
+      html += `<div class="cbk-card cbk-view-mode" style="margin-bottom:10px;">
+        <div class="cbk-modal-h" style="font-size:13px;margin-bottom:8px;">${b.nome}</div>
+        ${!anyFilled?'<div class="val empty">Ainda sem informação para esta BU.</div>':`
+          ${row.perfil_consumo?`<div class="cbk-field"><label>Perfil de consumo</label><div class="val">${nl2br(row.perfil_consumo)}</div></div>`:''}
+          ${row.dores?`<div class="cbk-field"><label>Dores</label><div class="val">${nl2br(row.dores)}</div></div>`:''}
+          ${row.oportunidades?`<div class="cbk-field"><label>Oportunidades</label><div class="val">${nl2br(row.oportunidades)}</div></div>`:''}
+          ${row.cases?`<div class="cbk-field"><label>Cases</label><div class="val">${nl2br(row.cases)}</div></div>`:''}
+          ${row.observacoes?`<div class="cbk-field"><label>Observações</label><div class="val">${nl2br(row.observacoes)}</div></div>`:''}
+        `}
+      </div>`;
+    });
+    html += `<div class="cbk-actions"><button class="cbk-btn cbk-btn-ghost" id="cbk-close">Fechar</button></div>`;
+    openModal(html);
+    document.getElementById('cbk-close').addEventListener('click', closeModal);
+  }
+  async function openPersonaView(persona){
+    const [{data:segs},{data:rows}] = await Promise.all([
+      sb.from('cb_segments').select('*').order('nome'),
+      sb.from('cb_bu_segment_personas').select('*').eq('persona_id', persona.id)
+    ]);
+    let html = `<div class="cbk-modal-h">${esc(persona.nome)}</div>
+      <div class="cbk-modal-s">${esc(persona.descricao)||'Sem descrição.'}${persona.cargo_areas?` · Áreas: ${esc(persona.cargo_areas)}`:''}</div>`;
+    const segMap = Object.fromEntries((segs||[]).map(s=>[s.id,s.nome]));
+    if (!rows?.length){ html += `<div class="cbk-empty">Ainda sem comportamento cadastrado para esta persona.</div>`; }
+    else {
+      html += `<div class="cbk-hi" style="margin:14px 0 8px;">Comportamento por BU × Segmento</div>`;
+      rows.forEach(r => {
+        const buName = BUS.find(b=>b.key===r.bu)?.nome || r.bu;
+        html += `<div class="cbk-card cbk-view-mode" style="margin-bottom:10px;">
+          <div class="cbk-modal-h" style="font-size:13px;margin-bottom:8px;">${buName} · ${esc(segMap[r.segment_id]||'?')}</div>
+          ${r.dores_especificas?`<div class="cbk-field"><label>Dores</label><div class="val">${nl2br(r.dores_especificas)}</div></div>`:''}
+          ${r.necessidades?`<div class="cbk-field"><label>Necessidades</label><div class="val">${nl2br(r.necessidades)}</div></div>`:''}
+          ${r.objecoes_comuns?`<div class="cbk-field"><label>Objeções</label><div class="val">${nl2br(r.objecoes_comuns)}</div></div>`:''}
+          ${r.criterios_decisao?`<div class="cbk-field"><label>Critérios de decisão</label><div class="val">${nl2br(r.criterios_decisao)}</div></div>`:''}
+          ${r.canais_preferidos?`<div class="cbk-field"><label>Canais</label><div class="val">${esc(r.canais_preferidos)}</div></div>`:''}
+          ${r.tom_ideal?`<div class="cbk-field"><label>Tom ideal</label><div class="val">${esc(r.tom_ideal)}</div></div>`:''}
+          ${r.jornada_compra?`<div class="cbk-field"><label>Jornada</label><div class="val">${nl2br(r.jornada_compra)}</div></div>`:''}
+        </div>`;
+      });
+    }
+    html += `<div class="cbk-actions"><button class="cbk-btn cbk-btn-ghost" id="cbk-close">Fechar</button></div>`;
+    openModal(html);
+    document.getElementById('cbk-close').addEventListener('click', closeModal);
   }
 
   // ═════════ Modal helpers ═════════
