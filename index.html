@@ -8592,7 +8592,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 <script id="cb-onda-k-boot">
 (function(){
-  const sb = window.sb; if (!sb){ console.warn('[Onda K] Supabase não disponível'); return; }
+  const sb = window._cbAuthClient || window.sb || window.supabase;
+  if (!sb || typeof sb.from !== 'function'){ console.warn('[Onda K] Supabase client não disponível'); return; }
   const BUS = [
     { key:'bt',   nome:'Business Travel' },
     { key:'lm',   nome:'Live Marketing' },
