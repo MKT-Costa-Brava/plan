@@ -7879,7 +7879,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     conteudos: { views:[
       { view:'soon:diario', lbl:'Diário de Bordo', icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5', soon:true },
       { view:'soon:insights', lbl:'Insights e Reviews', icon:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M4 12H2M22 12h-2', soon:true },
-      { view:'soon:nutricao', lbl:'Nutrição (IA)', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6', soon:true },
+      { view:'nutricao', lbl:'Nutrição (IA)', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
     ], actions:false },
     home: { views:[], actions:false, welcome:true },
   };
@@ -8134,7 +8134,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       conteudos: [
         { view:'soon:diario', lbl:'Diário de Bordo', soon:true, icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
         { view:'soon:insights', lbl:'Insights e Reviews', soon:true, icon:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z' },
-        { view:'soon:nutricao', lbl:'Nutrição (IA)', soon:true, icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
+        { view:'nutricao', lbl:'Nutrição (IA)', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
       ],
     };
     return true;
@@ -8333,7 +8333,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     conteudos: [
       { view:'soon:diario',    lbl:'Diário de Bordo',   icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5', soon:true },
       { view:'soon:insights',  lbl:'Insights e Reviews',icon:'M12 2v4M12 18v4M4 12H2M22 12h-2M6 6l-2-2M18 18l2 2M6 18l-2 2M18 6l2-2M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z', soon:true },
-      { view:'soon:nutricao',  lbl:'Nutrição (IA)',     icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h4M8 17h6M8 9h2', soon:true },
+      { view:'nutricao',  lbl:'Nutrição (IA)',     icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h4M8 17h6M8 9h2' },
     ],
   };
 
@@ -8607,6 +8607,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cbk-meta{ font-size:11px; color:#9CA3AF; margin-top:8px; font-style:italic; }
   .cbk-role-hint{ font-size:11.5px; color:#6B7280; padding:8px 12px; background:#F0F3F7; border-radius:6px; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
   .cbk-role-hint::before{ content:'🔒'; font-size:14px; }
+
+  /* Nutrição IA layout */
+  .cbk-nut-grid{ display:grid; grid-template-columns:1fr 320px; gap:14px; align-items:start; }
+  @media (max-width: 1100px){ .cbk-nut-grid{ grid-template-columns:1fr; } }
+  .cbk-nut-editor{ display:flex; flex-direction:column; gap:14px; }
+  .cbk-nut-side{ position:sticky; top:14px; }
+  .cbk-nut-item{ background:#FFFFFF; border:1px solid #E4E9EF; border-radius:9px; padding:10px 12px; cursor:pointer; margin-bottom:6px; transition:all .12s; }
+  .cbk-nut-item:hover{ border-color:#8CB7C9; }
+  .cbk-nut-item .hd{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  .cbk-nut-item .fmt{ font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#6B7280; }
+  .cbk-nut-item .st{ font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:99px; }
+  .cbk-nut-item .tt{ font-size:12.5px; color:var(--cb-navy); font-weight:600; line-height:1.3; }
+  .cbk-nut-item .dt{ font-size:10.5px; color:#9CA3AF; margin-top:4px; }
 </style>
 
 <script id="cb-onda-k-boot">
@@ -8640,7 +8653,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // ═════════ Cria as 4 view-pages e registra em VIEWS ═════════
   function ensureViews(){
     const app = document.getElementById('app');
-    ['base-negocio','segmentos','personas','icps'].forEach(v => {
+    ['base-negocio','segmentos','personas','icps','nutricao'].forEach(v => {
       const id = 'v' + v.replace(/[^a-z]/gi,'').replace(/^./, c=>c.toUpperCase());
       if (document.getElementById(id)) return;
       const el = document.createElement('div');
@@ -8653,7 +8666,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (orig && !orig.__cbOndaK){
       const wrap = function(v){
         // se é uma view nova, renderiza
-        if (['base-negocio','segmentos','personas','icps'].includes(v)){
+        if (['base-negocio','segmentos','personas','icps','nutricao'].includes(v)){
           document.querySelectorAll('#app > .view-page').forEach(el=>el.classList.remove('active'));
           const id = 'v' + v.replace(/[^a-z]/gi,'').replace(/^./,c=>c.toUpperCase());
           document.getElementById(id)?.classList.add('active');
@@ -8663,6 +8676,7 @@ document.addEventListener('DOMContentLoaded',()=>{
           else if (v==='segmentos') renderSegmentos();
           else if (v==='personas') renderPersonas();
           else if (v==='icps') renderICPs();
+          else if (v==='nutricao') renderNutricao();
           return;
         }
         return orig.apply(this, arguments);
@@ -9019,6 +9033,221 @@ document.addEventListener('DOMContentLoaded',()=>{
       }).join('')}</tbody></table></div>`;
   }
 
+  // ═════════ Nutrição (IA) ═════════
+  const FORMATOS = [
+    { key:'post-linkedin', lbl:'Post LinkedIn' },
+    { key:'newsletter',    lbl:'Newsletter' },
+    { key:'artigo-blog',   lbl:'Artigo de Blog' },
+    { key:'email-mkt',     lbl:'E-mail Marketing' },
+    { key:'copy-lp',       lbl:'Copy Landing Page' },
+    { key:'roteiro-video', lbl:'Roteiro de Vídeo' },
+  ];
+  const STATUS_LBL = { draft:'Rascunho', pending_approval:'Pendente aprovação', approved:'Aprovado', rejected:'Rejeitado' };
+  const STATUS_COLOR = { draft:'#6B7280', pending_approval:'#B45309', approved:'#166534', rejected:'#991B1B' };
+
+  let nutCurrent = { id:null, bu:'', segment_id:'', persona_id:'', formato:'post-linkedin', titulo:'', prompt_input:'', ai_output:'', edited_output:'', status:'draft' };
+
+  async function renderNutricao(){
+    const v = document.getElementById('vNutricao'); if (!v) return;
+    v.innerHTML = `<div class="cbk-wrap" style="max-width:1400px;">
+      <div class="cbk-hi">Conteúdos</div>
+      <div class="cbk-h1">Nutrição · IA</div>
+      <div class="cbk-sub">Escolha o contexto (BU · Segmento · Persona), descreva o que quer no prompt e gere. Todo conteúdo passa por aprovação do Master antes de virar aprendizado.</div>
+      <div id="cbk-nut-master" style="display:${isMaster()?'block':'none'}"></div>
+      <div class="cbk-nut-grid">
+        <div class="cbk-nut-editor">
+          <div class="cbk-card">
+            <div class="cbk-modal-h" style="font-size:15px;">1 · Contexto</div>
+            <div class="cbk-row" style="grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px;">
+              <div class="cbk-field"><label>BU</label><select id="nut-bu">${BUS.map(b=>`<option value="${b.key}">${b.nome}</option>`).join('')}</select></div>
+              <div class="cbk-field"><label>Segmento</label><select id="nut-seg"></select></div>
+              <div class="cbk-field"><label>Persona</label><select id="nut-per"></select></div>
+            </div>
+          </div>
+          <div class="cbk-card">
+            <div class="cbk-modal-h" style="font-size:15px;">2 · Formato e briefing</div>
+            <div class="cbk-row" style="grid-template-columns:1fr 2fr;gap:10px;margin-top:12px;">
+              <div class="cbk-field"><label>Formato</label><select id="nut-fmt">${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
+              <div class="cbk-field"><label>Título (opcional)</label><input id="nut-titulo" placeholder="Ex: Como reduzir custos de viagem no agronegócio"></div>
+            </div>
+            <div class="cbk-field"><label>Prompt · descreva o conteúdo</label><textarea id="nut-prompt" placeholder="Ex: Post pra CFO do agronegócio explicando como a Business Travel reduz custos e aumenta previsibilidade orçamentária." style="min-height:110px;"></textarea></div>
+            <div class="cbk-actions"><button class="cbk-btn cbk-btn-primary" id="nut-gerar">✨ Gerar com IA</button></div>
+          </div>
+          <div class="cbk-card" id="nut-result-card" style="display:none;">
+            <div class="cbk-modal-h" style="font-size:15px;">3 · Resultado — edite livremente</div>
+            <div class="cbk-field"><textarea id="nut-output" style="min-height:260px;font-family:'Montserrat',sans-serif;line-height:1.6;"></textarea></div>
+            <div class="cbk-actions">
+              <span class="cbk-meta" id="nut-status" style="margin-right:auto;align-self:center;"></span>
+              <button class="cbk-btn cbk-btn-ghost" id="nut-save-draft">Salvar rascunho</button>
+              <button class="cbk-btn cbk-btn-primary" id="nut-send-approval">Enviar para aprovação</button>
+            </div>
+          </div>
+        </div>
+        <div class="cbk-nut-side">
+          <div class="cbk-card">
+            <div class="cbk-modal-h" style="font-size:14px;">Histórico</div>
+            <div class="cbk-modal-s">Filtrado pelo contexto acima</div>
+            <div id="cbk-nut-hist" style="margin-top:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    // Populate selects
+    const [{data:segs},{data:pers}] = await Promise.all([
+      sb.from('cb_segments').select('*').order('nome'),
+      sb.from('cb_personas').select('*').order('nome')
+    ]);
+    const buSel = document.getElementById('nut-bu');
+    const segSel = document.getElementById('nut-seg');
+    const perSel = document.getElementById('nut-per');
+    segSel.innerHTML = '<option value="">— Sem segmento —</option>' + (segs||[]).map(s=>`<option value="${s.id}">${esc(s.nome)}</option>`).join('');
+    perSel.innerHTML = '<option value="">— Sem persona —</option>' + (pers||[]).map(p=>`<option value="${p.id}">${esc(p.nome)}</option>`).join('');
+    buSel.value = nutCurrent.bu || 'bt';
+    segSel.value = nutCurrent.segment_id || '';
+    perSel.value = nutCurrent.persona_id || '';
+
+    [buSel, segSel, perSel, document.getElementById('nut-fmt')].forEach(el => el.addEventListener('change', () => loadNutHistory()));
+
+    document.getElementById('nut-gerar').addEventListener('click', gerarComIA);
+    document.getElementById('nut-save-draft').addEventListener('click', () => saveNut('draft'));
+    document.getElementById('nut-send-approval').addEventListener('click', () => saveNut('pending_approval'));
+
+    if (isMaster()) await renderMasterApprovals();
+    await loadNutHistory();
+  }
+
+  async function loadNutHistory(){
+    const holder = document.getElementById('cbk-nut-hist'); if (!holder) return;
+    const bu = document.getElementById('nut-bu').value;
+    const seg = document.getElementById('nut-seg').value;
+    const per = document.getElementById('nut-per').value;
+    let q = sb.from('cb_contents').select('*').order('created_at', {ascending:false}).limit(20);
+    if (bu) q = q.eq('bu', bu);
+    if (seg) q = q.eq('segment_id', seg);
+    if (per) q = q.eq('persona_id', per);
+    const { data, error } = await q;
+    if (error){ holder.innerHTML = `Erro: ${esc(error.message)}`; return; }
+    if (!data?.length){ holder.innerHTML = `<div class="cbk-empty">Sem conteúdos ainda pra esse contexto.</div>`; return; }
+    holder.innerHTML = data.map(c => `
+      <div class="cbk-nut-item" data-id="${c.id}">
+        <div class="hd">
+          <span class="fmt">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)}</span>
+          <span class="st" style="background:${STATUS_COLOR[c.status]}20;color:${STATUS_COLOR[c.status]};">${STATUS_LBL[c.status]||c.status}</span>
+        </div>
+        <div class="tt">${esc(c.titulo||'Sem título')}</div>
+        <div class="dt">${fmt(c.created_at)}</div>
+      </div>
+    `).join('');
+    holder.querySelectorAll('.cbk-nut-item').forEach(i => i.addEventListener('click', () => {
+      const c = data.find(x=>x.id===i.dataset.id); loadIntoEditor(c);
+    }));
+  }
+
+  function loadIntoEditor(c){
+    nutCurrent = { ...c };
+    document.getElementById('nut-bu').value = c.bu || 'bt';
+    document.getElementById('nut-seg').value = c.segment_id || '';
+    document.getElementById('nut-per').value = c.persona_id || '';
+    document.getElementById('nut-fmt').value = c.formato || 'post-linkedin';
+    document.getElementById('nut-titulo').value = c.titulo || '';
+    document.getElementById('nut-prompt').value = c.prompt_input || '';
+    document.getElementById('nut-output').value = c.edited_output || c.ai_output || '';
+    document.getElementById('nut-result-card').style.display = 'block';
+    document.getElementById('nut-status').textContent = `Status: ${STATUS_LBL[c.status]||c.status} · ${fmt(c.created_at)}`;
+  }
+
+  async function gerarComIA(){
+    const btn = document.getElementById('nut-gerar'); btn.disabled=true; btn.innerHTML='⏳ Gerando…';
+    try {
+      const payload = {
+        bu: document.getElementById('nut-bu').value,
+        segment_id: document.getElementById('nut-seg').value || null,
+        persona_id: document.getElementById('nut-per').value || null,
+        formato: document.getElementById('nut-fmt').value,
+        titulo: document.getElementById('nut-titulo').value,
+        prompt: document.getElementById('nut-prompt').value,
+      };
+      if (!payload.prompt.trim()){ toast('Escreva um prompt antes de gerar','err'); return; }
+      const { data, error } = await sb.functions.invoke('nutricao-ai', { body: payload });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const output = data?.output || data?.text || '';
+      if (!output){ throw new Error('Resposta vazia da IA'); }
+      document.getElementById('nut-output').value = output;
+      document.getElementById('nut-result-card').style.display = 'block';
+      nutCurrent = { ...nutCurrent, ...payload, ai_output: output, edited_output: output, status:'draft', id:null };
+      toast('Conteúdo gerado — edite livremente antes de salvar');
+      document.getElementById('nut-status').textContent = 'Status: Rascunho não salvo';
+    } catch(e){
+      const msg = e.message || String(e);
+      if (/not found|no such function|Function not found/i.test(msg)){
+        toast('Edge Function "nutricao-ai" ainda não publicada. Solicite ao TI.','err');
+      } else {
+        toast('Erro: '+msg,'err');
+      }
+    } finally {
+      btn.disabled=false; btn.innerHTML='✨ Gerar com IA';
+    }
+  }
+
+  async function saveNut(status){
+    const payload = {
+      bu: document.getElementById('nut-bu').value,
+      segment_id: document.getElementById('nut-seg').value || null,
+      persona_id: document.getElementById('nut-per').value || null,
+      formato: document.getElementById('nut-fmt').value,
+      titulo: document.getElementById('nut-titulo').value.trim() || null,
+      prompt_input: document.getElementById('nut-prompt').value,
+      ai_output: nutCurrent.ai_output || document.getElementById('nut-output').value,
+      edited_output: document.getElementById('nut-output').value,
+      status,
+      created_by: email(),
+    };
+    let res;
+    if (nutCurrent.id){ res = await sb.from('cb_contents').update({...payload, updated_at:new Date().toISOString()}).eq('id', nutCurrent.id).select().single(); }
+    else { res = await sb.from('cb_contents').insert(payload).select().single(); }
+    if (res.error){ toast('Erro: '+res.error.message,'err'); return; }
+    nutCurrent = res.data;
+    toast(status==='draft' ? 'Rascunho salvo' : 'Enviado para aprovação do Master');
+    document.getElementById('nut-status').textContent = `Status: ${STATUS_LBL[nutCurrent.status]} · ${fmt(nutCurrent.updated_at||nutCurrent.created_at)}`;
+    loadNutHistory();
+    if (isMaster()) renderMasterApprovals();
+  }
+
+  async function renderMasterApprovals(){
+    const holder = document.getElementById('cbk-nut-master'); if (!holder) return;
+    const { data, error } = await sb.from('cb_contents').select('*').eq('status','pending_approval').order('created_at');
+    if (error) return;
+    if (!data?.length){ holder.innerHTML = ''; return; }
+    holder.innerHTML = `<div class="cbk-card" style="background:#FEF3C7;border-color:#FCD34D;margin-bottom:14px;">
+      <div class="cbk-modal-h" style="font-size:14px;color:#92400E;">🔔 ${data.length} conteúdo${data.length>1?'s':''} pendente${data.length>1?'s':''} de sua aprovação</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+        ${data.map(c => `
+          <div style="background:#FFF;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-weight:600;color:#0F2037;">${esc(c.titulo||'Sem título')}</div>
+              <div style="font-size:11.5px;color:#6B7280;">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)} · ${esc(c.created_by)} · ${fmt(c.created_at)}</div>
+            </div>
+            <button class="cbk-btn cbk-btn-ghost" data-load="${c.id}">Ver</button>
+            <button class="cbk-btn cbk-btn-primary" data-approve="${c.id}" style="background:#166534;">Aprovar</button>
+            <button class="cbk-btn cbk-btn-danger" data-reject="${c.id}">Rejeitar</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+    holder.querySelectorAll('[data-load]').forEach(b => b.addEventListener('click', () => loadIntoEditor(data.find(x=>x.id===b.dataset.load))));
+    holder.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
+      await sb.from('cb_contents').update({ status:'approved', aprovado_por:email(), aprovado_em:new Date().toISOString() }).eq('id', b.dataset.approve);
+      toast('Conteúdo aprovado — vira aprendizado da IA'); renderMasterApprovals(); loadNutHistory();
+    }));
+    holder.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', async () => {
+      const motivo = prompt('Motivo da rejeição (opcional):') || '';
+      await sb.from('cb_contents').update({ status:'rejected', motivo_rejeicao:motivo }).eq('id', b.dataset.reject);
+      toast('Conteúdo rejeitado','err'); renderMasterApprovals(); loadNutHistory();
+    }));
+  }
+
   // ═════════ View readonly de Segmento e Persona ═════════
   async function openSegmentView(seg){
     const [{data:bs}] = await Promise.all([sb.from('cb_bu_segments').select('*').eq('segment_id', seg.id)]);
@@ -9082,15 +9311,41 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   function closeModal(){ document.getElementById('cbk-mask')?.classList.remove('open'); }
 
-  // ═════════ Exclusão com validação por e-mail (K.4 placeholder) ═════════
+  // ═════════ Exclusão com validação por e-mail (K.4) ═════════
   async function requestDeletion(type, id, label){
-    if (!confirm(`Solicitar exclusão de "${label}"?\n\nUm e-mail de confirmação será enviado. A exclusão só ocorre após você clicar no link (válido por 15 min).`)) return;
-    const { data, error } = await sb.from('cb_deletion_requests').insert({
-      entity_type:type, entity_id:id, entity_label:label, requested_by:email()
-    }).select().single();
-    if (error){ alert('Erro: '+error.message); return; }
-    alert(`Pedido criado. Token: ${data.token.slice(0,8)}…\n\n(Envio de e-mail com link será ativado na Onda K.4.)`);
+    if (!isMaster()){ toast('Somente Master pode excluir.','err'); return; }
+    if (!confirm(`Solicitar exclusão de "${label}"?\n\nUm e-mail de confirmação será enviado para ${email()}.\nO link é válido por 15 minutos.`)) return;
+    try {
+      const { data, error } = await sb.functions.invoke('deletion-request', {
+        body: { entity_type:type, entity_id:id, entity_label:label, requested_by:email() }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.sent) toast(`E-mail de confirmação enviado para ${email()}. Válido por 15 min.`);
+      else toast(`Pedido criado. Configure RESEND_API_KEY pra enviar e-mail automático.`,'err');
+    } catch(e){
+      const msg = e.message || String(e);
+      if (/not found|No such function/i.test(msg)) toast('Edge Functions "deletion-request" ainda não publicada.','err');
+      else toast('Erro: '+msg,'err');
+    }
   }
+
+  // Ao retornar do e-mail com ?deleteToken=xxx, executa confirm
+  (async function processDeletionToken(){
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('deleteToken');
+    if (!token) return;
+    try {
+      const { data, error } = await sb.functions.invoke('deletion-confirm', { body:{ token } });
+      history.replaceState({}, '', window.location.pathname);
+      if (error) throw error;
+      if (data?.error) toast('Falha: '+data.error, 'err');
+      else toast(`Excluído: ${data.deleted}`);
+    } catch(e){
+      toast('Erro na confirmação: '+(e.message||e),'err');
+      history.replaceState({}, '', window.location.pathname);
+    }
+  })();
 
   // ═════════ Boot ═════════
   function boot(){
