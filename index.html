@@ -9065,12 +9065,26 @@ document.addEventListener('DOMContentLoaded',()=>{
             </div>
           </div>
           <div class="cbk-card">
-            <div class="cbk-modal-h" style="font-size:15px;">2 · Formato e briefing</div>
-            <div class="cbk-row" style="grid-template-columns:1fr 2fr;gap:10px;margin-top:12px;">
-              <div class="cbk-field"><label>Formato</label><select id="nut-fmt">${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
-              <div class="cbk-field"><label>Título (opcional)</label><input id="nut-titulo" placeholder="Ex: Como reduzir custos de viagem no agronegócio"></div>
+            <div class="cbk-modal-h" style="font-size:15px;">2 · Modo de geração</div>
+            <div class="cbk-tabs" style="margin:12px 0 14px;">
+              <button class="cbk-tab active" data-mode="unico">Único</button>
+              <button class="cbk-tab" data-mode="cadencia">Cadência</button>
             </div>
-            <div class="cbk-field"><label>Prompt · descreva o conteúdo</label><textarea id="nut-prompt" placeholder="Ex: Post pra CFO do agronegócio explicando como a Business Travel reduz custos e aumenta previsibilidade orçamentária." style="min-height:110px;"></textarea></div>
+            <div id="nut-mode-unico">
+              <div class="cbk-row" style="grid-template-columns:1fr 2fr;gap:10px;">
+                <div class="cbk-field"><label>Formato</label><select id="nut-fmt">${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
+                <div class="cbk-field"><label>Título (opcional)</label><input id="nut-titulo" placeholder="Ex: Como reduzir custos de viagem no agronegócio"></div>
+              </div>
+              <div class="cbk-field"><label>Prompt · descreva o conteúdo</label><textarea id="nut-prompt" placeholder="Ex: Post pra CFO do agronegócio explicando como a Business Travel reduz custos e aumenta previsibilidade orçamentária." style="min-height:110px;"></textarea></div>
+            </div>
+            <div id="nut-mode-cadencia" style="display:none;">
+              <div class="cbk-row" style="grid-template-columns:1fr 2fr;gap:10px;">
+                <div class="cbk-field"><label>Quantidade de peças</label><select id="nut-cad-n">${[2,3,4,5,6,7,8].map(n=>`<option value="${n}"${n===4?' selected':''}>${n} peças</option>`).join('')}</select></div>
+                <div class="cbk-field"><label>Formato principal</label><select id="nut-cad-fmt">${FORMATOS.map(f=>`<option value="${f.key}"${f.key==='email-mkt'?' selected':''}>${f.lbl}</option>`).join('')}</select></div>
+              </div>
+              <div class="cbk-field"><label>Descrição da campanha</label><textarea id="nut-cad-campanha" placeholder="Ex: Cadência de 4 e-mails pra nurturing de CFOs do agronegócio, do problema até apresentar a solução Business Travel." style="min-height:110px;"></textarea></div>
+              <div class="cbk-meta">A IA planeja a jornada — cada peça abre, aprofunda, apresenta solução e faz CTA. Você aprova cada uma separadamente depois.</div>
+            </div>
             <div class="cbk-actions"><button class="cbk-btn cbk-btn-primary" id="nut-gerar">✨ Gerar com IA</button></div>
           </div>
           <div class="cbk-card" id="nut-result-card" style="display:none;">
@@ -9109,6 +9123,15 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     [buSel, segSel, perSel, document.getElementById('nut-fmt')].forEach(el => el.addEventListener('change', () => loadNutHistory()));
 
+    // Toggle modo Único/Cadência
+    v.querySelectorAll('.cbk-tab[data-mode]').forEach(t => t.addEventListener('click', () => {
+      v.querySelectorAll('.cbk-tab[data-mode]').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      const m = t.dataset.mode;
+      document.getElementById('nut-mode-unico').style.display = (m==='unico'?'':'none');
+      document.getElementById('nut-mode-cadencia').style.display = (m==='cadencia'?'':'none');
+    }));
+
     document.getElementById('nut-gerar').addEventListener('click', gerarComIA);
     document.getElementById('nut-save-draft').addEventListener('click', () => saveNut('draft'));
     document.getElementById('nut-send-approval').addEventListener('click', () => saveNut('pending_approval'));
@@ -9146,49 +9169,152 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   function loadIntoEditor(c){
     nutCurrent = { ...c };
+    // Reset result-card ao HTML original caso tenha sido substituído por cadência
+    const card = document.getElementById('nut-result-card');
+    if (!document.getElementById('nut-output')){
+      card.innerHTML = `<div class="cbk-modal-h" style="font-size:15px;">3 · Resultado — edite livremente</div>
+        <div class="cbk-field"><textarea id="nut-output" style="min-height:260px;font-family:'Montserrat',sans-serif;line-height:1.6;"></textarea></div>
+        <div class="cbk-actions">
+          <span class="cbk-meta" id="nut-status" style="margin-right:auto;align-self:center;"></span>
+          <button class="cbk-btn cbk-btn-ghost" id="nut-save-draft">Salvar rascunho</button>
+          <button class="cbk-btn cbk-btn-primary" id="nut-send-approval">Enviar para aprovação</button>
+        </div>
+        <div id="nut-convert-box"></div>`;
+      document.getElementById('nut-save-draft').addEventListener('click', () => saveNut('draft'));
+      document.getElementById('nut-send-approval').addEventListener('click', () => saveNut('pending_approval'));
+    }
     document.getElementById('nut-bu').value = c.bu || 'bt';
     document.getElementById('nut-seg').value = c.segment_id || '';
     document.getElementById('nut-per').value = c.persona_id || '';
-    document.getElementById('nut-fmt').value = c.formato || 'post-linkedin';
-    document.getElementById('nut-titulo').value = c.titulo || '';
-    document.getElementById('nut-prompt').value = c.prompt_input || '';
+    const fmtEl = document.getElementById('nut-fmt'); if (fmtEl) fmtEl.value = c.formato || 'post-linkedin';
+    const tituloEl = document.getElementById('nut-titulo'); if (tituloEl) tituloEl.value = c.titulo || '';
+    const promptEl = document.getElementById('nut-prompt'); if (promptEl) promptEl.value = c.prompt_input || '';
     document.getElementById('nut-output').value = c.edited_output || c.ai_output || '';
-    document.getElementById('nut-result-card').style.display = 'block';
+    card.style.display = 'block';
     document.getElementById('nut-status').textContent = `Status: ${STATUS_LBL[c.status]||c.status} · ${fmt(c.created_at)}`;
+    // Botões de "Transformar em..." — só se conteúdo já foi salvo (tem id)
+    const conv = document.getElementById('nut-convert-box');
+    if (conv && c.id){
+      const outros = FORMATOS.filter(f => f.key !== c.formato);
+      conv.innerHTML = `<div style="margin-top:14px;padding-top:14px;border-top:1px solid #F0F3F7;">
+        <div class="cbk-hi" style="margin-bottom:8px;">↻ Transformar este conteúdo em outro formato</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${outros.map(f=>`<button class="cbk-btn cbk-btn-ghost" data-fmt="${f.key}" style="font-size:11.5px;padding:6px 12px;">${esc(f.lbl)}</button>`).join('')}
+        </div>
+      </div>`;
+      conv.querySelectorAll('[data-fmt]').forEach(b => b.addEventListener('click', () => transformarEm(c, b.dataset.fmt)));
+    } else if (conv) conv.innerHTML='';
   }
 
   async function gerarComIA(){
     const btn = document.getElementById('nut-gerar'); btn.disabled=true; btn.innerHTML='⏳ Gerando…';
+    const activeMode = document.querySelector('.cbk-tab[data-mode].active')?.dataset.mode || 'unico';
     try {
-      const payload = {
+      const commonCtx = {
         bu: document.getElementById('nut-bu').value,
         segment_id: document.getElementById('nut-seg').value || null,
         persona_id: document.getElementById('nut-per').value || null,
-        formato: document.getElementById('nut-fmt').value,
-        titulo: document.getElementById('nut-titulo').value,
-        prompt: document.getElementById('nut-prompt').value,
       };
-      if (!payload.prompt.trim()){ toast('Escreva um prompt antes de gerar','err'); return; }
-      const { data, error } = await sb.functions.invoke('nutricao-ai', { body: payload });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      const output = data?.output || data?.text || '';
-      if (!output){ throw new Error('Resposta vazia da IA'); }
-      document.getElementById('nut-output').value = output;
-      document.getElementById('nut-result-card').style.display = 'block';
-      nutCurrent = { ...nutCurrent, ...payload, ai_output: output, edited_output: output, status:'draft', id:null };
-      toast('Conteúdo gerado — edite livremente antes de salvar');
-      document.getElementById('nut-status').textContent = 'Status: Rascunho não salvo';
+      if (activeMode === 'cadencia'){
+        const count = parseInt(document.getElementById('nut-cad-n').value, 10);
+        const formato_default = document.getElementById('nut-cad-fmt').value;
+        const campanha = document.getElementById('nut-cad-campanha').value.trim();
+        if (!campanha){ toast('Descreva a campanha antes de gerar','err'); return; }
+        btn.innerHTML='⏳ Planejando cadência…';
+        const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{ mode:'cadencia', ...commonCtx, count, formato_default, campanha } });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        const pecas = data?.pecas || [];
+        if (!pecas.length) throw new Error('Cadência veio vazia');
+        renderCadenciaResult(pecas, commonCtx);
+        toast(`Cadência gerada — ${pecas.length} peças criadas como rascunho`);
+      } else {
+        const payload = {
+          mode:'unico',
+          ...commonCtx,
+          formato: document.getElementById('nut-fmt').value,
+          titulo: document.getElementById('nut-titulo').value,
+          prompt: document.getElementById('nut-prompt').value,
+        };
+        if (!payload.prompt.trim()){ toast('Escreva um prompt antes de gerar','err'); return; }
+        const { data, error } = await sb.functions.invoke('nutricao-ai', { body: payload });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        const output = data?.output || '';
+        if (!output) throw new Error('Resposta vazia da IA');
+        document.getElementById('nut-output').value = output;
+        document.getElementById('nut-result-card').style.display = 'block';
+        nutCurrent = { ...nutCurrent, ...payload, ai_output: output, edited_output: output, status:'draft', id:null };
+        toast('Conteúdo gerado — edite livremente antes de salvar');
+        document.getElementById('nut-status').textContent = 'Status: Rascunho não salvo';
+      }
     } catch(e){
       const msg = e.message || String(e);
-      if (/not found|no such function|Function not found/i.test(msg)){
-        toast('Edge Function "nutricao-ai" ainda não publicada. Solicite ao TI.','err');
-      } else {
-        toast('Erro: '+msg,'err');
-      }
+      if (/not found|no such function|Function not found/i.test(msg)) toast('Edge Function "nutricao-ai" indisponível.','err');
+      else toast('Erro: '+msg,'err');
     } finally {
       btn.disabled=false; btn.innerHTML='✨ Gerar com IA';
     }
+  }
+
+  function renderCadenciaResult(pecas, ctx){
+    const card = document.getElementById('nut-result-card');
+    card.style.display = 'block';
+    card.innerHTML = `<div class="cbk-modal-h" style="font-size:15px;">3 · Cadência gerada — ${pecas.length} peças</div>
+      <div class="cbk-modal-s">Cada peça pode ser editada antes de salvar. "Salvar todas" grava rascunho de cada uma.</div>
+      <div id="cad-list" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;"></div>
+      <div class="cbk-actions">
+        <button class="cbk-btn cbk-btn-ghost" id="cad-cancel">Cancelar</button>
+        <button class="cbk-btn cbk-btn-primary" id="cad-save-all">💾 Salvar todas como rascunho</button>
+      </div>`;
+    const list = document.getElementById('cad-list');
+    list.innerHTML = pecas.map((p, i) => `
+      <div class="cbk-card" style="background:#F7F8FA;margin:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:var(--cb-navy);color:#fff;font-weight:700;border-radius:6px;padding:2px 8px;font-size:11px;">${p.ordem||i+1}</span>
+          <strong style="color:var(--cb-navy);">${esc(p.titulo||'Sem título')}</strong>
+          <span class="cbk-i-badge" style="margin-left:auto;">${esc(p.formato||'?')}</span>
+        </div>
+        <textarea class="cad-peca-out" data-idx="${i}" style="min-height:140px;width:100%;padding:10px;border:1px solid #E4E9EF;border-radius:8px;font-family:'Montserrat',sans-serif;font-size:12.5px;line-height:1.5;">${esc(p.output||'')}</textarea>
+      </div>
+    `).join('');
+    document.getElementById('cad-cancel').addEventListener('click', () => { card.innerHTML=''; card.style.display='none'; });
+    document.getElementById('cad-save-all').addEventListener('click', async () => {
+      const btn = document.getElementById('cad-save-all'); btn.disabled=true; btn.textContent='Salvando…';
+      const rows = pecas.map((p, i) => ({
+        ...ctx, formato: p.formato || 'email-mkt', titulo: p.titulo || null,
+        prompt_input: `[Cadência] ${p.titulo||'Peça '+(p.ordem||i+1)}`,
+        ai_output: p.output, edited_output: list.querySelector(`textarea[data-idx="${i}"]`).value,
+        status:'draft', created_by: email(),
+      }));
+      const { error } = await sb.from('cb_contents').insert(rows);
+      if (error){ toast('Erro salvando cadência: '+error.message,'err'); btn.disabled=false; btn.textContent='💾 Salvar todas como rascunho'; return; }
+      toast(`${rows.length} rascunhos salvos — histórico atualizado`);
+      card.innerHTML=''; card.style.display='none';
+      loadNutHistory();
+    });
+  }
+
+  async function transformarEm(content, formatoAlvo){
+    toast('Transformando em '+FORMATOS.find(f=>f.key===formatoAlvo)?.lbl+'…');
+    try {
+      const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{ mode:'converter', source_id: content.id, formato_alvo: formatoAlvo }});
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const output = data?.output || '';
+      // cria novo rascunho a partir da conversão
+      const row = {
+        bu: content.bu, segment_id: content.segment_id, persona_id: content.persona_id,
+        formato: formatoAlvo, titulo: (content.titulo||'') + ' — versão ' + FORMATOS.find(f=>f.key===formatoAlvo)?.lbl,
+        prompt_input: `[Convertido de ${content.formato} #${content.id.slice(0,6)}]`,
+        ai_output: output, edited_output: output, status:'draft', created_by: email(),
+      };
+      const { data:novo, error:e2 } = await sb.from('cb_contents').insert(row).select().single();
+      if (e2) throw e2;
+      toast('Conversão pronta — abrindo no editor');
+      loadIntoEditor(novo);
+      loadNutHistory();
+    } catch(e){ toast('Erro: '+(e.message||e),'err'); }
   }
 
   async function saveNut(status){
