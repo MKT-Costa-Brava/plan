@@ -7879,7 +7879,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     conteudos: { views:[
       { view:'soon:diario', lbl:'Diário de Bordo', icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5', soon:true },
       { view:'soon:insights', lbl:'Insights e Reviews', icon:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M4 12H2M22 12h-2', soon:true },
-      { view:'nutricao', lbl:'Nutrição (IA)', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
+      { view:'nutricao', lbl:'Conteúdos', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
     ], actions:false },
     home: { views:[], actions:false, welcome:true },
   };
@@ -8134,7 +8134,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       conteudos: [
         { view:'soon:diario', lbl:'Diário de Bordo', soon:true, icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
         { view:'soon:insights', lbl:'Insights e Reviews', soon:true, icon:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z' },
-        { view:'nutricao', lbl:'Nutrição (IA)', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
+        { view:'nutricao', lbl:'Conteúdos', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
       ],
     };
     return true;
@@ -8333,7 +8333,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     conteudos: [
       { view:'soon:diario',    lbl:'Diário de Bordo',   icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5', soon:true },
       { view:'soon:insights',  lbl:'Insights e Reviews',icon:'M12 2v4M12 18v4M4 12H2M22 12h-2M6 6l-2-2M18 18l2 2M6 18l-2 2M18 6l2-2M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z', soon:true },
-      { view:'nutricao',  lbl:'Nutrição (IA)',     icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h4M8 17h6M8 9h2' },
+      { view:'nutricao',  lbl:'Conteúdos',     icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h4M8 17h6M8 9h2' },
     ],
   };
 
@@ -9038,12 +9038,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // ═════════ Nutrição (IA) ═════════
   const FORMATOS = [
-    { key:'post-linkedin', lbl:'Post LinkedIn' },
-    { key:'newsletter',    lbl:'Newsletter' },
-    { key:'artigo-blog',   lbl:'Artigo de Blog' },
-    { key:'email-mkt',     lbl:'E-mail Marketing' },
-    { key:'copy-lp',       lbl:'Copy Landing Page' },
-    { key:'roteiro-video', lbl:'Roteiro de Vídeo' },
+    { key:'email-mkt',      lbl:'E-mail Marketing' },
+    { key:'post-linkedin',  lbl:'Post LinkedIn' },
+    { key:'post-instagram', lbl:'Post Instagram' },
+    { key:'artigo-blog',    lbl:'Artigo de Blog' },
+    { key:'landing-page',   lbl:'Landing Page' },
   ];
   const STATUS_LBL = { draft:'Rascunho', pending_approval:'Pendente aprovação', approved:'Aprovado', rejected:'Rejeitado' };
   const STATUS_COLOR = { draft:'#6B7280', pending_approval:'#B45309', approved:'#166534', rejected:'#991B1B' };
@@ -9053,9 +9052,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   async function renderNutricao(){
     const v = document.getElementById('vNutricao'); if (!v) return;
     v.innerHTML = `<div class="cbk-wrap" style="max-width:1400px;">
-      <div class="cbk-hi">Conteúdos</div>
-      <div class="cbk-h1">Nutrição · IA</div>
-      <div class="cbk-sub">Escolha o contexto (BU · Segmento · Persona), descreva o que quer no prompt e gere. Todo conteúdo passa por aprovação do Master antes de virar aprendizado.</div>
+      <div class="cbk-hi">Conteúdos · IA</div>
+      <div class="cbk-h1">Conteúdos</div>
+      <div class="cbk-sub">Escolha o contexto (BU · Segmento · Persona), descreva o que quer no prompt e gere. Formatos: e-mail marketing, post LinkedIn, post Instagram, artigo de blog, landing page. Todo conteúdo passa por aprovação do Master antes de virar aprendizado.</div>
       <div id="cbk-nut-master" style="display:${isMaster()?'block':'none'}"></div>
       <div class="cbk-nut-grid">
         <div class="cbk-nut-editor">
@@ -9090,7 +9089,10 @@ document.addEventListener('DOMContentLoaded',()=>{
               <div class="cbk-meta">A IA planeja a jornada. Você edita cada peça, dá nome à série e salva — depois pode duplicar pra outro ICP ou segmento.</div>
             </div>
             <div id="nut-mode-biblioteca" style="display:none;">
-              <div class="cbk-modal-s" style="margin-top:0;">Peças únicas e cadências salvas. Use os filtros de contexto acima (BU, Segmento, Persona) pra encontrar. Cadências podem ser duplicadas trocando ICP/segmento.</div>
+              <div class="cbk-modal-s" style="margin-top:0;">Todo conteúdo salvo — cadências e peças avulsas. Filtre por BU / Segmento / Persona no topo e por formato abaixo. Cadências podem ser duplicadas trocando ICP/segmento.</div>
+              <div class="cbk-row" style="grid-template-columns:220px 1fr;gap:10px;margin-top:12px;">
+                <div class="cbk-field" style="margin-bottom:0;"><label>Filtrar por formato</label><select id="nut-bib-fmt"><option value="">Todos os formatos</option>${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
+              </div>
               <div id="nut-bib-content" style="margin-top:14px;"></div>
             </div>
             <div class="cbk-actions" id="nut-gerar-wrap"><button class="cbk-btn cbk-btn-primary" id="nut-gerar">✨ Gerar com IA</button></div>
@@ -9146,7 +9148,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('nut-mode-biblioteca').style.display = (m==='biblioteca'?'':'none');
       // esconde botão Gerar quando em Biblioteca (não gera nada, só lista)
       document.getElementById('nut-gerar-wrap').style.display = (m==='biblioteca'?'none':'');
-      if (m==='biblioteca') loadBiblioteca();
+      if (m==='biblioteca'){
+        loadBiblioteca();
+        // liga filtro de formato (uma vez só)
+        const fmtSel = document.getElementById('nut-bib-fmt');
+        if (fmtSel && !fmtSel.dataset.bound){ fmtSel.dataset.bound='1'; fmtSel.addEventListener('change', loadBiblioteca); }
+      }
     }));
 
     document.getElementById('nut-gerar').addEventListener('click', gerarComIA);
@@ -9360,10 +9367,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       const { count: aprv } = await sb.from('cb_contents').select('*', {count:'exact', head:true}).eq('series_id', s.id).eq('status','approved');
       return { ...s, total: count||0, aprovados: aprv||0 };
     }));
-    let qP = sb.from('cb_contents').select('*').is('series_id', null).order('created_at', {ascending:false}).limit(30);
+    // Filtro de formato (opcional)
+    const fmtFilter = document.getElementById('nut-bib-fmt')?.value || '';
+    let qP = sb.from('cb_contents').select('*').order('created_at', {ascending:false}).limit(100);
     if (bu) qP = qP.eq('bu', bu);
     if (seg) qP = qP.eq('segment_id', seg);
     if (per) qP = qP.eq('persona_id', per);
+    if (fmtFilter) qP = qP.eq('formato', fmtFilter);
     const { data: pecas } = await qP;
     const segMap = {}, perMap = {}; const buMap = Object.fromEntries(BUS.map(b => [b.key, b.nome]));
     const { data:allS } = await sb.from('cb_segments').select('id,nome'); (allS||[]).forEach(x => segMap[x.id]=x.nome);
@@ -9375,33 +9385,44 @@ document.addEventListener('DOMContentLoaded',()=>{
     } else {
       html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">';
       seriesWithCount.forEach(s => {
+        const st = s.status || 'draft';
+        const stColor = STATUS_COLOR[st] || '#6B7280';
+        const stLbl = STATUS_LBL[st] || st;
         html += `<div class="cbk-card" style="margin:0;padding:14px 16px;">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="flex:1;">
-              <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--cb-navy);">${esc(s.nome)}</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--cb-navy);">${esc(s.nome)}</div>
+                <span style="background:${stColor}20;color:${stColor};padding:2px 8px;border-radius:5px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${stLbl}</span>
+              </div>
               <div style="font-size:11.5px;color:#6B7280;margin-top:2px;">${esc(buMap[s.bu]||s.bu||'—')} · ${esc(segMap[s.segment_id]||'sem segmento')} · ${esc(perMap[s.persona_id]||'sem persona')}</div>
               <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">${s.total} peças · ${s.aprovados} aprovadas · ${fmt(s.created_at)}</div>
             </div>
             <button class="cbk-btn cbk-btn-ghost" data-view-ser="${s.id}" style="font-size:11.5px;">Ver peças</button>
+            ${(st==='draft'||st==='rejected') && canEdit() ? `<button class="cbk-btn cbk-btn-primary" data-send-ser="${s.id}" style="font-size:11.5px;background:#B45309;">Enviar p/ aprovação</button>` : ''}
             <button class="cbk-btn cbk-btn-primary" data-dup-ser="${s.id}" style="font-size:11.5px;">↻ Duplicar</button>
           </div>
         </div>`;
       });
       html += '</div>';
     }
-    html += `<div class="cbk-hi" style="margin-bottom:8px;">Peças únicas · ${(pecas||[]).length}</div>`;
+    // mapa nome de séries pra taggar peças
+    const seriesNameMap = Object.fromEntries((series||[]).map(s => [s.id, s.nome]));
+    html += `<div class="cbk-hi" style="margin-bottom:8px;">Todas as peças · ${(pecas||[]).length}</div>`;
     if (!pecas?.length){
-      html += '<div class="cbk-empty">Nenhuma peça avulsa pra esse contexto.</div>';
+      html += '<div class="cbk-empty">Nenhuma peça pra esse contexto/formato.</div>';
     } else {
       html += '<div style="display:flex;flex-direction:column;gap:6px;">';
       pecas.forEach(c => {
+        const seriesName = c.series_id ? seriesNameMap[c.series_id] : null;
         html += `<div class="cbk-nut-item" data-load="${c.id}">
           <div class="hd">
             <span class="fmt">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)}</span>
-            <span class="st" style="background:${STATUS_COLOR[c.status]}20;color:${STATUS_COLOR[c.status]};">${STATUS_LBL[c.status]||c.status}</span>
+            ${seriesName?`<span class="fmt" style="background:#EEF5F8;color:var(--cb-navy);padding:2px 7px;border-radius:5px;font-size:9.5px;">série: ${esc(seriesName)}</span>`:''}
+            <span class="st" style="background:${STATUS_COLOR[c.status]}20;color:${STATUS_COLOR[c.status]};margin-left:auto;">${STATUS_LBL[c.status]||c.status}</span>
           </div>
           <div class="tt">${esc(c.titulo||'Sem título')}</div>
-          <div class="dt">${fmt(c.created_at)}</div>
+          <div class="dt">${fmt(c.created_at)} · ${esc(buMap[c.bu]||c.bu||'—')}${c.segment_id?` · ${esc(segMap[c.segment_id]||'?')}`:''}${c.persona_id?` · ${esc(perMap[c.persona_id]||'?')}`:''}</div>
         </div>`;
       });
       html += '</div>';
@@ -9409,6 +9430,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     holder.innerHTML = html;
     holder.querySelectorAll('[data-view-ser]').forEach(b => b.addEventListener('click', () => openSerieDetail(b.dataset.viewSer, seriesWithCount)));
     holder.querySelectorAll('[data-dup-ser]').forEach(b => b.addEventListener('click', () => duplicarSerie(seriesWithCount.find(x=>x.id===b.dataset.dupSer))));
+    holder.querySelectorAll('[data-send-ser]').forEach(b => b.addEventListener('click', async () => {
+      const id = b.dataset.sendSer;
+      if (!confirm('Enviar esta cadência inteira para aprovação do Master?')) return;
+      await sb.from('cb_content_series').update({ status:'pending_approval' }).eq('id', id);
+      await sb.from('cb_contents').update({ status:'pending_approval' }).eq('series_id', id).in('status',['draft','rejected']);
+      toast('Cadência enviada para aprovação');
+      loadBiblioteca();
+      if (isMaster()) renderMasterApprovals();
+    }));
     holder.querySelectorAll('[data-load]').forEach(el => el.addEventListener('click', async () => {
       const { data } = await sb.from('cb_contents').select('*').eq('id', el.dataset.load).single();
       if (data){ document.querySelector('.cbk-tab[data-mode="unico"]').click(); loadIntoEditor(data); }
@@ -9521,34 +9551,67 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   async function renderMasterApprovals(){
     const holder = document.getElementById('cbk-nut-master'); if (!holder) return;
-    const { data, error } = await sb.from('cb_contents').select('*').eq('status','pending_approval').order('created_at');
-    if (error) return;
-    if (!data?.length){ holder.innerHTML = ''; return; }
-    holder.innerHTML = `<div class="cbk-card" style="background:#FEF3C7;border-color:#FCD34D;margin-bottom:14px;">
-      <div class="cbk-modal-h" style="font-size:14px;color:#92400E;">🔔 ${data.length} conteúdo${data.length>1?'s':''} pendente${data.length>1?'s':''} de sua aprovação</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
-        ${data.map(c => `
-          <div style="background:#FFF;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
-            <div style="flex:1;">
-              <div style="font-weight:600;color:#0F2037;">${esc(c.titulo||'Sem título')}</div>
-              <div style="font-size:11.5px;color:#6B7280;">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)} · ${esc(c.created_by)} · ${fmt(c.created_at)}</div>
-            </div>
-            <button class="cbk-btn cbk-btn-ghost" data-load="${c.id}">Ver</button>
-            <button class="cbk-btn cbk-btn-primary" data-approve="${c.id}" style="background:#166534;">Aprovar</button>
-            <button class="cbk-btn cbk-btn-danger" data-reject="${c.id}">Rejeitar</button>
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
-    holder.querySelectorAll('[data-load]').forEach(b => b.addEventListener('click', () => loadIntoEditor(data.find(x=>x.id===b.dataset.load))));
+    // Cadências e peças pendentes (peças sem series_id ou de série já aprovada)
+    const [{data:pecas}, {data:series}] = await Promise.all([
+      sb.from('cb_contents').select('*').eq('status','pending_approval').is('series_id', null).order('created_at'),
+      sb.from('cb_content_series').select('*').eq('status','pending_approval').order('created_at'),
+    ]);
+    const total = (pecas?.length||0) + (series?.length||0);
+    if (!total){ holder.innerHTML = ''; return; }
+    let html = `<div class="cbk-card" style="background:#FEF3C7;border-color:#FCD34D;margin-bottom:14px;">
+      <div class="cbk-modal-h" style="font-size:14px;color:#92400E;">🔔 ${total} pendente${total>1?'s':''} de sua aprovação</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">`;
+    (series||[]).forEach(s => {
+      html += `<div style="background:#FFF;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+        <span style="background:#0F2037;color:#fff;font-weight:700;border-radius:5px;padding:2px 8px;font-size:10px;">CADÊNCIA</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;color:#0F2037;">${esc(s.nome)}</div>
+          <div style="font-size:11.5px;color:#6B7280;">${esc(s.created_by)} · ${fmt(s.created_at)}</div>
+        </div>
+        <button class="cbk-btn cbk-btn-ghost" data-view-ser="${s.id}">Ver peças</button>
+        <button class="cbk-btn cbk-btn-primary" data-approve-ser="${s.id}" style="background:#166534;">Aprovar cadência</button>
+        <button class="cbk-btn cbk-btn-danger" data-reject-ser="${s.id}">Rejeitar</button>
+      </div>`;
+    });
+    (pecas||[]).forEach(c => {
+      html += `<div style="background:#FFF;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+        <span style="background:#EEF5F8;color:var(--cb-navy);font-weight:700;border-radius:5px;padding:2px 8px;font-size:10px;">PEÇA</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;color:#0F2037;">${esc(c.titulo||'Sem título')}</div>
+          <div style="font-size:11.5px;color:#6B7280;">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)} · ${esc(c.created_by)} · ${fmt(c.created_at)}</div>
+        </div>
+        <button class="cbk-btn cbk-btn-ghost" data-load="${c.id}">Ver</button>
+        <button class="cbk-btn cbk-btn-primary" data-approve="${c.id}" style="background:#166534;">Aprovar</button>
+        <button class="cbk-btn cbk-btn-danger" data-reject="${c.id}">Rejeitar</button>
+      </div>`;
+    });
+    html += `</div></div>`;
+    holder.innerHTML = html;
+    holder.querySelectorAll('[data-load]').forEach(b => b.addEventListener('click', () => loadIntoEditor((pecas||[]).find(x=>x.id===b.dataset.load))));
     holder.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', async () => {
       await sb.from('cb_contents').update({ status:'approved', aprovado_por:email(), aprovado_em:new Date().toISOString() }).eq('id', b.dataset.approve);
-      toast('Conteúdo aprovado — vira aprendizado da IA'); renderMasterApprovals(); loadNutHistory();
+      toast('Peça aprovada — vira aprendizado'); renderMasterApprovals(); loadNutHistory(); loadBiblioteca();
     }));
     holder.querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', async () => {
       const motivo = prompt('Motivo da rejeição (opcional):') || '';
       await sb.from('cb_contents').update({ status:'rejected', motivo_rejeicao:motivo }).eq('id', b.dataset.reject);
-      toast('Conteúdo rejeitado','err'); renderMasterApprovals(); loadNutHistory();
+      toast('Peça rejeitada','err'); renderMasterApprovals(); loadNutHistory(); loadBiblioteca();
+    }));
+    holder.querySelectorAll('[data-view-ser]').forEach(b => b.addEventListener('click', () => openSerieDetail(b.dataset.viewSer, series||[])));
+    holder.querySelectorAll('[data-approve-ser]').forEach(b => b.addEventListener('click', async () => {
+      const id = b.dataset.approveSer;
+      const now = new Date().toISOString();
+      await sb.from('cb_content_series').update({ status:'approved', aprovado_por:email(), aprovado_em:now }).eq('id', id);
+      await sb.from('cb_contents').update({ status:'approved', aprovado_por:email(), aprovado_em:now }).eq('series_id', id);
+      toast('Cadência aprovada — todas as peças viram aprendizado');
+      renderMasterApprovals(); loadNutHistory(); loadBiblioteca();
+    }));
+    holder.querySelectorAll('[data-reject-ser]').forEach(b => b.addEventListener('click', async () => {
+      const motivo = prompt('Motivo da rejeição (opcional):') || '';
+      await sb.from('cb_content_series').update({ status:'rejected', motivo_rejeicao:motivo }).eq('id', b.dataset.rejectSer);
+      await sb.from('cb_contents').update({ status:'rejected', motivo_rejeicao:motivo }).eq('series_id', b.dataset.rejectSer).eq('status','pending_approval');
+      toast('Cadência rejeitada','err');
+      renderMasterApprovals(); loadNutHistory(); loadBiblioteca();
     }));
   }
 
