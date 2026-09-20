@@ -8620,6 +8620,31 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cbk-nut-item .st{ font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:99px; }
   .cbk-nut-item .tt{ font-size:12.5px; color:var(--cb-navy); font-weight:600; line-height:1.3; }
   .cbk-nut-item .dt{ font-size:10.5px; color:#9CA3AF; margin-top:4px; }
+
+  /* Flow view (Miro-style) para cadências */
+  .cbk-flow-wrap{ background:#F0F3F7; padding:20px; border-radius:12px; overflow-x:auto; margin-top:14px; }
+  .cbk-flow{ display:flex; gap:44px; align-items:stretch; padding:6px 4px 12px; min-width:min-content; }
+  .cbk-flow-card{ width:270px; min-width:270px; background:#FFFFFF; border:1px solid #E4E9EF; border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; position:relative; box-shadow:0 2px 8px rgba(15,32,55,.06); transition:all .15s; cursor:pointer; }
+  .cbk-flow-card:hover{ border-color:#8CB7C9; box-shadow:0 6px 18px rgba(15,32,55,.08); transform:translateY(-2px); }
+  .cbk-flow-card::after{ content:''; position:absolute; right:-32px; top:50%; width:24px; height:2px; background:#8CB7C9; }
+  .cbk-flow-card::before{ content:''; position:absolute; right:-32px; top:50%; margin-top:-5px; border:5px solid transparent; border-left-color:#8CB7C9; }
+  .cbk-flow-card:last-child::after, .cbk-flow-card:last-child::before{ display:none; }
+  .cbk-flow-hd{ display:flex; align-items:center; gap:8px; }
+  .cbk-flow-num{ background:var(--cb-navy); color:#fff; font-family:'Space Grotesk',sans-serif; font-weight:700; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; }
+  .cbk-flow-fmt{ font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:5px; }
+  .cbk-flow-st{ margin-left:auto; font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 6px; border-radius:4px; }
+  .cbk-flow-title{ font-family:'Space Grotesk',sans-serif; font-weight:700; color:var(--cb-navy); font-size:13.5px; line-height:1.3; margin-top:2px; }
+  .cbk-flow-preview{ font-size:11.5px; color:#4B5563; line-height:1.5; overflow:hidden; display:-webkit-box; -webkit-line-clamp:8; -webkit-box-orient:vertical; }
+  .cbk-flow-open{ font-size:11px; color:#8CB7C9; margin-top:auto; padding-top:6px; border-top:1px solid #F0F3F7; text-align:right; font-weight:600; }
+  /* cores por formato */
+  .fmt-email-mkt{ background:#DBEAFE; color:#1E40AF; }
+  .fmt-post-linkedin{ background:#EEF5F8; color:#0F2037; }
+  .fmt-post-instagram{ background:#F3E8FF; color:#6B21A8; }
+  .fmt-artigo-blog{ background:#DCFCE7; color:#166534; }
+  .fmt-landing-page{ background:#FEF3C7; color:#92400E; }
+  .cbk-flow-meta{ display:flex; flex-wrap:wrap; gap:10px; font-size:11.5px; color:#6B7280; margin-bottom:6px; padding:0 4px; }
+  .cbk-flow-meta strong{ color:var(--cb-navy); }
+  .cbk-modal.wide{ width:min(1200px, 95vw); }
 </style>
 
 <script id="cb-onda-k-boot">
@@ -9074,16 +9099,19 @@ document.addEventListener('DOMContentLoaded',()=>{
               <button class="cbk-tab" data-mode="biblioteca">Biblioteca</button>
             </div>
             <div id="nut-mode-unico">
-              <div class="cbk-row" style="grid-template-columns:1fr 2fr;gap:10px;">
+              <div class="cbk-row" style="grid-template-columns:1fr 1fr 1fr;gap:10px;">
                 <div class="cbk-field"><label>Formato</label><select id="nut-fmt">${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
-                <div class="cbk-field"><label>Título (opcional)</label><input id="nut-titulo" placeholder="Ex: Como reduzir custos de viagem no agronegócio"></div>
+                <div class="cbk-field"><label>Tema · categoria</label><input id="nut-tema" list="nut-tema-list" placeholder="Ex: Bilhetes não voados, Antecedência de compra, IA…"></div>
+                <div class="cbk-field"><label>Título (opcional)</label><input id="nut-titulo" placeholder="Ex: Como reduzir custos"></div>
               </div>
+              <datalist id="nut-tema-list"></datalist>
               <div class="cbk-field"><label>Prompt · descreva o conteúdo</label><textarea id="nut-prompt" placeholder="Ex: Post pra CFO do agronegócio explicando como a Business Travel reduz custos e aumenta previsibilidade orçamentária." style="min-height:110px;"></textarea></div>
             </div>
             <div id="nut-mode-cadencia" style="display:none;">
-              <div class="cbk-row" style="grid-template-columns:1fr 2fr;gap:10px;">
+              <div class="cbk-row" style="grid-template-columns:1fr 1fr 2fr;gap:10px;">
                 <div class="cbk-field"><label>Quantidade de peças</label><select id="nut-cad-n">${[2,3,4,5,6,7,8].map(n=>`<option value="${n}"${n===4?' selected':''}>${n} peças</option>`).join('')}</select></div>
                 <div class="cbk-field"><label>Formato principal</label><select id="nut-cad-fmt">${FORMATOS.map(f=>`<option value="${f.key}"${f.key==='email-mkt'?' selected':''}>${f.lbl}</option>`).join('')}</select></div>
+                <div class="cbk-field"><label>Tema · categoria</label><input id="nut-cad-tema" list="nut-tema-list" placeholder="Ex: Bilhetes não voados, IA…"></div>
               </div>
               <div class="cbk-field"><label>Descrição da campanha</label><textarea id="nut-cad-campanha" placeholder="Ex: Cadência de 4 e-mails pra nurturing de CFOs do agronegócio, do problema até apresentar a solução Business Travel." style="min-height:110px;"></textarea></div>
               <div class="cbk-meta">A IA planeja a jornada. Você edita cada peça, dá nome à série e salva — depois pode duplicar pra outro ICP ou segmento.</div>
@@ -9091,7 +9119,8 @@ document.addEventListener('DOMContentLoaded',()=>{
             <div id="nut-mode-biblioteca" style="display:none;">
               <div class="cbk-modal-s" style="margin-top:0;">Todo conteúdo salvo — cadências e peças avulsas. Filtre por BU / Segmento / Persona no topo e por formato abaixo. Cadências podem ser duplicadas trocando ICP/segmento.</div>
               <div class="cbk-row" style="grid-template-columns:220px 1fr;gap:10px;margin-top:12px;">
-                <div class="cbk-field" style="margin-bottom:0;"><label>Filtrar por formato</label><select id="nut-bib-fmt"><option value="">Todos os formatos</option>${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Formato</label><select id="nut-bib-fmt"><option value="">Todos os formatos</option>${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Tema</label><input id="nut-bib-tema" list="nut-tema-list" placeholder="Filtrar por tema (ex: Bilhetes não voados)"></div>
               </div>
               <div id="nut-bib-content" style="margin-top:14px;"></div>
             </div>
@@ -9150,9 +9179,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('nut-gerar-wrap').style.display = (m==='biblioteca'?'none':'');
       if (m==='biblioteca'){
         loadBiblioteca();
-        // liga filtro de formato (uma vez só)
         const fmtSel = document.getElementById('nut-bib-fmt');
         if (fmtSel && !fmtSel.dataset.bound){ fmtSel.dataset.bound='1'; fmtSel.addEventListener('change', loadBiblioteca); }
+        const temaInp = document.getElementById('nut-bib-tema');
+        if (temaInp && !temaInp.dataset.bound){
+          temaInp.dataset.bound='1';
+          let to; temaInp.addEventListener('input', () => { clearTimeout(to); to=setTimeout(loadBiblioteca, 300); });
+        }
       }
     }));
 
@@ -9162,6 +9195,19 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     if (isMaster()) await renderMasterApprovals();
     await loadNutHistory();
+    await refreshTemas();
+  }
+
+  async function refreshTemas(){
+    const list = document.getElementById('nut-tema-list'); if (!list) return;
+    const [{data:cs}, {data:ss}] = await Promise.all([
+      sb.from('cb_contents').select('tema').not('tema','is',null),
+      sb.from('cb_content_series').select('tema').not('tema','is',null)
+    ]);
+    const set = new Set();
+    (cs||[]).forEach(r => r.tema && set.add(r.tema));
+    (ss||[]).forEach(r => r.tema && set.add(r.tema));
+    list.innerHTML = Array.from(set).sort().map(t => `<option value="${esc(t)}"></option>`).join('');
   }
 
   async function loadNutHistory(){
@@ -9212,6 +9258,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('nut-per').value = c.persona_id || '';
     const fmtEl = document.getElementById('nut-fmt'); if (fmtEl) fmtEl.value = c.formato || 'post-linkedin';
     const tituloEl = document.getElementById('nut-titulo'); if (tituloEl) tituloEl.value = c.titulo || '';
+    const temaEl = document.getElementById('nut-tema'); if (temaEl) temaEl.value = c.tema || '';
     const promptEl = document.getElementById('nut-prompt'); if (promptEl) promptEl.value = c.prompt_input || '';
     document.getElementById('nut-output').value = c.edited_output || c.ai_output || '';
     card.style.display = 'block';
@@ -9258,6 +9305,7 @@ document.addEventListener('DOMContentLoaded',()=>{
           ...commonCtx,
           formato: document.getElementById('nut-fmt').value,
           titulo: document.getElementById('nut-titulo').value,
+          tema: document.getElementById('nut-tema').value.trim() || null,
           prompt: document.getElementById('nut-prompt').value,
         };
         if (!payload.prompt.trim()){ toast('Escreva um prompt antes de gerar','err'); return; }
@@ -9308,14 +9356,16 @@ document.addEventListener('DOMContentLoaded',()=>{
       if (!nome || !nome.trim()){ toast('Nome da cadência é obrigatório','err'); return; }
       const btn = document.getElementById('cad-save-all'); btn.disabled=true; btn.textContent='Salvando…';
       // cria série
+      const cadTema = document.getElementById('nut-cad-tema')?.value.trim() || null;
       const { data:serie, error:sErr } = await sb.from('cb_content_series').insert({
         nome: nome.trim(), bu: ctx.bu, segment_id: ctx.segment_id, persona_id: ctx.persona_id,
-        tipo:'cadencia', created_by: email()
+        tipo:'cadencia', tema: cadTema, created_by: email()
       }).select().single();
       if (sErr){ toast('Erro criando série: '+sErr.message,'err'); btn.disabled=false; btn.textContent='💾 Salvar cadência'; return; }
       // insere peças ligadas
       const rows = pecas.map((p, i) => ({
         ...ctx, formato: p.formato || 'email-mkt', titulo: p.titulo || null,
+        tema: cadTema,
         prompt_input: `[${nome.trim()}] ${p.titulo||'Peça '+(p.ordem||i+1)}`,
         ai_output: p.output, edited_output: list.querySelector(`textarea[data-idx="${i}"]`).value,
         status:'draft', created_by: email(), series_id: serie.id, ordem: p.ordem || (i+1)
@@ -9361,19 +9411,22 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (bu) qSer = qSer.eq('bu', bu);
     if (seg) qSer = qSer.eq('segment_id', seg);
     if (per) qSer = qSer.eq('persona_id', per);
+    if (document.getElementById('nut-bib-tema')?.value.trim()) qSer = qSer.ilike('tema', '%'+document.getElementById('nut-bib-tema').value.trim()+'%');
     const { data: series } = await qSer;
     const seriesWithCount = await Promise.all((series||[]).map(async s => {
       const { count } = await sb.from('cb_contents').select('*', {count:'exact', head:true}).eq('series_id', s.id);
       const { count: aprv } = await sb.from('cb_contents').select('*', {count:'exact', head:true}).eq('series_id', s.id).eq('status','approved');
       return { ...s, total: count||0, aprovados: aprv||0 };
     }));
-    // Filtro de formato (opcional)
+    // Filtros
     const fmtFilter = document.getElementById('nut-bib-fmt')?.value || '';
+    const temaFilter = document.getElementById('nut-bib-tema')?.value.trim() || '';
     let qP = sb.from('cb_contents').select('*').order('created_at', {ascending:false}).limit(100);
     if (bu) qP = qP.eq('bu', bu);
     if (seg) qP = qP.eq('segment_id', seg);
     if (per) qP = qP.eq('persona_id', per);
     if (fmtFilter) qP = qP.eq('formato', fmtFilter);
+    if (temaFilter) qP = qP.ilike('tema', '%'+temaFilter+'%');
     const { data: pecas } = await qP;
     const segMap = {}, perMap = {}; const buMap = Object.fromEntries(BUS.map(b => [b.key, b.nome]));
     const { data:allS } = await sb.from('cb_segments').select('id,nome'); (allS||[]).forEach(x => segMap[x.id]=x.nome);
@@ -9388,12 +9441,13 @@ document.addEventListener('DOMContentLoaded',()=>{
         const st = s.status || 'draft';
         const stColor = STATUS_COLOR[st] || '#6B7280';
         const stLbl = STATUS_LBL[st] || st;
-        html += `<div class="cbk-card" style="margin:0;padding:14px 16px;">
+        html += `<div class="cbk-card" style="margin:0;padding:14px 16px;cursor:pointer;" data-open-ser="${s.id}">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="flex:1;">
-              <div style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--cb-navy);">${esc(s.nome)}</div>
                 <span style="background:${stColor}20;color:${stColor};padding:2px 8px;border-radius:5px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${stLbl}</span>
+                ${s.tema?`<span style="background:#F3E8FF;color:#6B21A8;padding:2px 8px;border-radius:5px;font-size:9.5px;font-weight:600;">🏷 ${esc(s.tema)}</span>`:''}
               </div>
               <div style="font-size:11.5px;color:#6B7280;margin-top:2px;">${esc(buMap[s.bu]||s.bu||'—')} · ${esc(segMap[s.segment_id]||'sem segmento')} · ${esc(perMap[s.persona_id]||'sem persona')}</div>
               <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">${s.total} peças · ${s.aprovados} aprovadas · ${fmt(s.created_at)}</div>
@@ -9418,6 +9472,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         html += `<div class="cbk-nut-item" data-load="${c.id}">
           <div class="hd">
             <span class="fmt">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)}</span>
+            ${c.tema?`<span class="fmt" style="background:#F3E8FF;color:#6B21A8;padding:2px 7px;border-radius:5px;font-size:9.5px;">🏷 ${esc(c.tema)}</span>`:''}
             ${seriesName?`<span class="fmt" style="background:#EEF5F8;color:var(--cb-navy);padding:2px 7px;border-radius:5px;font-size:9.5px;">série: ${esc(seriesName)}</span>`:''}
             <span class="st" style="background:${STATUS_COLOR[c.status]}20;color:${STATUS_COLOR[c.status]};margin-left:auto;">${STATUS_LBL[c.status]||c.status}</span>
           </div>
@@ -9428,7 +9483,11 @@ document.addEventListener('DOMContentLoaded',()=>{
       html += '</div>';
     }
     holder.innerHTML = html;
-    holder.querySelectorAll('[data-view-ser]').forEach(b => b.addEventListener('click', () => openSerieDetail(b.dataset.viewSer, seriesWithCount)));
+    holder.querySelectorAll('[data-view-ser]').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); openSerieDetail(b.dataset.viewSer, seriesWithCount); }));
+    holder.querySelectorAll('[data-open-ser]').forEach(el => el.addEventListener('click', (e) => {
+      if (e.target.closest('[data-view-ser], [data-dup-ser], [data-send-ser]')) return; // botões próprios
+      openSerieDetail(el.dataset.openSer, seriesWithCount);
+    }));
     holder.querySelectorAll('[data-dup-ser]').forEach(b => b.addEventListener('click', () => duplicarSerie(seriesWithCount.find(x=>x.id===b.dataset.dupSer))));
     holder.querySelectorAll('[data-send-ser]').forEach(b => b.addEventListener('click', async () => {
       const id = b.dataset.sendSer;
@@ -9446,32 +9505,74 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   async function openSerieDetail(serieId, cache){
-    const s = cache.find(x=>x.id===serieId);
+    const s = (cache||[]).find(x=>x.id===serieId) || (await sb.from('cb_content_series').select('*').eq('id', serieId).single()).data;
     const { data: pecas } = await sb.from('cb_contents').select('*').eq('series_id', serieId).order('ordem');
+    // busca nomes de segmento/persona
+    const [{data:allS}, {data:allP}] = await Promise.all([
+      sb.from('cb_segments').select('id,nome'),
+      sb.from('cb_personas').select('id,nome')
+    ]);
+    const segNome = allS?.find(x=>x.id===s.segment_id)?.nome || 'sem segmento';
+    const perNome = allP?.find(x=>x.id===s.persona_id)?.nome || 'sem persona';
+    const buNome = BUS.find(b=>b.key===s.bu)?.nome || s.bu || '—';
+    const stColor = STATUS_COLOR[s.status||'draft'];
+    const stLbl = STATUS_LBL[s.status||'draft'];
+
     let html = `<div class="cbk-modal-h">${esc(s.nome)}</div>
-      <div class="cbk-modal-s">${(pecas||[]).length} peças · criado em ${fmt(s.created_at)}</div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">`;
+      <div class="cbk-flow-meta">
+        <span><strong>${buNome}</strong></span>
+        <span>·</span>
+        <span>${esc(segNome)}</span>
+        <span>·</span>
+        <span>${esc(perNome)}</span>
+        <span style="margin-left:auto;background:${stColor}20;color:${stColor};padding:3px 10px;border-radius:6px;font-weight:700;text-transform:uppercase;font-size:10px;letter-spacing:.06em;">${stLbl}</span>
+      </div>
+      <div class="cbk-modal-s">${(pecas||[]).length} peças na cadência · criada em ${fmt(s.created_at)} · role o mouse pra ver — clique num card pra editar a peça</div>
+      <div class="cbk-flow-wrap"><div class="cbk-flow">`;
     (pecas||[]).forEach(p => {
-      html += `<div class="cbk-card" style="margin:0;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="background:var(--cb-navy);color:#fff;font-weight:700;border-radius:6px;padding:2px 8px;font-size:11px;">${p.ordem||'?'}</span>
-          <strong style="color:var(--cb-navy);">${esc(p.titulo||'Sem título')}</strong>
-          <span class="cbk-i-badge" style="margin-left:auto;">${esc(FORMATOS.find(f=>f.key===p.formato)?.lbl||p.formato)}</span>
-          <span style="background:${STATUS_COLOR[p.status]}20;color:${STATUS_COLOR[p.status]};padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;">${STATUS_LBL[p.status]||p.status}</span>
+      const fmtLbl = FORMATOS.find(f=>f.key===p.formato)?.lbl || p.formato;
+      const preview = (p.edited_output || p.ai_output || '').slice(0, 500);
+      html += `<div class="cbk-flow-card" data-open-piece="${p.id}">
+        <div class="cbk-flow-hd">
+          <span class="cbk-flow-num">${p.ordem||'?'}</span>
+          <span class="cbk-flow-fmt fmt-${p.formato}">${esc(fmtLbl)}</span>
+          <span class="cbk-flow-st" style="background:${STATUS_COLOR[p.status]}20;color:${STATUS_COLOR[p.status]};">${STATUS_LBL[p.status]||p.status}</span>
         </div>
-        <div class="val" style="white-space:pre-wrap;font-size:12.5px;color:#4B5563;line-height:1.5;max-height:180px;overflow-y:auto;">${nl2br(p.edited_output||p.ai_output||'')}</div>
-        <div style="margin-top:8px;text-align:right;">
-          <button class="cbk-btn cbk-btn-ghost" data-open-piece="${p.id}" style="font-size:11px;">Editar peça</button>
-        </div>
+        <div class="cbk-flow-title">${esc(p.titulo||'Sem título')}</div>
+        <div class="cbk-flow-preview">${nl2br(preview)}</div>
+        <div class="cbk-flow-open">Clique pra editar →</div>
       </div>`;
     });
-    html += `</div><div class="cbk-actions"><button class="cbk-btn cbk-btn-ghost" id="cbk-close">Fechar</button></div>`;
-    openModal(html);
+    html += `</div></div>
+      <div class="cbk-actions">
+        ${(s.status==='draft'||s.status==='rejected') && canEdit() ? `<button class="cbk-btn cbk-btn-primary" id="cbk-send-ser" style="background:#B45309;">Enviar cadência para aprovação</button>` : ''}
+        ${s.status==='pending_approval' && isMaster() ? `<button class="cbk-btn cbk-btn-danger" id="cbk-reject-ser">Rejeitar cadência</button><button class="cbk-btn cbk-btn-primary" id="cbk-approve-ser" style="background:#166534;">Aprovar cadência inteira</button>` : ''}
+        <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Fechar</button>
+      </div>`;
+    openModal(html, true);
     document.getElementById('cbk-close').addEventListener('click', closeModal);
-    document.querySelectorAll('[data-open-piece]').forEach(b => b.addEventListener('click', async () => {
-      const { data } = await sb.from('cb_contents').select('*').eq('id', b.dataset.openPiece).single();
+    document.querySelectorAll('[data-open-piece]').forEach(el => el.addEventListener('click', async () => {
+      const { data } = await sb.from('cb_contents').select('*').eq('id', el.dataset.openPiece).single();
       if (data){ closeModal(); document.querySelector('.cbk-tab[data-mode="unico"]').click(); loadIntoEditor(data); }
     }));
+    document.getElementById('cbk-send-ser')?.addEventListener('click', async () => {
+      if (!confirm('Enviar toda a cadência para aprovação do Master?')) return;
+      await sb.from('cb_content_series').update({ status:'pending_approval' }).eq('id', s.id);
+      await sb.from('cb_contents').update({ status:'pending_approval' }).eq('series_id', s.id).in('status',['draft','rejected']);
+      toast('Cadência enviada para aprovação'); closeModal(); loadBiblioteca(); if (isMaster()) renderMasterApprovals();
+    });
+    document.getElementById('cbk-approve-ser')?.addEventListener('click', async () => {
+      const now = new Date().toISOString();
+      await sb.from('cb_content_series').update({ status:'approved', aprovado_por:email(), aprovado_em:now }).eq('id', s.id);
+      await sb.from('cb_contents').update({ status:'approved', aprovado_por:email(), aprovado_em:now }).eq('series_id', s.id);
+      toast('Cadência aprovada — todas as peças viram aprendizado'); closeModal(); loadBiblioteca(); renderMasterApprovals();
+    });
+    document.getElementById('cbk-reject-ser')?.addEventListener('click', async () => {
+      const motivo = prompt('Motivo da rejeição (opcional):') || '';
+      await sb.from('cb_content_series').update({ status:'rejected', motivo_rejeicao:motivo }).eq('id', s.id);
+      await sb.from('cb_contents').update({ status:'rejected', motivo_rejeicao:motivo }).eq('series_id', s.id).eq('status','pending_approval');
+      toast('Cadência rejeitada','err'); closeModal(); loadBiblioteca(); renderMasterApprovals();
+    });
   }
 
   async function duplicarSerie(s){
@@ -9532,6 +9633,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       persona_id: document.getElementById('nut-per').value || null,
       formato: document.getElementById('nut-fmt').value,
       titulo: document.getElementById('nut-titulo').value.trim() || null,
+      tema: document.getElementById('nut-tema')?.value.trim() || null,
       prompt_input: document.getElementById('nut-prompt').value,
       ai_output: nutCurrent.ai_output || document.getElementById('nut-output').value,
       edited_output: document.getElementById('nut-output').value,
@@ -9670,10 +9772,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
 
   // ═════════ Modal helpers ═════════
-  function openModal(html){
+  function openModal(html, wide){
     let mask = document.getElementById('cbk-mask');
     if (!mask){ mask = document.createElement('div'); mask.id='cbk-mask'; mask.className='cbk-mask'; document.body.appendChild(mask); mask.addEventListener('click', e => { if (e.target===mask) closeModal(); }); }
-    mask.innerHTML = `<div class="cbk-modal">${html}</div>`;
+    mask.innerHTML = `<div class="cbk-modal${wide?' wide':''}">${html}</div>`;
     mask.classList.add('open');
   }
   function closeModal(){ document.getElementById('cbk-mask')?.classList.remove('open'); }
