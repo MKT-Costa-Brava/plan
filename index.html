@@ -8631,6 +8631,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     { key:'lm',   nome:'Live Marketing' },
     { key:'you',  nome:'YOU by Costa Brava' },
     { key:'tech', nome:'Tech Hub' },
+    { key:'vi',   nome:'Viagens de Incentivo' },
+    { key:'yg',   nome:'YouGo' },
+    { key:'chb',  nome:'CharlieBravo' },
   ];
   const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const nl2br = s => esc(s).replace(/\n/g,'<br>');
@@ -9069,6 +9072,7 @@ document.addEventListener('DOMContentLoaded',()=>{
             <div class="cbk-tabs" style="margin:12px 0 14px;">
               <button class="cbk-tab active" data-mode="unico">Único</button>
               <button class="cbk-tab" data-mode="cadencia">Cadência</button>
+              <button class="cbk-tab" data-mode="biblioteca">Biblioteca</button>
             </div>
             <div id="nut-mode-unico">
               <div class="cbk-row" style="grid-template-columns:1fr 2fr;gap:10px;">
@@ -9083,9 +9087,13 @@ document.addEventListener('DOMContentLoaded',()=>{
                 <div class="cbk-field"><label>Formato principal</label><select id="nut-cad-fmt">${FORMATOS.map(f=>`<option value="${f.key}"${f.key==='email-mkt'?' selected':''}>${f.lbl}</option>`).join('')}</select></div>
               </div>
               <div class="cbk-field"><label>Descrição da campanha</label><textarea id="nut-cad-campanha" placeholder="Ex: Cadência de 4 e-mails pra nurturing de CFOs do agronegócio, do problema até apresentar a solução Business Travel." style="min-height:110px;"></textarea></div>
-              <div class="cbk-meta">A IA planeja a jornada — cada peça abre, aprofunda, apresenta solução e faz CTA. Você aprova cada uma separadamente depois.</div>
+              <div class="cbk-meta">A IA planeja a jornada. Você edita cada peça, dá nome à série e salva — depois pode duplicar pra outro ICP ou segmento.</div>
             </div>
-            <div class="cbk-actions"><button class="cbk-btn cbk-btn-primary" id="nut-gerar">✨ Gerar com IA</button></div>
+            <div id="nut-mode-biblioteca" style="display:none;">
+              <div class="cbk-modal-s" style="margin-top:0;">Peças únicas e cadências salvas. Use os filtros de contexto acima (BU, Segmento, Persona) pra encontrar. Cadências podem ser duplicadas trocando ICP/segmento.</div>
+              <div id="nut-bib-content" style="margin-top:14px;"></div>
+            </div>
+            <div class="cbk-actions" id="nut-gerar-wrap"><button class="cbk-btn cbk-btn-primary" id="nut-gerar">✨ Gerar com IA</button></div>
           </div>
           <div class="cbk-card" id="nut-result-card" style="display:none;">
             <div class="cbk-modal-h" style="font-size:15px;">3 · Resultado — edite livremente</div>
@@ -9121,15 +9129,24 @@ document.addEventListener('DOMContentLoaded',()=>{
     segSel.value = nutCurrent.segment_id || '';
     perSel.value = nutCurrent.persona_id || '';
 
-    [buSel, segSel, perSel, document.getElementById('nut-fmt')].forEach(el => el.addEventListener('change', () => loadNutHistory()));
+    [buSel, segSel, perSel, document.getElementById('nut-fmt')].forEach(el => el.addEventListener('change', () => {
+      loadNutHistory();
+      // se biblioteca aberta, recarrega
+      const bibActive = document.querySelector('.cbk-tab[data-mode="biblioteca"]')?.classList.contains('active');
+      if (bibActive) loadBiblioteca();
+    }));
 
-    // Toggle modo Único/Cadência
+    // Toggle modo Único/Cadência/Biblioteca
     v.querySelectorAll('.cbk-tab[data-mode]').forEach(t => t.addEventListener('click', () => {
       v.querySelectorAll('.cbk-tab[data-mode]').forEach(x => x.classList.remove('active'));
       t.classList.add('active');
       const m = t.dataset.mode;
       document.getElementById('nut-mode-unico').style.display = (m==='unico'?'':'none');
       document.getElementById('nut-mode-cadencia').style.display = (m==='cadencia'?'':'none');
+      document.getElementById('nut-mode-biblioteca').style.display = (m==='biblioteca'?'':'none');
+      // esconde botão Gerar quando em Biblioteca (não gera nada, só lista)
+      document.getElementById('nut-gerar-wrap').style.display = (m==='biblioteca'?'none':'');
+      if (m==='biblioteca') loadBiblioteca();
     }));
 
     document.getElementById('nut-gerar').addEventListener('click', gerarComIA);
@@ -9265,7 +9282,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       <div id="cad-list" style="display:flex;flex-direction:column;gap:12px;margin-top:12px;"></div>
       <div class="cbk-actions">
         <button class="cbk-btn cbk-btn-ghost" id="cad-cancel">Cancelar</button>
-        <button class="cbk-btn cbk-btn-primary" id="cad-save-all">💾 Salvar todas como rascunho</button>
+        <button class="cbk-btn cbk-btn-primary" id="cad-save-all">💾 Salvar cadência</button>
       </div>`;
     const list = document.getElementById('cad-list');
     list.innerHTML = pecas.map((p, i) => `
@@ -9280,16 +9297,25 @@ document.addEventListener('DOMContentLoaded',()=>{
     `).join('');
     document.getElementById('cad-cancel').addEventListener('click', () => { card.innerHTML=''; card.style.display='none'; });
     document.getElementById('cad-save-all').addEventListener('click', async () => {
+      const nome = prompt('Dê um nome pra esta cadência (ex: "Nurturing CFO Agro Q1"):', '');
+      if (!nome || !nome.trim()){ toast('Nome da cadência é obrigatório','err'); return; }
       const btn = document.getElementById('cad-save-all'); btn.disabled=true; btn.textContent='Salvando…';
+      // cria série
+      const { data:serie, error:sErr } = await sb.from('cb_content_series').insert({
+        nome: nome.trim(), bu: ctx.bu, segment_id: ctx.segment_id, persona_id: ctx.persona_id,
+        tipo:'cadencia', created_by: email()
+      }).select().single();
+      if (sErr){ toast('Erro criando série: '+sErr.message,'err'); btn.disabled=false; btn.textContent='💾 Salvar cadência'; return; }
+      // insere peças ligadas
       const rows = pecas.map((p, i) => ({
         ...ctx, formato: p.formato || 'email-mkt', titulo: p.titulo || null,
-        prompt_input: `[Cadência] ${p.titulo||'Peça '+(p.ordem||i+1)}`,
+        prompt_input: `[${nome.trim()}] ${p.titulo||'Peça '+(p.ordem||i+1)}`,
         ai_output: p.output, edited_output: list.querySelector(`textarea[data-idx="${i}"]`).value,
-        status:'draft', created_by: email(),
+        status:'draft', created_by: email(), series_id: serie.id, ordem: p.ordem || (i+1)
       }));
       const { error } = await sb.from('cb_contents').insert(rows);
-      if (error){ toast('Erro salvando cadência: '+error.message,'err'); btn.disabled=false; btn.textContent='💾 Salvar todas como rascunho'; return; }
-      toast(`${rows.length} rascunhos salvos — histórico atualizado`);
+      if (error){ toast('Erro salvando peças: '+error.message,'err'); btn.disabled=false; btn.textContent='💾 Salvar cadência'; return; }
+      toast(`Cadência "${nome}" salva com ${rows.length} peças`);
       card.innerHTML=''; card.style.display='none';
       loadNutHistory();
     });
@@ -9315,6 +9341,158 @@ document.addEventListener('DOMContentLoaded',()=>{
       loadIntoEditor(novo);
       loadNutHistory();
     } catch(e){ toast('Erro: '+(e.message||e),'err'); }
+  }
+
+  // ═════════ Biblioteca (peças + cadências salvas) ═════════
+  async function loadBiblioteca(){
+    const holder = document.getElementById('nut-bib-content'); if (!holder) return;
+    const bu = document.getElementById('nut-bu').value;
+    const seg = document.getElementById('nut-seg').value;
+    const per = document.getElementById('nut-per').value;
+    holder.innerHTML = '<div class="cbk-meta">Carregando…</div>';
+    let qSer = sb.from('cb_content_series').select('*').order('created_at', {ascending:false});
+    if (bu) qSer = qSer.eq('bu', bu);
+    if (seg) qSer = qSer.eq('segment_id', seg);
+    if (per) qSer = qSer.eq('persona_id', per);
+    const { data: series } = await qSer;
+    const seriesWithCount = await Promise.all((series||[]).map(async s => {
+      const { count } = await sb.from('cb_contents').select('*', {count:'exact', head:true}).eq('series_id', s.id);
+      const { count: aprv } = await sb.from('cb_contents').select('*', {count:'exact', head:true}).eq('series_id', s.id).eq('status','approved');
+      return { ...s, total: count||0, aprovados: aprv||0 };
+    }));
+    let qP = sb.from('cb_contents').select('*').is('series_id', null).order('created_at', {ascending:false}).limit(30);
+    if (bu) qP = qP.eq('bu', bu);
+    if (seg) qP = qP.eq('segment_id', seg);
+    if (per) qP = qP.eq('persona_id', per);
+    const { data: pecas } = await qP;
+    const segMap = {}, perMap = {}; const buMap = Object.fromEntries(BUS.map(b => [b.key, b.nome]));
+    const { data:allS } = await sb.from('cb_segments').select('id,nome'); (allS||[]).forEach(x => segMap[x.id]=x.nome);
+    const { data:allP } = await sb.from('cb_personas').select('id,nome'); (allP||[]).forEach(x => perMap[x.id]=x.nome);
+
+    let html = `<div class="cbk-hi" style="margin-bottom:8px;">Cadências salvas · ${seriesWithCount.length}</div>`;
+    if (!seriesWithCount.length){
+      html += '<div class="cbk-empty" style="margin-bottom:20px;">Nenhuma cadência salva pra esse contexto.</div>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">';
+      seriesWithCount.forEach(s => {
+        html += `<div class="cbk-card" style="margin:0;padding:14px 16px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;color:var(--cb-navy);">${esc(s.nome)}</div>
+              <div style="font-size:11.5px;color:#6B7280;margin-top:2px;">${esc(buMap[s.bu]||s.bu||'—')} · ${esc(segMap[s.segment_id]||'sem segmento')} · ${esc(perMap[s.persona_id]||'sem persona')}</div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">${s.total} peças · ${s.aprovados} aprovadas · ${fmt(s.created_at)}</div>
+            </div>
+            <button class="cbk-btn cbk-btn-ghost" data-view-ser="${s.id}" style="font-size:11.5px;">Ver peças</button>
+            <button class="cbk-btn cbk-btn-primary" data-dup-ser="${s.id}" style="font-size:11.5px;">↻ Duplicar</button>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+    html += `<div class="cbk-hi" style="margin-bottom:8px;">Peças únicas · ${(pecas||[]).length}</div>`;
+    if (!pecas?.length){
+      html += '<div class="cbk-empty">Nenhuma peça avulsa pra esse contexto.</div>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+      pecas.forEach(c => {
+        html += `<div class="cbk-nut-item" data-load="${c.id}">
+          <div class="hd">
+            <span class="fmt">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)}</span>
+            <span class="st" style="background:${STATUS_COLOR[c.status]}20;color:${STATUS_COLOR[c.status]};">${STATUS_LBL[c.status]||c.status}</span>
+          </div>
+          <div class="tt">${esc(c.titulo||'Sem título')}</div>
+          <div class="dt">${fmt(c.created_at)}</div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+    holder.innerHTML = html;
+    holder.querySelectorAll('[data-view-ser]').forEach(b => b.addEventListener('click', () => openSerieDetail(b.dataset.viewSer, seriesWithCount)));
+    holder.querySelectorAll('[data-dup-ser]').forEach(b => b.addEventListener('click', () => duplicarSerie(seriesWithCount.find(x=>x.id===b.dataset.dupSer))));
+    holder.querySelectorAll('[data-load]').forEach(el => el.addEventListener('click', async () => {
+      const { data } = await sb.from('cb_contents').select('*').eq('id', el.dataset.load).single();
+      if (data){ document.querySelector('.cbk-tab[data-mode="unico"]').click(); loadIntoEditor(data); }
+    }));
+  }
+
+  async function openSerieDetail(serieId, cache){
+    const s = cache.find(x=>x.id===serieId);
+    const { data: pecas } = await sb.from('cb_contents').select('*').eq('series_id', serieId).order('ordem');
+    let html = `<div class="cbk-modal-h">${esc(s.nome)}</div>
+      <div class="cbk-modal-s">${(pecas||[]).length} peças · criado em ${fmt(s.created_at)}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">`;
+    (pecas||[]).forEach(p => {
+      html += `<div class="cbk-card" style="margin:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="background:var(--cb-navy);color:#fff;font-weight:700;border-radius:6px;padding:2px 8px;font-size:11px;">${p.ordem||'?'}</span>
+          <strong style="color:var(--cb-navy);">${esc(p.titulo||'Sem título')}</strong>
+          <span class="cbk-i-badge" style="margin-left:auto;">${esc(FORMATOS.find(f=>f.key===p.formato)?.lbl||p.formato)}</span>
+          <span style="background:${STATUS_COLOR[p.status]}20;color:${STATUS_COLOR[p.status]};padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;">${STATUS_LBL[p.status]||p.status}</span>
+        </div>
+        <div class="val" style="white-space:pre-wrap;font-size:12.5px;color:#4B5563;line-height:1.5;max-height:180px;overflow-y:auto;">${nl2br(p.edited_output||p.ai_output||'')}</div>
+        <div style="margin-top:8px;text-align:right;">
+          <button class="cbk-btn cbk-btn-ghost" data-open-piece="${p.id}" style="font-size:11px;">Editar peça</button>
+        </div>
+      </div>`;
+    });
+    html += `</div><div class="cbk-actions"><button class="cbk-btn cbk-btn-ghost" id="cbk-close">Fechar</button></div>`;
+    openModal(html);
+    document.getElementById('cbk-close').addEventListener('click', closeModal);
+    document.querySelectorAll('[data-open-piece]').forEach(b => b.addEventListener('click', async () => {
+      const { data } = await sb.from('cb_contents').select('*').eq('id', b.dataset.openPiece).single();
+      if (data){ closeModal(); document.querySelector('.cbk-tab[data-mode="unico"]').click(); loadIntoEditor(data); }
+    }));
+  }
+
+  async function duplicarSerie(s){
+    const [{data:segs}, {data:pers}] = await Promise.all([
+      sb.from('cb_segments').select('*').order('nome'),
+      sb.from('cb_personas').select('*').order('nome'),
+    ]);
+    let html = `<div class="cbk-modal-h">↻ Duplicar cadência: ${esc(s.nome)}</div>
+      <div class="cbk-modal-s">Escolha o novo contexto. As peças são copiadas mantendo o texto — você pode reeditar cada uma depois.</div>
+      <div class="cbk-card">
+        <div class="cbk-field"><label>Novo nome</label><input id="dup-nome" value="${esc(s.nome)} — cópia"></div>
+        <div class="cbk-row" style="grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div class="cbk-field"><label>BU</label><select id="dup-bu">${BUS.map(b=>`<option value="${b.key}"${b.key===s.bu?' selected':''}>${b.nome}</option>`).join('')}</select></div>
+          <div class="cbk-field"><label>Segmento</label><select id="dup-seg"><option value="">— Sem segmento —</option>${(segs||[]).map(x=>`<option value="${x.id}"${x.id===s.segment_id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select></div>
+          <div class="cbk-field"><label>Persona</label><select id="dup-per"><option value="">— Sem persona —</option>${(pers||[]).map(x=>`<option value="${x.id}"${x.id===s.persona_id?' selected':''}>${esc(x.nome)}</option>`).join('')}</select></div>
+        </div>
+        <div class="cbk-meta">💡 Se trocar segmento ou persona, edite depois cada peça pra adaptar exemplos e tom.</div>
+      </div>
+      <div class="cbk-actions">
+        <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Cancelar</button>
+        <button class="cbk-btn cbk-btn-primary" id="dup-go">Duplicar cadência</button>
+      </div>`;
+    openModal(html);
+    document.getElementById('cbk-close').addEventListener('click', closeModal);
+    document.getElementById('dup-go').addEventListener('click', async () => {
+      const btn = document.getElementById('dup-go'); btn.disabled=true; btn.textContent='Duplicando…';
+      const novo = {
+        nome: document.getElementById('dup-nome').value.trim(),
+        bu: document.getElementById('dup-bu').value,
+        segment_id: document.getElementById('dup-seg').value || null,
+        persona_id: document.getElementById('dup-per').value || null,
+        tipo: 'cadencia', created_by: email(),
+      };
+      if (!novo.nome){ toast('Nome obrigatório','err'); btn.disabled=false; btn.textContent='Duplicar cadência'; return; }
+      const { data: novaSerie, error:e1 } = await sb.from('cb_content_series').insert(novo).select().single();
+      if (e1){ toast('Erro: '+e1.message,'err'); btn.disabled=false; btn.textContent='Duplicar cadência'; return; }
+      const { data: pecas } = await sb.from('cb_contents').select('*').eq('series_id', s.id).order('ordem');
+      const rows = (pecas||[]).map(p => ({
+        bu: novo.bu, segment_id: novo.segment_id, persona_id: novo.persona_id,
+        formato: p.formato, titulo: p.titulo, prompt_input: `[${novo.nome}] ${p.titulo||''}`,
+        ai_output: p.ai_output, edited_output: p.edited_output,
+        status: 'draft', created_by: email(), series_id: novaSerie.id, ordem: p.ordem,
+      }));
+      if (rows.length){
+        const { error:e2 } = await sb.from('cb_contents').insert(rows);
+        if (e2){ toast('Peças falharam: '+e2.message,'err'); }
+      }
+      toast(`Cadência duplicada — ${rows.length} peças copiadas`);
+      closeModal();
+      loadBiblioteca();
+    });
   }
 
   async function saveNut(status){
