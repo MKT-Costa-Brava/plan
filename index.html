@@ -9726,13 +9726,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       }));
       // add
       document.getElementById('wiz-add').addEventListener('click', () => {
-        const titulo = document.getElementById('wiz-tit').value.trim() || 'Nova matéria';
+        const titulo = document.getElementById('wiz-tit').value.trim();
         const texto = document.getElementById('wiz-txt').value.trim();
         const imgs = document.getElementById('wiz-imgs').value.split('\n').map(s=>s.trim()).filter(Boolean);
+        if (!titulo && !texto && !imgs.length){ toast('Preencha ao menos um campo','err'); return; }
         state.materias.push({
           categoria: dadosTmp.categoria,
           layout: dadosTmp.layout,
-          titulo,
+          titulo: titulo || 'Sem título',
           texto,
           texto_html: esc(texto).replace(/\n/g,'<br>'),
           imagens: imgs,
@@ -9762,14 +9763,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     async function revisarMateriaIA(idx){
       const m = state.materias[idx]; if (!m) return;
       const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria)?.lbl || 'geral';
-      const original = m.texto || '';
-      if (!original.trim()){ toast('Sem texto pra revisar','err'); return; }
+      const original = (m.texto || '').trim();
+      if (!original || original.length < 30 || /^(escreva aqui|nova matéria|aguardando)/i.test(original)){
+        toast('Cole ou escreva um texto antes de pedir revisão','err');
+        return;
+      }
       toast('IA revisando…');
       try {
-        const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{ mode:'unico', bu:'bt', segment_id:null, persona_id:null, formato:'artigo-blog', titulo:m.titulo||'', prompt:`MODO REVISÃO. Categoria: ${cat}. Reescreva mantendo TODOS os fatos originais. Anti-IA: evite "vale ouro", "não é sobre X, é sobre Y", travessão excessivo, "no fim das contas". Prefira frases curtas e específicas. Devolva SÓ o texto revisado.\n\nOriginal:\n"""${original}"""` }});
+        const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{ mode:'unico', bu:'bt', segment_id:null, persona_id:null, formato:'artigo-blog', titulo:m.titulo||'', prompt:`Reescreva o texto abaixo (categoria: ${cat}). Regras: preserve TODOS os fatos e nomes; NUNCA invente informação; NUNCA responda como assistente ("aguardando texto", "por favor cole", "estou pronto"); devolva SOMENTE o texto revisado, nada mais; evite clichês de IA como "vale ouro", "não é sobre X, é sobre Y", "no fim das contas", "em um mundo cada vez mais"; evite travessões excessivos e ponto final em excesso; use frases curtas e específicas. Se o texto for muito curto ou incompleto, apenas melhore a clareza sem completar.\n\nTEXTO:\n"""${original}"""` }});
         if (error || data?.error) throw new Error(error?.message || data.error);
-        m.texto = data.output.trim();
-        m.texto_html = esc(m.texto).replace(/\n/g,'<br>');
+        let out = data.output.trim();
+        // filtra respostas meta da IA
+        if (/^(aguardando|por favor|estou pronto|preciso do texto|desculpe|infelizmente n[ãa]o)/i.test(out) || out.includes('aspas triplas') || out.includes('Original:')){
+          toast('IA devolveu meta-comentário. Verifique se o texto original faz sentido pra revisar.','err');
+          return;
+        }
+        m.texto = out;
+        m.texto_html = esc(out).replace(/\n/g,'<br>');
         renderCanvas(); renderMateriaList(); autosave();
         toast('Texto revisado');
       } catch(e){ toast('Erro: '+e.message, 'err'); }
