@@ -9391,11 +9391,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       <div class="nl-edit-topbar">
         <button class="cbk-btn cbk-btn-ghost" id="ed-back">← Voltar</button>
         <span class="brand">${isNew?'Nova edição':`Editar edição ${post.numero_edicao||''}`}</span>
-        <div class="nl-w-toggle" style="margin-left:14px;">
-          <button data-w="w-mobile" title="Celular">📱</button>
-          <button data-w="w-notebook" class="active" title="Notebook">💻</button>
-          <button data-w="w-full" title="Full">🖥</button>
-        </div>
         <span class="autosave" id="ed-autosave">✓ rascunho salvo</span>
         <button class="cbk-btn cbk-btn-ghost" id="ed-html">&lt;/&gt; Ver HTML</button>
         <button class="cbk-btn cbk-btn-primary" id="ed-save">${isNew?'Publicar':'Salvar'}</button>
@@ -9535,16 +9530,39 @@ document.addEventListener('DOMContentLoaded',()=>{
         renderMateriaList();
         if (selectedIdx>=0){ const el = document.querySelector(`.nl-materia[data-mi="${selectedIdx}"]`); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }
       }));
+      // Drag & drop reorder na lista lateral
+      box.querySelectorAll('[data-mi-side]').forEach(card => {
+        card.setAttribute('draggable', 'true');
+        card.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', card.dataset.miSide); e.dataTransfer.effectAllowed='move'; card.style.opacity='.4'; });
+        card.addEventListener('dragend', () => { card.style.opacity='1'; });
+        card.addEventListener('dragover', (e) => { e.preventDefault(); card.style.borderTop='2px solid #8CB7C9'; });
+        card.addEventListener('dragleave', () => { card.style.borderTop=''; });
+        card.addEventListener('drop', (e) => {
+          e.preventDefault(); card.style.borderTop='';
+          const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+          const to = parseInt(card.dataset.miSide, 10);
+          if (from === to) return;
+          const [moved] = state.materias.splice(from, 1);
+          state.materias.splice(to, 0, moved);
+          selectedIdx = to;
+          renderCanvas(); renderMateriaList(); autosave();
+        });
+      });
       box.querySelectorAll('[data-mi-side]').forEach(card => {
         const idx = parseInt(card.dataset.miSide, 10);
         const m = state.materias[idx];
-        card.querySelectorAll('[data-set]').forEach(inp => inp.addEventListener('input', () => {
-          const k = inp.dataset.set;
-          m[k] = (k==='padY') ? parseInt(inp.value,10) : inp.value;
-          if (k==='categoria'){ const c = NEWS_CATEGORIAS.find(x=>x.k===inp.value); if (c){ inp.style.background=c.bg; inp.style.color=c.cor; } }
-          renderCanvas(); autosave();
-          renderMateriaList(); // atualiza título+tag na lista
-        }));
+        card.querySelectorAll('[data-set]').forEach(inp => {
+          const handler = () => {
+            const k = inp.dataset.set;
+            m[k] = (k==='padY') ? parseInt(inp.value,10)||0 : inp.value;
+            if (k==='categoria'){ const c = NEWS_CATEGORIAS.find(x=>x.k===inp.value); if (c){ inp.style.background=c.bg; inp.style.color=c.cor; } }
+            renderCanvas();
+            autosave();
+            if (k==='categoria' || k==='layout') renderMateriaList();
+          };
+          inp.addEventListener('input', handler);
+          inp.addEventListener('change', handler);
+        });
         card.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', (e) => {
           e.stopPropagation();
           const a = b.dataset.act;
@@ -9649,11 +9667,76 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderCanvas(); autosave();
     }));
 
-    document.querySelectorAll('[data-add-cat]').forEach(b => b.addEventListener('click', () => {
-      state.materias.push({ categoria:b.dataset.addCat, titulo:'Nova matéria', texto:'Escreva aqui…', texto_html:'Escreva aqui…', imagens:[], layout:'texto-only' });
-      selectedIdx = state.materias.length-1;
-      renderCanvas(); renderMateriaList(); autosave();
-    }));
+    document.querySelectorAll('[data-add-cat]').forEach(b => b.addEventListener('click', () => openNovaMateriaWizard(b.dataset.addCat)));
+
+    function openNovaMateriaWizard(catInicial){
+      const dadosTmp = { categoria: catInicial || 'insights', layout: 'texto-only', titulo:'', texto:'', imagens:[] };
+      const html = `<div class="cbk-modal-h">Adicionar matéria</div>
+        <div class="cbk-modal-s">Escolha categoria, layout e preencha texto/imagens. Depois arraste na lateral para reordenar.</div>
+        <div class="cbk-card cbk-edit-mode">
+          <div style="font-size:10.5px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">1 · Categoria</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;" id="wiz-cats">
+            ${NEWS_CATEGORIAS.map(c=>`<button data-c="${c.k}" class="wiz-cat${c.k===dadosTmp.categoria?' active':''}" style="background:${c.bg};color:${c.cor};border:2px solid transparent;padding:6px 12px;border-radius:99px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;">${c.lbl}</button>`).join('')}
+          </div>
+          <div style="font-size:10.5px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">2 · Layout</div>
+          <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:16px;" id="wiz-layouts">
+            ${NEWS_LAYOUTS.map(l => {
+              const preview = l.k==='img-esq'?'<div style="display:flex;gap:4px;"><div style="width:24px;height:22px;background:#8CB7C9;border-radius:2px;"></div><div style="flex:1;"><div style="height:3px;background:#9CA3AF;margin-bottom:2px;border-radius:1px;"></div><div style="height:2px;background:#D4DBE3;margin-bottom:2px;border-radius:1px;"></div><div style="height:2px;background:#D4DBE3;border-radius:1px;"></div></div></div>'
+                : l.k==='img-dir'?'<div style="display:flex;gap:4px;"><div style="flex:1;"><div style="height:3px;background:#9CA3AF;margin-bottom:2px;border-radius:1px;"></div><div style="height:2px;background:#D4DBE3;margin-bottom:2px;border-radius:1px;"></div><div style="height:2px;background:#D4DBE3;border-radius:1px;"></div></div><div style="width:24px;height:22px;background:#8CB7C9;border-radius:2px;"></div></div>'
+                : l.k==='img-full'?'<div><div style="height:14px;background:#8CB7C9;margin-bottom:3px;border-radius:2px;"></div><div style="height:2px;background:#9CA3AF;margin-bottom:2px;border-radius:1px;"></div><div style="height:2px;background:#D4DBE3;border-radius:1px;"></div></div>'
+                : l.k==='grade'?'<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;"><div style="height:10px;background:#8CB7C9;border-radius:2px;"></div><div style="height:10px;background:#8CB7C9;border-radius:2px;"></div><div style="height:10px;background:#8CB7C9;border-radius:2px;"></div><div style="height:10px;background:#8CB7C9;border-radius:2px;"></div></div>'
+                : l.k==='carrossel'?'<div style="display:flex;gap:2px;overflow:hidden;"><div style="min-width:14px;height:16px;background:#8CB7C9;border-radius:2px;"></div><div style="min-width:14px;height:16px;background:#8CB7C9;border-radius:2px;"></div><div style="min-width:14px;height:16px;background:#8CB7C9;border-radius:2px;opacity:.5;"></div></div>'
+                : '<div><div style="height:3px;background:#9CA3AF;margin-bottom:3px;border-radius:1px;width:60%;"></div><div style="height:2px;background:#D4DBE3;margin-bottom:2px;border-radius:1px;"></div><div style="height:2px;background:#D4DBE3;margin-bottom:2px;border-radius:1px;"></div><div style="height:2px;background:#D4DBE3;border-radius:1px;width:80%;"></div></div>';
+              return `<button data-l="${l.k}" class="wiz-lay${l.k===dadosTmp.layout?' active':''}" style="background:#fff;border:2px solid ${l.k===dadosTmp.layout?'#8CB7C9':'#E4E9EF'};padding:10px;border-radius:8px;cursor:pointer;text-align:left;">
+                <div style="margin-bottom:6px;padding:6px 4px;background:#F7F8FA;border-radius:4px;min-height:34px;">${preview}</div>
+                <div style="font-size:11px;font-weight:600;color:var(--cb-navy);">${l.lbl}</div>
+              </button>`;
+            }).join('')}
+          </div>
+          <div style="font-size:10.5px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">3 · Conteúdo</div>
+          <div class="cbk-field"><label>Título</label><input id="wiz-tit" placeholder="Título da matéria"></div>
+          <div class="cbk-field"><label>Texto</label><textarea id="wiz-txt" style="min-height:120px;line-height:1.5;" placeholder="Cole ou digite o texto"></textarea></div>
+          <div class="cbk-field"><label>Imagens (uma URL por linha)</label><textarea id="wiz-imgs" style="min-height:60px;font-family:monospace;font-size:11.5px;" placeholder="https://…/imagem1.jpg&#10;https://…/imagem2.jpg"></textarea></div>
+        </div>
+        <div class="cbk-actions">
+          <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Cancelar</button>
+          <button class="cbk-btn cbk-btn-primary" id="wiz-add">Adicionar bloco</button>
+        </div>`;
+      openModal(html, true);
+      document.getElementById('cbk-close').addEventListener('click', closeModal);
+      // clicar categoria
+      document.querySelectorAll('.wiz-cat').forEach(b => b.addEventListener('click', () => {
+        dadosTmp.categoria = b.dataset.c;
+        document.querySelectorAll('.wiz-cat').forEach(x => { x.classList.remove('active'); x.style.border='2px solid transparent'; });
+        b.classList.add('active'); b.style.border='2px solid var(--cb-navy)';
+      }));
+      // marca categoria inicial visualmente
+      const initCat = document.querySelector(`.wiz-cat[data-c="${dadosTmp.categoria}"]`); if (initCat) initCat.style.border='2px solid var(--cb-navy)';
+      // layout
+      document.querySelectorAll('.wiz-lay').forEach(b => b.addEventListener('click', () => {
+        dadosTmp.layout = b.dataset.l;
+        document.querySelectorAll('.wiz-lay').forEach(x => x.style.border='2px solid #E4E9EF');
+        b.style.border='2px solid #8CB7C9';
+      }));
+      // add
+      document.getElementById('wiz-add').addEventListener('click', () => {
+        const titulo = document.getElementById('wiz-tit').value.trim() || 'Nova matéria';
+        const texto = document.getElementById('wiz-txt').value.trim();
+        const imgs = document.getElementById('wiz-imgs').value.split('\n').map(s=>s.trim()).filter(Boolean);
+        state.materias.push({
+          categoria: dadosTmp.categoria,
+          layout: dadosTmp.layout,
+          titulo,
+          texto,
+          texto_html: esc(texto).replace(/\n/g,'<br>'),
+          imagens: imgs,
+        });
+        selectedIdx = state.materias.length-1;
+        renderCanvas(); renderMateriaList(); autosave();
+        closeModal();
+        toast('Bloco adicionado — arraste na lateral pra reordenar');
+      });
+    }
 
     document.getElementById('ed-back').addEventListener('click', () => { window.setView('diario'); });
     document.querySelectorAll('.nl-w-toggle [data-w]').forEach(b => b.addEventListener('click', () => {
