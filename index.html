@@ -9117,10 +9117,13 @@ document.addEventListener('DOMContentLoaded',()=>{
               <div class="cbk-meta">A IA planeja a jornada. Você edita cada peça, dá nome à série e salva — depois pode duplicar pra outro ICP ou segmento.</div>
             </div>
             <div id="nut-mode-biblioteca" style="display:none;">
-              <div class="cbk-modal-s" style="margin-top:0;">Todo conteúdo salvo — cadências e peças avulsas. Filtre por BU / Segmento / Persona no topo e por formato abaixo. Cadências podem ser duplicadas trocando ICP/segmento.</div>
-              <div class="cbk-row" style="grid-template-columns:220px 1fr;gap:10px;margin-top:12px;">
-                <div class="cbk-field" style="margin-bottom:0;"><label>Formato</label><select id="nut-bib-fmt"><option value="">Todos os formatos</option>${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
-                <div class="cbk-field" style="margin-bottom:0;"><label>Tema</label><input id="nut-bib-tema" list="nut-tema-list" placeholder="Filtrar por tema (ex: Bilhetes não voados)"></div>
+              <div class="cbk-modal-s" style="margin-top:0;">Todo conteúdo salvo — cadências e peças avulsas. Use os filtros abaixo pra encontrar. Cadências podem ser duplicadas trocando ICP/segmento.</div>
+              <div class="cbk-row" style="grid-template-columns:repeat(5, 1fr);gap:10px;margin-top:12px;">
+                <div class="cbk-field" style="margin-bottom:0;"><label>Negócio (BU)</label><select id="nut-bib-bu"><option value="">Todos</option>${BUS.map(b=>`<option value="${b.key}">${b.nome}</option>`).join('')}</select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Segmento</label><select id="nut-bib-seg"><option value="">Todos</option></select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Persona</label><select id="nut-bib-per"><option value="">Todas</option></select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Formato</label><select id="nut-bib-fmt"><option value="">Todos</option>${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Tema</label><input id="nut-bib-tema" list="nut-tema-list" placeholder="Buscar tema…"></div>
               </div>
               <div id="nut-bib-content" style="margin-top:14px;"></div>
             </div>
@@ -9178,14 +9181,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       // esconde botão Gerar quando em Biblioteca (não gera nada, só lista)
       document.getElementById('nut-gerar-wrap').style.display = (m==='biblioteca'?'none':'');
       if (m==='biblioteca'){
-        loadBiblioteca();
-        const fmtSel = document.getElementById('nut-bib-fmt');
-        if (fmtSel && !fmtSel.dataset.bound){ fmtSel.dataset.bound='1'; fmtSel.addEventListener('change', loadBiblioteca); }
-        const temaInp = document.getElementById('nut-bib-tema');
-        if (temaInp && !temaInp.dataset.bound){
-          temaInp.dataset.bound='1';
-          let to; temaInp.addEventListener('input', () => { clearTimeout(to); to=setTimeout(loadBiblioteca, 300); });
-        }
+        setupBibFilters().then(loadBiblioteca);
       }
     }));
 
@@ -9400,12 +9396,39 @@ document.addEventListener('DOMContentLoaded',()=>{
     } catch(e){ toast('Erro: '+(e.message||e),'err'); }
   }
 
-  // ═════════ Biblioteca (peças + cadências salvas) ═════════
+  // ═════════ Biblioteca — filtros próprios ═════════
+  async function setupBibFilters(){
+    const buS = document.getElementById('nut-bib-bu');
+    const segS = document.getElementById('nut-bib-seg');
+    const perS = document.getElementById('nut-bib-per');
+    const fmtS = document.getElementById('nut-bib-fmt');
+    const temaI = document.getElementById('nut-bib-tema');
+    if (!buS) return;
+    // popular selects se ainda vazios
+    if (segS.options.length <= 1){
+      const [{data:segs},{data:pers}] = await Promise.all([
+        sb.from('cb_segments').select('id,nome').order('nome'),
+        sb.from('cb_personas').select('id,nome').order('nome')
+      ]);
+      segS.innerHTML = '<option value="">Todos</option>' + (segs||[]).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('');
+      perS.innerHTML = '<option value="">Todas</option>' + (pers||[]).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('');
+    }
+    // liga eventos (uma vez)
+    [buS, segS, perS, fmtS].forEach(el => {
+      if (!el.dataset.bound){ el.dataset.bound='1'; el.addEventListener('change', loadBiblioteca); }
+    });
+    if (!temaI.dataset.bound){
+      temaI.dataset.bound='1';
+      let to; temaI.addEventListener('input', () => { clearTimeout(to); to=setTimeout(loadBiblioteca, 300); });
+    }
+  }
+
   async function loadBiblioteca(){
     const holder = document.getElementById('nut-bib-content'); if (!holder) return;
-    const bu = document.getElementById('nut-bu').value;
-    const seg = document.getElementById('nut-seg').value;
-    const per = document.getElementById('nut-per').value;
+    // Filtros próprios da biblioteca (não dependem do contexto do topo)
+    const bu = document.getElementById('nut-bib-bu')?.value || '';
+    const seg = document.getElementById('nut-bib-seg')?.value || '';
+    const per = document.getElementById('nut-bib-per')?.value || '';
     holder.innerHTML = '<div class="cbk-meta">Carregando…</div>';
     let qSer = sb.from('cb_content_series').select('*').order('created_at', {ascending:false});
     if (bu) qSer = qSer.eq('bu', bu);
