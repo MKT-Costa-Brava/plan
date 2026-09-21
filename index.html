@@ -9293,16 +9293,21 @@ document.addEventListener('DOMContentLoaded',()=>{
     const textoBlock = `<div class="nl-texto">${m.texto_html || nl2br(m.texto||'')}</div>`;
     const imgs = (m.imagens||[]).filter(u=>u);
     const layout = m.layout || sugerirLayout(imgs);
+    const ph = (h='160px') => `<div style="background:#F0F3F7;border:2px dashed #D4DBE3;border-radius:8px;height:${h};display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:12px;">📷 Adicione uma imagem</div>`;
     let mediaBlock = '';
     if (layout==='img-esq' || layout==='img-dir'){
-      mediaBlock = imgs[0] ? `<div class="nl-media"><img class="nl-img" src="${esc(imgs[0])}"></div>` : '';
+      mediaBlock = imgs[0] ? `<div class="nl-media"><img class="nl-img" src="${esc(imgs[0])}"></div>` : `<div class="nl-media">${ph()}</div>`;
       return `<div class="nl-materia layout-${layout}">${mediaBlock}<div class="nl-conteudo">${tag}${tituloBlock}${textoBlock}</div></div>`;
     } else if (layout==='img-full'){
-      mediaBlock = imgs[0] ? `<div class="nl-media"><img class="nl-img" src="${esc(imgs[0])}"></div>` : '';
+      mediaBlock = imgs[0] ? `<div class="nl-media"><img class="nl-img" src="${esc(imgs[0])}"></div>` : `<div class="nl-media">${ph('280px')}</div>`;
       return `<div class="nl-materia layout-img-full">${mediaBlock}${tag}${tituloBlock}${textoBlock}</div>`;
-    } else if (layout==='grade' || layout==='carrossel'){
-      mediaBlock = imgs.length ? `<div class="nl-media">${imgs.map(u=>`<img class="nl-img" src="${esc(u)}">`).join('')}</div>` : '';
-      return `<div class="nl-materia layout-${layout}">${mediaBlock}${tag}${tituloBlock}${textoBlock}</div>`;
+    } else if (layout==='grade'){
+      const cells = imgs.length>=2 ? imgs : [imgs[0]||null, null, null, null].slice(0, Math.max(imgs.length, 2));
+      mediaBlock = `<div class="nl-media">${cells.map(u => u ? `<img class="nl-img" src="${esc(u)}">` : ph('120px')).join('')}</div>`;
+      return `<div class="nl-materia layout-grade">${mediaBlock}${tag}${tituloBlock}${textoBlock}</div>`;
+    } else if (layout==='carrossel'){
+      mediaBlock = imgs.length ? `<div class="nl-media">${imgs.map(u=>`<img class="nl-img" src="${esc(u)}">`).join('')}</div>` : `<div class="nl-media">${ph()}${ph()}</div>`;
+      return `<div class="nl-materia layout-carrossel">${mediaBlock}${tag}${tituloBlock}${textoBlock}</div>`;
     } else {
       return `<div class="nl-materia layout-texto-only">${tag}${tituloBlock}${textoBlock}</div>`;
     }
@@ -9610,16 +9615,17 @@ document.addEventListener('DOMContentLoaded',()=>{
         <button class="cbk-btn cbk-btn-primary" id="ed-cola">📥 Colar conteúdo bruto</button>
       </div>
       <div class="nl-edit-page ${currentWidth}">
-        <div style="${capaStyle}padding:36px;border-radius:10px;color:#fff;margin-bottom:24px;">
+        <div style="${capaStyle}padding:36px;border-radius:10px;color:#fff;margin-bottom:40px;position:relative;overflow:hidden;">
           <div style="background:rgba(15,32,55,.9);display:inline-block;padding:4px 12px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Edição ${esc(num||'?')}</div>
           <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1.15;text-shadow:0 2px 6px rgba(0,0,0,.3);">${esc(titulo||'(sem título)')}</div>
           ${sub?`<div style="font-size:14px;margin-top:6px;color:#EEF5F8;">${esc(sub)}</div>`:''}
         </div>
         ${state.materias.length ? state.materias.map((m, i) => {
-          const bg = m.bg || '';
-          const py = m.padY || '';
-          const wrap = `style="position:relative;${bg?`background:${esc(bg)};`:''}${py?`padding:${esc(py)}px 0;`:''}"`;
-          return `<div ${wrap}>${renderMateriaHTML(m).replace(/^<div class="nl-materia/, `<div class="nl-materia" data-mi="${i}"`)}<button class="mv-grip" data-drag-idx="${i}" draggable="true" title="Arraste pra reordenar">⋮⋮</button><button class="mv-del" data-del-idx="${i}" title="Excluir">✕</button></div>`;
+          const bg = m.bg && m.bg!=='#ffffff' ? m.bg : '';
+          const py = (m.padY!=null && m.padY!=='') ? Math.max(parseInt(m.padY,10)||24, 12) : 28;
+          const wrap = `style="position:relative;${bg?`background:${esc(bg)};margin:0 -20px;padding:0 20px;border-radius:8px;`:''}"`;
+          const inner = `<div class="nl-materia layout-${m.layout||sugerirLayout(m.imagens||[])}" data-mi="${i}" style="padding:${py}px 0;">${renderMateriaHTML(m).replace(/^<div class="nl-materia[^>]*>/, '').replace(/<\/div>$/, '')}</div>`;
+          return `<div ${wrap}>${inner}<button class="mv-grip" data-drag-idx="${i}" draggable="true" title="Arraste pra reordenar">⋮⋮</button><button class="mv-del" data-del-idx="${i}" title="Excluir">✕</button></div>`;
         }).join('') : '<div class="cbk-empty" style="margin:30px 0;">Sem matérias — clique numa categoria na lateral esquerda pra adicionar a primeira.</div>'}
       </div>`;
       // rebind cola bar
