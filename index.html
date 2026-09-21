@@ -8679,6 +8679,33 @@ document.addEventListener('DOMContentLoaded',()=>{
   .nl-preview-toggle{ display:flex; gap:4px; background:#F3F4F6; padding:3px; border-radius:8px; margin-bottom:14px; width:fit-content; }
   .nl-preview-toggle button{ padding:6px 14px; border:none; background:transparent; border-radius:6px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600; color:#6B7280; }
   .nl-preview-toggle button.active{ background:#FFF; color:var(--cb-navy); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+
+  /* Split editor (esquerda edita, direita preview live) */
+  .nl-split{ display:grid; grid-template-columns:minmax(340px, 44%) 1fr; gap:16px; margin-top:12px; }
+  @media (max-width: 900px){ .nl-split{ grid-template-columns:1fr; } }
+  .nl-left{ min-width:0; max-height:70vh; overflow-y:auto; padding-right:8px; }
+  .nl-right{ min-width:0; max-height:70vh; overflow-y:auto; background:#F7F8FA; border-radius:12px; padding:20px; }
+  .nl-preview-page{ background:#FFF; border-radius:10px; padding:28px 30px; box-shadow:0 1px 3px rgba(15,32,55,.05); min-height:200px; }
+  .nl-preview-hero{ background:linear-gradient(135deg,#0F2037,#8CB7C9); color:#fff; padding:24px; border-radius:10px; margin-bottom:18px; }
+  .nl-preview-hero .kicker{ background:rgba(15,32,55,.9); display:inline-block; padding:3px 10px; border-radius:99px; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+  .nl-preview-hero .t{ font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:700; line-height:1.15; }
+  .nl-preview-hero .st{ font-size:13px; color:#EEF5F8; margin-top:4px; }
+
+  /* Toolbar rich text */
+  .nl-toolbar{ display:flex; gap:2px; flex-wrap:wrap; background:#F7F8FA; padding:6px; border:1px solid #E4E9EF; border-radius:8px 8px 0 0; border-bottom:none; }
+  .nl-tb-btn{ background:#fff; border:1px solid transparent; padding:4px 8px; border-radius:5px; cursor:pointer; font-family:inherit; font-size:12px; color:var(--cb-navy); font-weight:600; min-width:28px; }
+  .nl-tb-btn:hover{ background:#EEF5F8; }
+  .nl-tb-btn.active{ background:#DDE9EF; }
+  .nl-tb-sep{ width:1px; height:20px; background:#E4E9EF; margin:2px 4px; }
+  .nl-tb-select, .nl-tb-color{ height:26px; border:1px solid #E4E9EF; border-radius:5px; padding:0 6px; font-family:inherit; font-size:11.5px; background:#fff; color:var(--cb-navy); }
+  .nl-tb-color{ padding:0; width:26px; cursor:pointer; }
+  .nl-rich{ background:#fff; border:1px solid #E4E9EF; border-radius:0 0 8px 8px; padding:10px 12px; min-height:110px; font-family:'Montserrat',sans-serif; font-size:13.5px; line-height:1.6; color:#374151; outline:none; }
+  .nl-rich:focus{ border-color:#8CB7C9; }
+  .nl-rich[data-placeholder]:empty::before{ content:attr(data-placeholder); color:#9CA3AF; }
+
+  .nl-materia-card{ background:#FFF; border:1px solid #E4E9EF; border-radius:10px; margin-bottom:10px; overflow:hidden; }
+  .nl-materia-head{ padding:10px 12px; display:flex; align-items:center; gap:8px; background:#F7F8FA; border-bottom:1px solid #E4E9EF; }
+  .nl-materia-body{ padding:12px; }
 </style>
 
 <script id="cb-onda-k-boot">
@@ -9199,7 +9226,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria) || NEWS_CATEGORIAS[0];
     const tag = `<span class="nl-cat-tag" style="background:${cat.bg};color:${cat.cor};">${cat.lbl}</span>`;
     const tituloBlock = `<h2 class="nl-titulo">${esc(m.titulo||'')}</h2>`;
-    const textoBlock = `<div class="nl-texto">${nl2br(m.texto||'')}</div>`;
+    const textoBlock = `<div class="nl-texto">${m.texto_html || nl2br(m.texto||'')}</div>`;
     const imgs = (m.imagens||[]).filter(u=>u);
     const layout = m.layout || sugerirLayout(imgs);
     let mediaBlock = '';
@@ -9240,34 +9267,95 @@ document.addEventListener('DOMContentLoaded',()=>{
     document.getElementById('dia-edit')?.addEventListener('click', () => { closeModal(); openDiarioEditor(post); });
   }
 
+  function toolbarHTML(id){
+    return `<div class="nl-toolbar">
+      <select class="nl-tb-select" data-tb="fmt"><option value="p">Parágrafo</option><option value="h3">Título</option><option value="h4">Subtítulo</option><option value="blockquote">Citação</option></select>
+      <select class="nl-tb-select" data-tb="font"><option value="Montserrat">Montserrat</option><option value="Space Grotesk">Space Grotesk</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times</option><option value="Arial">Arial</option></select>
+      <select class="nl-tb-select" data-tb="size"><option value="2">S</option><option value="3" selected>M</option><option value="4">L</option><option value="5">XL</option></select>
+      <span class="nl-tb-sep"></span>
+      <button class="nl-tb-btn" data-tb="bold" title="Negrito"><b>B</b></button>
+      <button class="nl-tb-btn" data-tb="italic" title="Itálico"><i>I</i></button>
+      <button class="nl-tb-btn" data-tb="underline" title="Sublinhado"><u>U</u></button>
+      <input class="nl-tb-color" type="color" data-tb="color" value="#374151" title="Cor do texto">
+      <span class="nl-tb-sep"></span>
+      <button class="nl-tb-btn" data-tb="justifyLeft" title="Alinhar esquerda">⬅</button>
+      <button class="nl-tb-btn" data-tb="justifyCenter" title="Centro">⬌</button>
+      <button class="nl-tb-btn" data-tb="justifyRight" title="Direita">➡</button>
+      <button class="nl-tb-btn" data-tb="justifyFull" title="Justificar">☰</button>
+      <span class="nl-tb-sep"></span>
+      <button class="nl-tb-btn" data-tb="insertUnorderedList" title="Lista">•</button>
+      <button class="nl-tb-btn" data-tb="insertOrderedList" title="Numerada">1.</button>
+      <button class="nl-tb-btn" data-tb="link" title="Link">🔗</button>
+      <button class="nl-tb-btn" data-tb="removeFormat" title="Limpar formatação">↺</button>
+    </div>`;
+  }
+  function bindToolbar(toolbarEl, editorEl){
+    toolbarEl.querySelectorAll('[data-tb]').forEach(btn => {
+      const cmd = btn.dataset.tb;
+      const trigger = () => {
+        editorEl.focus();
+        if (cmd==='fmt') document.execCommand('formatBlock', false, btn.value);
+        else if (cmd==='font') document.execCommand('fontName', false, btn.value);
+        else if (cmd==='size') document.execCommand('fontSize', false, btn.value);
+        else if (cmd==='color') document.execCommand('foreColor', false, btn.value);
+        else if (cmd==='link'){ const u = prompt('URL do link:', 'https://'); if (u) document.execCommand('createLink', false, u); }
+        else document.execCommand(cmd, false, null);
+        editorEl.dispatchEvent(new Event('input', { bubbles:true }));
+      };
+      if (btn.tagName === 'SELECT' || btn.tagName === 'INPUT') btn.addEventListener('change', trigger);
+      else btn.addEventListener('mousedown', e => { e.preventDefault(); trigger(); });
+    });
+  }
+
   function openDiarioEditor(post){
-    const isNew = !post; post = post || { bu:'', titulo:'', subtitulo:'', tema:'', numero_edicao:null, capa_url:'', blocos:[] };
-    const state = { materias: Array.isArray(post.blocos) ? [...post.blocos] : [], view:'editor' };
+    const isNew = !post; post = post || { titulo:'', subtitulo:'', numero_edicao:null, capa_url:'', blocos:[] };
+    const state = { materias: Array.isArray(post.blocos) ? JSON.parse(JSON.stringify(post.blocos)) : [] };
+    let previewTimer;
+    function updatePreview(){
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => {
+        const box = document.getElementById('nl-preview'); if (!box) return;
+        const capa = document.getElementById('dia-capa')?.value.trim();
+        const titulo = document.getElementById('dia-titulo')?.value || '(sem título)';
+        const sub = document.getElementById('dia-sub')?.value || '';
+        const num = document.getElementById('dia-num')?.value || '?';
+        const capaStyle = capa ? `background-image:url('${esc(capa)}');background-size:cover;background-position:center;color:#fff;` : '';
+        box.innerHTML = `<div class="nl-preview-hero" style="${capaStyle}">
+          <span class="kicker">Edição ${esc(num)}</span>
+          <div class="t">${esc(titulo)}</div>
+          ${sub?`<div class="st">${esc(sub)}</div>`:''}
+        </div>
+        <div class="nl-preview-page">${state.materias.length ? state.materias.map(renderMateriaHTML).join('') : '<div class="cbk-empty">Sem matérias — adicione uma pela lista à esquerda.</div>'}</div>`;
+      }, 120);
+    }
 
     const html = `<div class="cbk-modal-h">${isNew?'✎ Nova edição da newsletter':`✎ Editar edição ${post.numero_edicao||''}`}</div>
-      <div class="cbk-modal-s">Cabeçalho da edição + matérias por categoria. Escolha o layout ou deixe a IA sugerir. Alterne entre editor e prévia.</div>
-      <div class="cbk-card cbk-edit-mode">
-        <div class="cbk-row" style="grid-template-columns:100px 1fr 1fr;gap:10px;">
-          <div class="cbk-field"><label>Nº edição</label><input id="dia-num" type="number" value="${post.numero_edicao||''}" placeholder="8"></div>
-          <div class="cbk-field"><label>BU (foco)</label><select id="dia-bu"><option value="">Geral</option>${BUS.map(b=>`<option value="${b.key}"${b.key===post.bu?' selected':''}>${b.nome}</option>`).join('')}</select></div>
-          <div class="cbk-field"><label>Tema</label><input id="dia-tema" list="dia-tema-list" value="${esc(post.tema)}" placeholder="Ex: Julho de safra"></div>
+      <div class="cbk-modal-s">Edite à esquerda, veja o resultado à direita em tempo real. Use "Colar bruto" pra IA distribuir texto em matérias.</div>
+      <div class="nl-split">
+        <div class="nl-left">
+          <div class="cbk-card cbk-edit-mode" style="margin-bottom:12px;">
+            <div class="cbk-row" style="grid-template-columns:100px 1fr;gap:10px;">
+              <div class="cbk-field"><label>Nº</label><input id="dia-num" type="number" value="${post.numero_edicao||''}" placeholder="8"></div>
+              <div class="cbk-field"><label>Título da edição</label><input id="dia-titulo" value="${esc(post.titulo)}" placeholder="Ex: Julho: safra + novos ICPs"></div>
+            </div>
+            <div class="cbk-field"><label>Subtítulo</label><input id="dia-sub" value="${esc(post.subtitulo)}" placeholder="Uma frase que resume a edição"></div>
+            <div class="cbk-field"><label>URL da capa</label><input id="dia-capa" value="${esc(post.capa_url)}" placeholder="https://…/imagem.jpg"></div>
+          </div>
+
+          <button class="cbk-btn cbk-btn-ghost" id="dia-cola" style="width:100%;margin-bottom:12px;">📥 Colar conteúdo bruto — IA distribui em matérias</button>
+
+          <div id="dia-materias-editor"></div>
+
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:11px;color:#6B7280;font-weight:600;letter-spacing:.05em;text-transform:uppercase;width:100%;margin-bottom:4px;">+ Nova matéria em:</span>
+            ${NEWS_CATEGORIAS.map(c=>`<button data-add-cat="${c.k}" style="background:${c.bg};color:${c.cor};border:none;padding:6px 10px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;">${c.lbl}</button>`).join('')}
+          </div>
         </div>
-        <div class="cbk-field"><label>Título da edição</label><input id="dia-titulo" value="${esc(post.titulo)}" placeholder="Ex: Julho: safra + novos ICPs"></div>
-        <div class="cbk-field"><label>Subtítulo</label><input id="dia-sub" value="${esc(post.subtitulo)}" placeholder="Uma frase que resume a edição"></div>
-        <div class="cbk-field"><label>URL da capa</label><input id="dia-capa" value="${esc(post.capa_url)}" placeholder="https://…/imagem.jpg"></div>
-      </div>
 
-      <div class="nl-preview-toggle">
-        <button data-view="editor" class="active">📝 Editor</button>
-        <button data-view="preview">👁 Prévia da newsletter</button>
-      </div>
-
-      <div id="dia-materias-editor"></div>
-      <div id="dia-materias-preview" style="display:none;"></div>
-
-      <div id="dia-add-bar" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;">
-        <span style="font-size:11.5px;color:#6B7280;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-right:4px;">+ Nova matéria em:</span>
-        ${NEWS_CATEGORIAS.map(c=>`<button data-add-cat="${c.k}" style="background:${c.bg};color:${c.cor};border:none;padding:6px 12px;border-radius:99px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;">${c.lbl}</button>`).join('')}
+        <div class="nl-right">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;margin-bottom:10px;">Prévia ao vivo</div>
+          <div id="nl-preview"></div>
+        </div>
       </div>
 
       <div class="cbk-actions" style="margin-top:20px;">
@@ -9277,15 +9365,16 @@ document.addEventListener('DOMContentLoaded',()=>{
       </div>`;
     openModal(html, true);
     document.getElementById('cbk-close').addEventListener('click', closeModal);
+    ['dia-num','dia-titulo','dia-sub','dia-capa'].forEach(id => document.getElementById(id).addEventListener('input', updatePreview));
 
     function renderEditor(){
       const box = document.getElementById('dia-materias-editor');
-      if (!state.materias.length){ box.innerHTML = '<div class="cbk-empty">Ainda sem matérias — clique numa categoria abaixo pra adicionar a primeira.</div>'; return; }
+      if (!state.materias.length){ box.innerHTML = '<div class="cbk-empty">Ainda sem matérias — clique numa categoria abaixo pra adicionar a primeira.</div>'; updatePreview(); return; }
       box.innerHTML = state.materias.map((m, i) => {
         const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria) || NEWS_CATEGORIAS[0];
         const imgs = m.imagens || [];
-        return `<div class="nl-editor-materia" draggable="true" data-idx="${i}">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        return `<div class="nl-materia-card" draggable="true" data-idx="${i}">
+          <div class="nl-materia-head">
             <span class="nl-drag-handle" title="Arraste pra reordenar">⋮⋮</span>
             <select data-mk="categoria" style="background:${cat.bg};color:${cat.cor};border:none;padding:4px 10px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:700;">
               ${NEWS_CATEGORIAS.map(c=>`<option value="${c.k}"${c.k===m.categoria?' selected':''}>${c.lbl}</option>`).join('')}
@@ -9293,20 +9382,24 @@ document.addEventListener('DOMContentLoaded',()=>{
             <select data-mk="layout" style="border:1px solid #E4E9EF;padding:4px 8px;border-radius:6px;font-family:inherit;font-size:11px;">
               ${NEWS_LAYOUTS.map(l=>`<option value="${l.k}"${l.k===(m.layout||sugerirLayout(imgs))?' selected':''}>${l.lbl}</option>`).join('')}
             </select>
-            <button data-ia-layout style="background:#EEF5F8;color:var(--cb-navy);border:none;padding:4px 10px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;" title="IA sugerir layout">✨ Auto</button>
+            <button data-ia-layout style="background:#EEF5F8;color:var(--cb-navy);border:none;padding:4px 10px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;" title="IA sugerir layout">✨</button>
+            <button data-ia-revisar style="background:#F3E8FF;color:#6B21A8;border:none;padding:4px 10px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;font-weight:600;" title="IA revisa mantendo o sentido">✨ Revisar</button>
             <span style="margin-left:auto;display:flex;gap:4px;">
               <button data-mv="-1" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↑</button>
               <button data-mv="1" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↓</button>
               <button data-rm style="border:1px solid #FCA5A5;background:#FEE2E2;color:#991B1B;padding:3px 8px;border-radius:5px;cursor:pointer;">✕</button>
             </span>
           </div>
-          <input placeholder="Título da matéria" data-mk="titulo" value="${esc(m.titulo||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--cb-navy);">
-          <textarea placeholder="Texto da matéria…" data-mk="texto" style="width:100%;min-height:110px;padding:10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:13px;line-height:1.55;">${esc(m.texto||'')}</textarea>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-            <input placeholder="URL de imagem (cole e clique +)" id="img-inp-${i}" style="flex:1;padding:6px 10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:12px;">
-            <button data-add-img style="background:var(--cb-navy);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">+ Imagem</button>
+          <div class="nl-materia-body">
+            <input placeholder="Título da matéria" data-mk="titulo" value="${esc(m.titulo||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;margin-bottom:10px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--cb-navy);">
+            ${toolbarHTML(i)}
+            <div class="nl-rich" contenteditable="true" data-rich-idx="${i}" data-placeholder="Escreva a matéria — ou cole texto e clique ✨ Revisar">${m.texto_html || esc(m.texto||'')}</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+              <input placeholder="URL de imagem" id="img-inp-${i}" style="flex:1;padding:6px 10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:12px;">
+              <button data-add-img style="background:var(--cb-navy);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">+ Imagem</button>
+            </div>
+            <div class="nl-img-thumbs">${imgs.map((u,j)=>`<div class="nl-img-thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>
           </div>
-          <div class="nl-img-thumbs">${imgs.map((u,j)=>`<div class="nl-img-thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>
         </div>`;
       }).join('');
       // handlers
@@ -9318,11 +9411,22 @@ document.addEventListener('DOMContentLoaded',()=>{
             const c = NEWS_CATEGORIAS.find(x=>x.k===inp.value);
             if (c){ inp.style.background=c.bg; inp.style.color=c.cor; }
           }
+          updatePreview();
         }));
+        // rich text editor
+        const rich = el.querySelector('.nl-rich');
+        const toolbar = el.querySelector('.nl-toolbar');
+        bindToolbar(toolbar, rich);
+        rich.addEventListener('input', () => {
+          state.materias[idx].texto_html = rich.innerHTML;
+          state.materias[idx].texto = rich.textContent;
+          updatePreview();
+        });
         el.querySelector('[data-ia-layout]').addEventListener('click', () => {
           state.materias[idx].layout = sugerirLayout(state.materias[idx].imagens||[]);
           renderEditor();
         });
+        el.querySelector('[data-ia-revisar]').addEventListener('click', () => revisarMateriaIA(idx));
         el.querySelector('[data-rm]').addEventListener('click', () => { state.materias.splice(idx,1); renderEditor(); });
         el.querySelector('[data-mv="-1"]').addEventListener('click', () => { if (idx>0){ [state.materias[idx-1], state.materias[idx]]=[state.materias[idx], state.materias[idx-1]]; renderEditor(); } });
         el.querySelector('[data-mv="1"]').addEventListener('click', () => { if (idx<state.materias.length-1){ [state.materias[idx+1], state.materias[idx]]=[state.materias[idx], state.materias[idx+1]]; renderEditor(); } });
@@ -9336,7 +9440,6 @@ document.addEventListener('DOMContentLoaded',()=>{
           state.materias[idx].imagens.splice(parseInt(b.dataset.rmImg,10),1);
           renderEditor();
         }));
-        // drag & drop
         el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', idx); el.classList.add('dragging'); });
         el.addEventListener('dragend', () => el.classList.remove('dragging'));
         el.addEventListener('dragover', (e) => e.preventDefault());
@@ -9350,31 +9453,66 @@ document.addEventListener('DOMContentLoaded',()=>{
           renderEditor();
         });
       });
+      updatePreview();
     }
 
-    function renderPreview(){
-      const box = document.getElementById('dia-materias-preview');
-      box.innerHTML = `<div class="nl-page" style="border:1px solid #E4E9EF;border-radius:12px;padding:32px;background:#FFF;">
-        ${state.materias.length ? state.materias.map(renderMateriaHTML).join('') : '<div class="cbk-empty">Sem matérias.</div>'}
-      </div>`;
+    async function revisarMateriaIA(idx){
+      const m = state.materias[idx];
+      const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria)?.lbl || 'geral';
+      const original = m.texto || '';
+      if (!original.trim()){ toast('Sem texto pra revisar','err'); return; }
+      toast('IA revisando…');
+      try {
+        const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{
+          mode:'unico', bu:'bt', segment_id:null, persona_id:null, formato:'artigo-blog',
+          titulo: m.titulo || '',
+          prompt: `MODO REVISÃO. Categoria: ${cat}. Reescreva o texto abaixo mantendo TODOS os fatos originais (não invente nada), apenas melhorando clareza, ritmo e naturalidade. REGRAS ANTI-IA: evite jargões ("vale ouro", "não é sobre X, é sobre Y"), evite excesso de travessão e ponto final, evite abrir com "Em um mundo...", "No fim das contas", "É importante notar". Prefira frases curtas e específicas. Se algo estiver pobre ou confuso, deixe mais claro sem inventar. Devolva SÓ o texto revisado, sem introduções.\n\nTexto original:\n"""${original}"""`
+        }});
+        if (error || data?.error) throw new Error(error?.message || data.error);
+        const revisado = data.output.trim();
+        state.materias[idx].texto = revisado;
+        state.materias[idx].texto_html = esc(revisado).replace(/\n/g,'<br>');
+        renderEditor();
+        toast('Texto revisado — compare e ajuste se quiser');
+      } catch(e){ toast('Erro na IA: '+e.message, 'err'); }
     }
 
-    document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
-      document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      state.view = b.dataset.view;
-      document.getElementById('dia-materias-editor').style.display = state.view==='editor'?'':'none';
-      document.getElementById('dia-materias-preview').style.display = state.view==='preview'?'':'none';
-      document.getElementById('dia-add-bar').style.display = state.view==='editor'?'flex':'none';
-      if (state.view==='preview') renderPreview();
-    }));
+    async function colarBrutoIA(){
+      const bruto = prompt('Cole aqui o texto bruto da newsletter (matéria, anotações, tudo junto). A IA vai dividir em matérias por categoria:');
+      if (!bruto || !bruto.trim()) return;
+      toast('IA distribuindo…');
+      try {
+        const cats = NEWS_CATEGORIAS.map(c=>`- ${c.k}: ${c.lbl}`).join('\n');
+        const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{
+          mode:'unico', bu:'bt', segment_id:null, persona_id:null, formato:'artigo-blog',
+          titulo:'',
+          prompt: `Divida o texto bruto abaixo em matérias de newsletter. Cada matéria deve ter categoria (uma das listadas), título, texto revisado. NÃO invente fatos. Devolva SOMENTE JSON válido (sem markdown) no formato: [{"categoria":"chave","titulo":"...","texto":"..."}]. Categorias disponíveis:\n${cats}\n\nREGRAS: preserve fatos, melhore clareza, evite jargões IA ("vale ouro","não é sobre X, é sobre Y"), evite travessão excessivo, prefira frases curtas.\n\nTexto bruto:\n"""${bruto}"""`
+        }});
+        if (error || data?.error) throw new Error(error?.message || data.error);
+        let arr = [];
+        try { arr = JSON.parse(data.output.replace(/^\s*```json\s*|\s*```\s*$/g,'').trim()); } catch(e){ throw new Error('Formato IA inesperado'); }
+        arr.forEach(m => state.materias.push({
+          categoria: m.categoria || 'insights',
+          titulo: m.titulo || '',
+          texto: m.texto || '',
+          texto_html: esc(m.texto||'').replace(/\n/g,'<br>'),
+          imagens: [],
+          layout: 'texto-only',
+        }));
+        renderEditor();
+        toast(`${arr.length} matérias distribuídas`);
+      } catch(e){ toast('Erro: '+e.message, 'err'); }
+    }
+
+    document.getElementById('dia-cola').addEventListener('click', colarBrutoIA);
 
     document.querySelectorAll('[data-add-cat]').forEach(b => b.addEventListener('click', () => {
-      state.materias.push({ categoria:b.dataset.addCat, titulo:'', texto:'', imagens:[], layout:'texto-only' });
+      state.materias.push({ categoria:b.dataset.addCat, titulo:'', texto:'', texto_html:'', imagens:[], layout:'texto-only' });
       renderEditor();
     }));
 
     renderEditor();
+    updatePreview();
 
     document.getElementById('dia-save').addEventListener('click', async () => {
       const btn = document.getElementById('dia-save'); btn.disabled=true; btn.textContent='Salvando…';
