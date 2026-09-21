@@ -8645,6 +8645,40 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cbk-flow-meta{ display:flex; flex-wrap:wrap; gap:10px; font-size:11.5px; color:#6B7280; margin-bottom:6px; padding:0 4px; }
   .cbk-flow-meta strong{ color:var(--cb-navy); }
   .cbk-modal.wide{ width:min(1200px, 95vw); }
+
+  /* Newsletter — layouts de matéria */
+  .nl-page{ background:#FFF; }
+  .nl-materia{ padding:32px 0; border-bottom:1px solid #F0F3F7; }
+  .nl-materia:last-child{ border-bottom:none; }
+  .nl-cat-tag{ display:inline-block; padding:4px 12px; border-radius:99px; font-family:'Space Grotesk',sans-serif; font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin-bottom:14px; }
+  .nl-titulo{ font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; color:var(--cb-navy); line-height:1.2; margin:0 0 12px; }
+  .nl-texto{ font-size:14.5px; color:#374151; line-height:1.7; white-space:pre-wrap; }
+  .nl-img{ width:100%; border-radius:8px; }
+  /* img-esq / img-dir */
+  .nl-materia.layout-img-esq, .nl-materia.layout-img-dir{ display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:center; }
+  .nl-materia.layout-img-dir > .nl-conteudo{ order:1; }
+  .nl-materia.layout-img-dir > .nl-media{ order:2; }
+  @media (max-width:720px){ .nl-materia.layout-img-esq, .nl-materia.layout-img-dir{ grid-template-columns:1fr; } }
+  /* img-full */
+  .nl-materia.layout-img-full .nl-media{ margin-bottom:20px; }
+  /* grade */
+  .nl-materia.layout-grade .nl-media{ display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:20px; }
+  /* carrossel */
+  .nl-materia.layout-carrossel .nl-media{ display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; margin-bottom:20px; scroll-snap-type:x mandatory; }
+  .nl-materia.layout-carrossel .nl-media img{ min-width:280px; max-width:320px; scroll-snap-align:start; }
+
+  /* Editor de matéria */
+  .nl-editor-materia{ background:#FFF; border:1px solid #E4E9EF; border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+  .nl-editor-materia.dragging{ opacity:.4; }
+  .nl-drag-handle{ cursor:grab; color:#9CA3AF; font-size:16px; padding:0 6px; user-select:none; }
+  .nl-drag-handle:active{ cursor:grabbing; }
+  .nl-img-thumbs{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .nl-img-thumb{ position:relative; }
+  .nl-img-thumb img{ width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #E4E9EF; }
+  .nl-img-thumb button{ position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; border:none; background:#991B1B; color:#fff; font-size:11px; cursor:pointer; }
+  .nl-preview-toggle{ display:flex; gap:4px; background:#F3F4F6; padding:3px; border-radius:8px; margin-bottom:14px; width:fit-content; }
+  .nl-preview-toggle button{ padding:6px 14px; border:none; background:transparent; border-radius:6px; cursor:pointer; font-family:inherit; font-size:12.5px; font-weight:600; color:#6B7280; }
+  .nl-preview-toggle button.active{ background:#FFF; color:var(--cb-navy); box-shadow:0 1px 3px rgba(0,0,0,.08); }
 </style>
 
 <script id="cb-onda-k-boot">
@@ -9062,13 +9096,35 @@ document.addEventListener('DOMContentLoaded',()=>{
       }).join('')}</tbody></table></div>`;
   }
 
-  // ═════════ Diário de Bordo — editor de edições/newsletters ═════════
-  const DIARIO_BLOCO_TIPOS = [
-    { t:'texto',    lbl:'Texto',    icon:'📝' },
-    { t:'imagem',   lbl:'Imagem',   icon:'🖼' },
-    { t:'chamada',  lbl:'Chamada',  icon:'💡' },
-    { t:'divisor',  lbl:'Divisor',  icon:'—' },
+  // ═════════ Diário de Bordo — construtor de newsletter por categorias ═════════
+  const NEWS_CATEGORIAS = [
+    { k:'gente-gestao',        lbl:'Gente e Gestão',        cor:'#B45309', bg:'#FEF3C7' },
+    { k:'business-travel',     lbl:'Business Travel',       cor:'#0369A1', bg:'#DBEAFE' },
+    { k:'live-marketing',      lbl:'Live Marketing',        cor:'#166534', bg:'#DCFCE7' },
+    { k:'you',                 lbl:'YOU by Costa Brava',    cor:'#7C3AED', bg:'#F3E8FF' },
+    { k:'ci-endo',             lbl:'CI · Endomarketing',    cor:'#BE185D', bg:'#FCE7F3' },
+    { k:'tech-hub',            lbl:'Tech Hub',              cor:'#4338CA', bg:'#E0E7FF' },
+    { k:'viagens-incentivo',   lbl:'Viagens de Incentivo',  cor:'#0F766E', bg:'#CCFBF1' },
+    { k:'yougo',               lbl:'YouGo',                 cor:'#DC2626', bg:'#FEE2E2' },
+    { k:'charliebravo',        lbl:'CharlieBravo',          cor:'#0F2037', bg:'#E4E9EF' },
+    { k:'insights',            lbl:'Insights & Reviews',    cor:'#8CB7C9', bg:'#EEF5F8' },
   ];
+  const NEWS_LAYOUTS = [
+    { k:'img-esq',    lbl:'Imagem à esquerda' },
+    { k:'img-dir',    lbl:'Imagem à direita' },
+    { k:'img-full',   lbl:'Imagem grande (full)' },
+    { k:'grade',      lbl:'Grade de imagens' },
+    { k:'carrossel',  lbl:'Carrossel' },
+    { k:'texto-only', lbl:'Só texto' },
+  ];
+  function sugerirLayout(imagens){
+    const n = (imagens||[]).length;
+    if (n===0) return 'texto-only';
+    if (n===1) return Math.random()<0.5?'img-esq':'img-dir';
+    if (n===2) return 'grade';
+    if (n>=3) return Math.random()<0.5?'grade':'carrossel';
+    return 'img-full';
+  }
 
   async function renderDiario(){
     const v = document.getElementById('vDiario'); if (!v) return;
@@ -9139,40 +9195,41 @@ document.addEventListener('DOMContentLoaded',()=>{
     }));
   }
 
+  function renderMateriaHTML(m){
+    const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria) || NEWS_CATEGORIAS[0];
+    const tag = `<span class="nl-cat-tag" style="background:${cat.bg};color:${cat.cor};">${cat.lbl}</span>`;
+    const tituloBlock = `<h2 class="nl-titulo">${esc(m.titulo||'')}</h2>`;
+    const textoBlock = `<div class="nl-texto">${nl2br(m.texto||'')}</div>`;
+    const imgs = (m.imagens||[]).filter(u=>u);
+    const layout = m.layout || sugerirLayout(imgs);
+    let mediaBlock = '';
+    if (layout==='img-esq' || layout==='img-dir'){
+      mediaBlock = imgs[0] ? `<div class="nl-media"><img class="nl-img" src="${esc(imgs[0])}"></div>` : '';
+      return `<div class="nl-materia layout-${layout}">${mediaBlock}<div class="nl-conteudo">${tag}${tituloBlock}${textoBlock}</div></div>`;
+    } else if (layout==='img-full'){
+      mediaBlock = imgs[0] ? `<div class="nl-media"><img class="nl-img" src="${esc(imgs[0])}"></div>` : '';
+      return `<div class="nl-materia layout-img-full">${mediaBlock}${tag}${tituloBlock}${textoBlock}</div>`;
+    } else if (layout==='grade' || layout==='carrossel'){
+      mediaBlock = imgs.length ? `<div class="nl-media">${imgs.map(u=>`<img class="nl-img" src="${esc(u)}">`).join('')}</div>` : '';
+      return `<div class="nl-materia layout-${layout}">${mediaBlock}${tag}${tituloBlock}${textoBlock}</div>`;
+    } else {
+      return `<div class="nl-materia layout-texto-only">${tag}${tituloBlock}${textoBlock}</div>`;
+    }
+  }
+
   function openDiarioReader(post){
-    const buNome = BUS.find(b=>b.key===post.bu)?.nome || 'Geral';
     const capa = post.capa_url ? `background-image:url('${esc(post.capa_url)}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#0F2037,#8CB7C9);';
-    const blocos = Array.isArray(post.blocos) ? post.blocos : [];
-    let bhtml = '';
-    blocos.forEach(b => {
-      if (b.tipo==='texto'){
-        bhtml += `<div style="margin:24px 0;">
-          ${b.titulo?`<h3 style="font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--cb-navy);margin:0 0 10px;">${esc(b.titulo)}</h3>`:''}
-          <div style="font-size:14.5px;color:#374151;line-height:1.7;white-space:pre-wrap;">${nl2br(b.conteudo||'')}</div>
-        </div>`;
-      } else if (b.tipo==='imagem'){
-        bhtml += `<div style="margin:24px 0;text-align:center;">
-          <img src="${esc(b.url||'')}" style="max-width:100%;border-radius:10px;">
-          ${b.legenda?`<div style="font-size:12px;color:#9CA3AF;margin-top:8px;font-style:italic;">${esc(b.legenda)}</div>`:''}
-        </div>`;
-      } else if (b.tipo==='chamada'){
-        bhtml += `<div style="margin:32px 0;padding:24px;background:#EEF5F8;border-left:4px solid #8CB7C9;border-radius:0 10px 10px 0;">
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--cb-navy);line-height:1.3;">${esc(b.texto||'')}</div>
-        </div>`;
-      } else if (b.tipo==='divisor'){
-        bhtml += `<hr style="border:none;border-top:2px solid #E4E9EF;margin:32px 0;">`;
-      }
-    });
-    const html = `<div style="margin:-24px -24px 0;">
-      <div style="${capa}height:220px;position:relative;">
-        <div style="position:absolute;bottom:20px;left:24px;right:24px;">
+    const materias = Array.isArray(post.blocos) ? post.blocos : [];
+    const bodyHtml = materias.length ? materias.map(renderMateriaHTML).join('') : '<div class="cbk-empty">Sem matérias — clique em Editar pra adicionar.</div>';
+    const html = `<div style="margin:-24px -24px 0;" class="nl-page">
+      <div style="${capa}height:240px;position:relative;">
+        <div style="position:absolute;bottom:20px;left:32px;right:32px;">
           <div style="background:rgba(15,32,55,.9);color:#fff;display:inline-block;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Edição ${post.numero_edicao||'?'} · ${new Date(post.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</div>
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#fff;line-height:1.15;text-shadow:0 2px 8px rgba(0,0,0,.4);">${esc(post.titulo)}</div>
-          ${post.subtitulo?`<div style="color:#EEF5F8;font-size:14px;margin-top:6px;text-shadow:0 1px 4px rgba(0,0,0,.3);">${esc(post.subtitulo)}</div>`:''}
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;color:#fff;line-height:1.15;text-shadow:0 2px 8px rgba(0,0,0,.4);">${esc(post.titulo)}</div>
+          ${post.subtitulo?`<div style="color:#EEF5F8;font-size:15px;margin-top:6px;text-shadow:0 1px 4px rgba(0,0,0,.3);">${esc(post.subtitulo)}</div>`:''}
         </div>
       </div>
-      <div style="padding:24px 24px 12px;font-size:12px;color:#6B7280;">${esc(buNome)} · ${esc(post.autor_nome||post.autor_email||'—')} · ${fmt(post.created_at)}</div>
-      <div style="padding:0 24px;">${bhtml || '<div class="cbk-empty">Sem conteúdo — clique em Editar pra adicionar blocos.</div>'}</div>
+      <div style="padding:32px;">${bodyHtml}</div>
     </div>
     <div class="cbk-actions" style="padding:16px 0 0;border-top:1px solid #F0F3F7;margin-top:24px;">
       <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Fechar</button>
@@ -9185,26 +9242,34 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   function openDiarioEditor(post){
     const isNew = !post; post = post || { bu:'', titulo:'', subtitulo:'', tema:'', numero_edicao:null, capa_url:'', blocos:[] };
-    const blocos = Array.isArray(post.blocos) ? [...post.blocos] : [];
-    // estado local
-    const state = { blocos };
-    const html = `<div class="cbk-modal-h">${isNew?'✎ Nova edição':`✎ Editar edição ${post.numero_edicao||''}`}</div>
-      <div class="cbk-modal-s">Configure a capa e adicione blocos (texto, imagem, chamada, divisor). Cada bloco vira uma seção da newsletter.</div>
+    const state = { materias: Array.isArray(post.blocos) ? [...post.blocos] : [], view:'editor' };
+
+    const html = `<div class="cbk-modal-h">${isNew?'✎ Nova edição da newsletter':`✎ Editar edição ${post.numero_edicao||''}`}</div>
+      <div class="cbk-modal-s">Cabeçalho da edição + matérias por categoria. Escolha o layout ou deixe a IA sugerir. Alterne entre editor e prévia.</div>
       <div class="cbk-card cbk-edit-mode">
         <div class="cbk-row" style="grid-template-columns:100px 1fr 1fr;gap:10px;">
           <div class="cbk-field"><label>Nº edição</label><input id="dia-num" type="number" value="${post.numero_edicao||''}" placeholder="8"></div>
-          <div class="cbk-field"><label>BU</label><select id="dia-bu"><option value="">Geral</option>${BUS.map(b=>`<option value="${b.key}"${b.key===post.bu?' selected':''}>${b.nome}</option>`).join('')}</select></div>
+          <div class="cbk-field"><label>BU (foco)</label><select id="dia-bu"><option value="">Geral</option>${BUS.map(b=>`<option value="${b.key}"${b.key===post.bu?' selected':''}>${b.nome}</option>`).join('')}</select></div>
           <div class="cbk-field"><label>Tema</label><input id="dia-tema" list="dia-tema-list" value="${esc(post.tema)}" placeholder="Ex: Julho de safra"></div>
         </div>
-        <div class="cbk-field"><label>Título da edição</label><input id="dia-titulo" value="${esc(post.titulo)}" placeholder="Ex: Julho: campanhas de safra + novos ICPs"></div>
-        <div class="cbk-field"><label>Subtítulo (opcional)</label><input id="dia-sub" value="${esc(post.subtitulo)}" placeholder="Uma frase que resume a edição"></div>
-        <div class="cbk-field"><label>URL da capa (opcional)</label><input id="dia-capa" value="${esc(post.capa_url)}" placeholder="https://…/imagem.jpg"></div>
+        <div class="cbk-field"><label>Título da edição</label><input id="dia-titulo" value="${esc(post.titulo)}" placeholder="Ex: Julho: safra + novos ICPs"></div>
+        <div class="cbk-field"><label>Subtítulo</label><input id="dia-sub" value="${esc(post.subtitulo)}" placeholder="Uma frase que resume a edição"></div>
+        <div class="cbk-field"><label>URL da capa</label><input id="dia-capa" value="${esc(post.capa_url)}" placeholder="https://…/imagem.jpg"></div>
       </div>
-      <div class="cbk-hi" style="margin:18px 0 10px;">Blocos</div>
-      <div id="dia-blocos"></div>
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-        ${DIARIO_BLOCO_TIPOS.map(t=>`<button class="cbk-btn cbk-btn-ghost" data-add="${t.t}" style="font-size:11.5px;">${t.icon} + ${t.lbl}</button>`).join('')}
+
+      <div class="nl-preview-toggle">
+        <button data-view="editor" class="active">📝 Editor</button>
+        <button data-view="preview">👁 Prévia da newsletter</button>
       </div>
+
+      <div id="dia-materias-editor"></div>
+      <div id="dia-materias-preview" style="display:none;"></div>
+
+      <div id="dia-add-bar" style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:11.5px;color:#6B7280;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-right:4px;">+ Nova matéria em:</span>
+        ${NEWS_CATEGORIAS.map(c=>`<button data-add-cat="${c.k}" style="background:${c.bg};color:${c.cor};border:none;padding:6px 12px;border-radius:99px;font-family:inherit;font-size:11.5px;font-weight:700;cursor:pointer;">${c.lbl}</button>`).join('')}
+      </div>
+
       <div class="cbk-actions" style="margin-top:20px;">
         ${!isNew && isMaster()?`<button class="cbk-btn cbk-btn-danger" id="dia-del" style="margin-right:auto;">Excluir edição</button>`:''}
         <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Cancelar</button>
@@ -9213,55 +9278,103 @@ document.addEventListener('DOMContentLoaded',()=>{
     openModal(html, true);
     document.getElementById('cbk-close').addEventListener('click', closeModal);
 
-    function renderBlocos(){
-      const box = document.getElementById('dia-blocos');
-      if (!state.blocos.length){ box.innerHTML = '<div class="cbk-empty">Nenhum bloco ainda — adicione um abaixo.</div>'; return; }
-      box.innerHTML = state.blocos.map((b, i) => {
-        const bt = DIARIO_BLOCO_TIPOS.find(t=>t.t===b.tipo);
-        let inner = '';
-        if (b.tipo==='texto'){
-          inner = `<input placeholder="Título (opcional)" data-bk="titulo" value="${esc(b.titulo||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;margin-bottom:8px;font-family:inherit;font-size:13px;">
-            <textarea placeholder="Conteúdo do bloco…" data-bk="conteudo" style="width:100%;min-height:100px;padding:10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:13px;line-height:1.5;">${esc(b.conteudo||'')}</textarea>`;
-        } else if (b.tipo==='imagem'){
-          inner = `<input placeholder="URL da imagem" data-bk="url" value="${esc(b.url||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;margin-bottom:8px;font-family:inherit;font-size:13px;">
-            <input placeholder="Legenda (opcional)" data-bk="legenda" value="${esc(b.legenda||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:13px;">`;
-        } else if (b.tipo==='chamada'){
-          inner = `<textarea placeholder="Texto de destaque (uma frase forte)" data-bk="texto" style="width:100%;min-height:70px;padding:10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:15px;font-weight:600;line-height:1.4;">${esc(b.texto||'')}</textarea>`;
-        } else if (b.tipo==='divisor'){
-          inner = `<div style="color:#9CA3AF;font-size:12px;">Divisor visual — sem conteúdo.</div>`;
-        }
-        return `<div class="cbk-card" style="margin:0 0 10px;padding:14px 16px;" data-idx="${i}">
+    function renderEditor(){
+      const box = document.getElementById('dia-materias-editor');
+      if (!state.materias.length){ box.innerHTML = '<div class="cbk-empty">Ainda sem matérias — clique numa categoria abaixo pra adicionar a primeira.</div>'; return; }
+      box.innerHTML = state.materias.map((m, i) => {
+        const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria) || NEWS_CATEGORIAS[0];
+        const imgs = m.imagens || [];
+        return `<div class="nl-editor-materia" draggable="true" data-idx="${i}">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-            <span style="background:#EEF5F8;color:var(--cb-navy);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;">${bt?.icon} ${bt?.lbl||b.tipo}</span>
+            <span class="nl-drag-handle" title="Arraste pra reordenar">⋮⋮</span>
+            <select data-mk="categoria" style="background:${cat.bg};color:${cat.cor};border:none;padding:4px 10px;border-radius:99px;font-family:inherit;font-size:11px;font-weight:700;">
+              ${NEWS_CATEGORIAS.map(c=>`<option value="${c.k}"${c.k===m.categoria?' selected':''}>${c.lbl}</option>`).join('')}
+            </select>
+            <select data-mk="layout" style="border:1px solid #E4E9EF;padding:4px 8px;border-radius:6px;font-family:inherit;font-size:11px;">
+              ${NEWS_LAYOUTS.map(l=>`<option value="${l.k}"${l.k===(m.layout||sugerirLayout(imgs))?' selected':''}>${l.lbl}</option>`).join('')}
+            </select>
+            <button data-ia-layout style="background:#EEF5F8;color:var(--cb-navy);border:none;padding:4px 10px;border-radius:6px;font-family:inherit;font-size:11px;cursor:pointer;" title="IA sugerir layout">✨ Auto</button>
             <span style="margin-left:auto;display:flex;gap:4px;">
-              <button data-mv="-1" title="Subir" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↑</button>
-              <button data-mv="1" title="Descer" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↓</button>
-              <button data-rm="1" title="Remover" style="border:1px solid #FCA5A5;background:#FEE2E2;color:#991B1B;padding:3px 8px;border-radius:5px;cursor:pointer;">✕</button>
+              <button data-mv="-1" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↑</button>
+              <button data-mv="1" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↓</button>
+              <button data-rm style="border:1px solid #FCA5A5;background:#FEE2E2;color:#991B1B;padding:3px 8px;border-radius:5px;cursor:pointer;">✕</button>
             </span>
           </div>
-          ${inner}
+          <input placeholder="Título da matéria" data-mk="titulo" value="${esc(m.titulo||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;margin-bottom:8px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;color:var(--cb-navy);">
+          <textarea placeholder="Texto da matéria…" data-mk="texto" style="width:100%;min-height:110px;padding:10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:13px;line-height:1.55;">${esc(m.texto||'')}</textarea>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <input placeholder="URL de imagem (cole e clique +)" id="img-inp-${i}" style="flex:1;padding:6px 10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:12px;">
+            <button data-add-img style="background:var(--cb-navy);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">+ Imagem</button>
+          </div>
+          <div class="nl-img-thumbs">${imgs.map((u,j)=>`<div class="nl-img-thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>
         </div>`;
       }).join('');
-      // eventos
-      box.querySelectorAll('[data-idx]').forEach(bloco => {
-        const idx = parseInt(bloco.dataset.idx, 10);
-        bloco.querySelectorAll('[data-bk]').forEach(inp => inp.addEventListener('input', () => { state.blocos[idx][inp.dataset.bk] = inp.value; }));
-        bloco.querySelector('[data-rm]').addEventListener('click', () => { state.blocos.splice(idx, 1); renderBlocos(); });
-        bloco.querySelector('[data-mv="-1"]').addEventListener('click', () => { if (idx>0){ const t=state.blocos[idx]; state.blocos[idx]=state.blocos[idx-1]; state.blocos[idx-1]=t; renderBlocos(); } });
-        bloco.querySelector('[data-mv="1"]').addEventListener('click', () => { if (idx<state.blocos.length-1){ const t=state.blocos[idx]; state.blocos[idx]=state.blocos[idx+1]; state.blocos[idx+1]=t; renderBlocos(); } });
+      // handlers
+      box.querySelectorAll('[data-idx]').forEach(el => {
+        const idx = parseInt(el.dataset.idx, 10);
+        el.querySelectorAll('[data-mk]').forEach(inp => inp.addEventListener('input', () => {
+          state.materias[idx][inp.dataset.mk] = inp.value;
+          if (inp.dataset.mk === 'categoria'){
+            const c = NEWS_CATEGORIAS.find(x=>x.k===inp.value);
+            if (c){ inp.style.background=c.bg; inp.style.color=c.cor; }
+          }
+        }));
+        el.querySelector('[data-ia-layout]').addEventListener('click', () => {
+          state.materias[idx].layout = sugerirLayout(state.materias[idx].imagens||[]);
+          renderEditor();
+        });
+        el.querySelector('[data-rm]').addEventListener('click', () => { state.materias.splice(idx,1); renderEditor(); });
+        el.querySelector('[data-mv="-1"]').addEventListener('click', () => { if (idx>0){ [state.materias[idx-1], state.materias[idx]]=[state.materias[idx], state.materias[idx-1]]; renderEditor(); } });
+        el.querySelector('[data-mv="1"]').addEventListener('click', () => { if (idx<state.materias.length-1){ [state.materias[idx+1], state.materias[idx]]=[state.materias[idx], state.materias[idx+1]]; renderEditor(); } });
+        el.querySelector('[data-add-img]').addEventListener('click', () => {
+          const inp = document.getElementById('img-inp-'+idx);
+          const url = inp.value.trim(); if (!url) return;
+          (state.materias[idx].imagens = state.materias[idx].imagens || []).push(url);
+          renderEditor();
+        });
+        el.querySelectorAll('[data-rm-img]').forEach(b => b.addEventListener('click', () => {
+          state.materias[idx].imagens.splice(parseInt(b.dataset.rmImg,10),1);
+          renderEditor();
+        }));
+        // drag & drop
+        el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', idx); el.classList.add('dragging'); });
+        el.addEventListener('dragend', () => el.classList.remove('dragging'));
+        el.addEventListener('dragover', (e) => e.preventDefault());
+        el.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+          const to = idx;
+          if (from === to) return;
+          const [moved] = state.materias.splice(from, 1);
+          state.materias.splice(to, 0, moved);
+          renderEditor();
+        });
       });
     }
-    renderBlocos();
 
-    document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => {
-      const t = b.dataset.add;
-      const novo = { tipo:t };
-      if (t==='texto') { novo.titulo=''; novo.conteudo=''; }
-      if (t==='imagem') { novo.url=''; novo.legenda=''; }
-      if (t==='chamada') { novo.texto=''; }
-      state.blocos.push(novo);
-      renderBlocos();
+    function renderPreview(){
+      const box = document.getElementById('dia-materias-preview');
+      box.innerHTML = `<div class="nl-page" style="border:1px solid #E4E9EF;border-radius:12px;padding:32px;background:#FFF;">
+        ${state.materias.length ? state.materias.map(renderMateriaHTML).join('') : '<div class="cbk-empty">Sem matérias.</div>'}
+      </div>`;
+    }
+
+    document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      state.view = b.dataset.view;
+      document.getElementById('dia-materias-editor').style.display = state.view==='editor'?'':'none';
+      document.getElementById('dia-materias-preview').style.display = state.view==='preview'?'':'none';
+      document.getElementById('dia-add-bar').style.display = state.view==='editor'?'flex':'none';
+      if (state.view==='preview') renderPreview();
     }));
+
+    document.querySelectorAll('[data-add-cat]').forEach(b => b.addEventListener('click', () => {
+      state.materias.push({ categoria:b.dataset.addCat, titulo:'', texto:'', imagens:[], layout:'texto-only' });
+      renderEditor();
+    }));
+
+    renderEditor();
 
     document.getElementById('dia-save').addEventListener('click', async () => {
       const btn = document.getElementById('dia-save'); btn.disabled=true; btn.textContent='Salvando…';
@@ -9274,7 +9387,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         tema: document.getElementById('dia-tema').value.trim() || null,
         numero_edicao: parseInt(document.getElementById('dia-num').value, 10) || null,
         capa_url: document.getElementById('dia-capa').value.trim() || null,
-        blocos: state.blocos,
+        blocos: state.materias,
         updated_at: new Date().toISOString(),
       };
       let res;
