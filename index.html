@@ -8724,6 +8724,30 @@ document.addEventListener('DOMContentLoaded',()=>{
   .nl-w-toggle{ display:flex; gap:4px; background:#fff; padding:3px; border-radius:8px; border:1px solid #E4E9EF; }
   .nl-w-toggle button{ padding:4px 10px; border:none; background:transparent; border-radius:5px; cursor:pointer; font-family:inherit; font-size:11px; color:#6B7280; font-weight:600; }
   .nl-w-toggle button.active{ background:var(--cb-navy); color:#fff; }
+
+  /* Lista de matérias na lateral */
+  .side-mat{ background:#FFFFFF; border:1px solid #E4E9EF; border-radius:8px; overflow:hidden; }
+  .side-mat.expanded{ box-shadow:0 3px 10px rgba(15,32,55,.08); border-color:#8CB7C9; }
+  .side-mat-head{ padding:8px 10px; display:flex; align-items:center; gap:8px; cursor:pointer; background:#FAFBFC; }
+  .side-mat-head:hover{ background:#F0F3F7; }
+  .side-mat.expanded .side-mat-head{ background:#EEF5F8; }
+  .side-mat-tag{ font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:99px; }
+  .side-mat-num{ background:var(--cb-navy); color:#fff; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; flex-shrink:0; }
+  .side-mat-title{ flex:1; font-size:12px; color:var(--cb-navy); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .side-mat-caret{ color:#9CA3AF; font-size:10px; transition:transform .18s; }
+  .side-mat.expanded .side-mat-caret{ transform:rotate(90deg); }
+  .side-mat-body{ display:none; padding:10px; background:#FFF; border-top:1px solid #E4E9EF; }
+  .side-mat.expanded .side-mat-body{ display:block; }
+  .side-mat-body .row{ margin-bottom:8px; }
+  .side-mat-body .row label{ display:block; font-size:10px; font-weight:700; letter-spacing:.05em; color:#6B7280; margin-bottom:3px; text-transform:uppercase; }
+  .side-mat-body select, .side-mat-body input{ width:100%; padding:5px 8px; border:1px solid #E4E9EF; border-radius:5px; font-family:inherit; font-size:12px; }
+  .side-mat-thumbs{ display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+  .side-mat-thumbs .thumb{ position:relative; }
+  .side-mat-thumbs .thumb img{ width:44px; height:44px; object-fit:cover; border-radius:4px; border:1px solid #E4E9EF; }
+  .side-mat-thumbs .thumb button{ position:absolute; top:-4px; right:-4px; width:14px; height:14px; border-radius:50%; border:none; background:#991B1B; color:#fff; font-size:9px; cursor:pointer; padding:0; }
+  .side-mat-body .btn-mini{ padding:4px 8px; border-radius:5px; border:1px solid #E4E9EF; background:#fff; cursor:pointer; font-family:inherit; font-size:11px; }
+  .side-mat-body .btn-mini.danger{ border-color:#FCA5A5; background:#FEE2E2; color:#991B1B; }
+  .side-mat-body .btn-mini.ia{ background:#F3E8FF; color:#6B21A8; border-color:#DDD6FE; font-weight:600; }
   .nl-edit-page{ background:#FFFFFF; border-radius:12px; box-shadow:0 2px 10px rgba(15,32,55,.06); max-width:1080px; margin:0 auto; padding:44px 56px; min-height:500px; }
   .nl-edit-page.w-mobile{ max-width:420px; }
   .nl-edit-page.w-notebook{ max-width:1080px; }
@@ -9391,8 +9415,8 @@ document.addEventListener('DOMContentLoaded',()=>{
             ${NEWS_CATEGORIAS.map(c=>`<button data-add-cat="${c.k}" style="background:${c.bg};color:${c.cor};border:none;padding:5px 9px;border-radius:99px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;">${c.lbl}</button>`).join('')}
           </div>
 
-          <div style="font-size:11px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 8px;">Matéria selecionada</div>
-          <div id="ed-materia-props" style="font-size:12px;color:#6B7280;">Clique numa matéria à direita pra editar categoria/layout/imagens.</div>
+          <div style="font-size:11px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 8px;display:flex;align-items:center;gap:6px;"><span>Matérias inseridas</span><span id="ed-mat-count" style="background:#EEF5F8;color:var(--cb-navy);padding:1px 7px;border-radius:99px;font-size:10px;">0</span></div>
+          <div id="ed-materia-list" style="display:flex;flex-direction:column;gap:6px;"></div>
 
           ${!isNew && isMaster()?`<button class="cbk-btn cbk-btn-danger" id="ed-del" style="width:100%;margin-top:20px;">Excluir edição</button>`:''}
         </div>
@@ -9451,41 +9475,93 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     function selectMateria(idx){
       selectedIdx = idx;
-      const m = state.materias[idx];
-      const props = document.getElementById('ed-materia-props');
-      if (!m){ props.innerHTML = 'Clique numa matéria à direita pra editar.'; return; }
-      const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria) || NEWS_CATEGORIAS[0];
-      const imgs = m.imagens || [];
-      props.innerHTML = `
-        <div class="cbk-field"><label>Categoria</label><select id="ms-cat" style="background:${cat.bg};color:${cat.cor};border:none;padding:6px 10px;border-radius:6px;font-weight:700;">
-          ${NEWS_CATEGORIAS.map(c=>`<option value="${c.k}"${c.k===m.categoria?' selected':''}>${c.lbl}</option>`).join('')}
-        </select></div>
-        <div class="cbk-field"><label>Layout</label><select id="ms-layout">
-          ${NEWS_LAYOUTS.map(l=>`<option value="${l.k}"${l.k===(m.layout||sugerirLayout(imgs))?' selected':''}>${l.lbl}</option>`).join('')}
-        </select></div>
-        <button class="cbk-btn cbk-btn-ghost" id="ms-ia-layout" style="width:100%;font-size:11.5px;">✨ IA sugerir layout</button>
-        <button class="cbk-btn cbk-btn-ghost" id="ms-ia-revisar" style="width:100%;font-size:11.5px;margin-top:6px;background:#F3E8FF;color:#6B21A8;">✨ Revisar texto (sem inventar)</button>
-        <div class="cbk-field" style="margin-top:12px;"><label>Adicionar imagem (URL)</label>
-          <div style="display:flex;gap:6px;"><input id="ms-img" style="flex:1;"><button class="cbk-btn cbk-btn-primary" id="ms-img-add" style="font-size:11px;padding:6px 12px;">+</button></div>
-        </div>
-        <div class="nl-img-thumbs" id="ms-thumbs">${imgs.map((u,j)=>`<div class="nl-img-thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>
-        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #E4E9EF;">
-          <div style="font-size:10.5px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Estilo do bloco</div>
-          <div class="cbk-row" style="grid-template-columns:1fr 1fr;gap:8px;">
-            <div class="cbk-field"><label>Cor de fundo</label><input type="color" id="ms-bg" value="${esc(m.bg||'#ffffff')}" style="height:34px;padding:2px;width:100%;"></div>
-            <div class="cbk-field"><label>Espaço vertical (px)</label><input type="number" id="ms-pady" value="${m.padY||28}" min="0" max="120"></div>
+      renderMateriaList();
+      // scroll canvas até a matéria selecionada
+      const el = document.querySelector(`.nl-materia[data-mi="${idx}"]`);
+      if (el) el.scrollIntoView({ behavior:'smooth', block:'center' });
+    }
+
+    function renderMateriaList(){
+      const box = document.getElementById('ed-materia-list');
+      const count = document.getElementById('ed-mat-count');
+      if (!box) return;
+      count.textContent = state.materias.length;
+      if (!state.materias.length){ box.innerHTML = '<div style="font-size:12px;color:#9CA3AF;font-style:italic;">Nenhuma matéria ainda. Adicione pela lista de categorias acima.</div>'; return; }
+      box.innerHTML = state.materias.map((m, i) => {
+        const cat = NEWS_CATEGORIAS.find(c=>c.k===m.categoria) || NEWS_CATEGORIAS[0];
+        const imgs = m.imagens || [];
+        const expanded = i === selectedIdx;
+        return `<div class="side-mat${expanded?' expanded':''}" data-mi-side="${i}">
+          <div class="side-mat-head" data-toggle="${i}">
+            <span class="side-mat-num">${i+1}</span>
+            <span class="side-mat-tag" style="background:${cat.bg};color:${cat.cor};">${cat.lbl}</span>
+            <span class="side-mat-title">${esc(m.titulo||'(sem título)')}</span>
+            <span class="side-mat-caret">▶</span>
           </div>
-          <button class="cbk-btn cbk-btn-ghost" id="ms-bg-clear" style="width:100%;font-size:11px;">↺ Limpar fundo</button>
+          <div class="side-mat-body">
+            <div class="row"><label>Categoria</label>
+              <select data-set="categoria" style="background:${cat.bg};color:${cat.cor};font-weight:700;">
+                ${NEWS_CATEGORIAS.map(c=>`<option value="${c.k}"${c.k===m.categoria?' selected':''}>${c.lbl}</option>`).join('')}
+              </select>
+            </div>
+            <div class="row"><label>Layout</label>
+              <select data-set="layout">
+                ${NEWS_LAYOUTS.map(l=>`<option value="${l.k}"${l.k===(m.layout||sugerirLayout(imgs))?' selected':''}>${l.lbl}</option>`).join('')}
+              </select>
+            </div>
+            <div style="display:flex;gap:5px;margin-bottom:8px;">
+              <button class="btn-mini" data-act="auto-layout" title="IA sugere layout">✨ Auto</button>
+              <button class="btn-mini ia" data-act="revisar" title="IA revisa texto sem inventar">✨ Revisar</button>
+              <button class="btn-mini" data-act="up" style="margin-left:auto;">↑</button>
+              <button class="btn-mini" data-act="down">↓</button>
+              <button class="btn-mini danger" data-act="del">✕</button>
+            </div>
+            <div class="row"><label>Imagens</label>
+              <div style="display:flex;gap:5px;"><input placeholder="URL da imagem" data-input="img-url"><button class="btn-mini" data-act="add-img">+</button></div>
+              <div class="side-mat-thumbs">${imgs.map((u,j)=>`<div class="thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>
+            </div>
+            <div class="row" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <div><label>Cor de fundo</label><input type="color" data-set="bg" value="${esc(m.bg||'#ffffff')}" style="height:30px;padding:2px;"></div>
+              <div><label>Espaço V (px)</label><input type="number" data-set="padY" value="${m.padY||28}" min="0" max="120"></div>
+            </div>
+            <button class="btn-mini" data-act="bg-clear" style="width:100%;">↺ Limpar fundo</button>
+          </div>
         </div>`;
-      document.getElementById('ms-cat').addEventListener('change', (e) => { m.categoria = e.target.value; renderCanvas(); selectMateria(idx); autosave(); });
-      document.getElementById('ms-layout').addEventListener('change', (e) => { m.layout = e.target.value; renderCanvas(); autosave(); });
-      document.getElementById('ms-ia-layout').addEventListener('click', () => { m.layout = sugerirLayout(imgs); renderCanvas(); selectMateria(idx); autosave(); });
-      document.getElementById('ms-ia-revisar').addEventListener('click', () => revisarMateriaIA(idx));
-      document.getElementById('ms-img-add').addEventListener('click', () => { const u = document.getElementById('ms-img').value.trim(); if (u){ (m.imagens=m.imagens||[]).push(u); renderCanvas(); selectMateria(idx); autosave(); } });
-      document.querySelectorAll('#ms-thumbs [data-rm-img]').forEach(b => b.addEventListener('click', () => { m.imagens.splice(parseInt(b.dataset.rmImg,10),1); renderCanvas(); selectMateria(idx); autosave(); }));
-      document.getElementById('ms-bg').addEventListener('input', (e) => { m.bg = e.target.value; renderCanvas(); autosave(); });
-      document.getElementById('ms-pady').addEventListener('input', (e) => { m.padY = parseInt(e.target.value, 10); renderCanvas(); autosave(); });
-      document.getElementById('ms-bg-clear').addEventListener('click', () => { delete m.bg; renderCanvas(); selectMateria(idx); autosave(); });
+      }).join('');
+      // bind
+      box.querySelectorAll('[data-toggle]').forEach(h => h.addEventListener('click', () => {
+        const i = parseInt(h.dataset.toggle,10);
+        selectedIdx = (selectedIdx === i) ? -1 : i;
+        renderMateriaList();
+        if (selectedIdx>=0){ const el = document.querySelector(`.nl-materia[data-mi="${selectedIdx}"]`); if (el) el.scrollIntoView({ behavior:'smooth', block:'center' }); }
+      }));
+      box.querySelectorAll('[data-mi-side]').forEach(card => {
+        const idx = parseInt(card.dataset.miSide, 10);
+        const m = state.materias[idx];
+        card.querySelectorAll('[data-set]').forEach(inp => inp.addEventListener('input', () => {
+          const k = inp.dataset.set;
+          m[k] = (k==='padY') ? parseInt(inp.value,10) : inp.value;
+          if (k==='categoria'){ const c = NEWS_CATEGORIAS.find(x=>x.k===inp.value); if (c){ inp.style.background=c.bg; inp.style.color=c.cor; } }
+          renderCanvas(); autosave();
+          renderMateriaList(); // atualiza título+tag na lista
+        }));
+        card.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const a = b.dataset.act;
+          if (a==='auto-layout'){ m.layout = sugerirLayout(m.imagens||[]); renderCanvas(); renderMateriaList(); autosave(); }
+          else if (a==='revisar'){ revisarMateriaIA(idx); }
+          else if (a==='up' && idx>0){ [state.materias[idx-1], state.materias[idx]]=[state.materias[idx], state.materias[idx-1]]; selectedIdx = idx-1; renderCanvas(); renderMateriaList(); autosave(); }
+          else if (a==='down' && idx<state.materias.length-1){ [state.materias[idx+1], state.materias[idx]]=[state.materias[idx], state.materias[idx+1]]; selectedIdx = idx+1; renderCanvas(); renderMateriaList(); autosave(); }
+          else if (a==='del'){ state.materias.splice(idx,1); if (selectedIdx===idx) selectedIdx=-1; renderCanvas(); renderMateriaList(); autosave(); }
+          else if (a==='add-img'){ const inp = card.querySelector('[data-input="img-url"]'); const u = inp.value.trim(); if (u){ (m.imagens = m.imagens||[]).push(u); inp.value=''; renderCanvas(); renderMateriaList(); autosave(); } }
+          else if (a==='bg-clear'){ delete m.bg; renderCanvas(); renderMateriaList(); autosave(); }
+        }));
+        card.querySelectorAll('[data-rm-img]').forEach(b => b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          m.imagens.splice(parseInt(b.dataset.rmImg,10),1);
+          renderCanvas(); renderMateriaList(); autosave();
+        }));
+      });
     }
 
     function syncFromDom(){
@@ -9575,7 +9651,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     document.querySelectorAll('[data-add-cat]').forEach(b => b.addEventListener('click', () => {
       state.materias.push({ categoria:b.dataset.addCat, titulo:'Nova matéria', texto:'Escreva aqui…', texto_html:'Escreva aqui…', imagens:[], layout:'texto-only' });
-      renderCanvas(); autosave(); selectMateria(state.materias.length-1);
+      selectedIdx = state.materias.length-1;
+      renderCanvas(); renderMateriaList(); autosave();
     }));
 
     document.getElementById('ed-back').addEventListener('click', () => { window.setView('diario'); });
@@ -9604,7 +9681,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (error || data?.error) throw new Error(error?.message || data.error);
         m.texto = data.output.trim();
         m.texto_html = esc(m.texto).replace(/\n/g,'<br>');
-        renderCanvas(); autosave();
+        renderCanvas(); renderMateriaList(); autosave();
         toast('Texto revisado');
       } catch(e){ toast('Erro: '+e.message, 'err'); }
     }
@@ -9619,7 +9696,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (error || data?.error) throw new Error(error?.message || data.error);
         const arr = JSON.parse(data.output.replace(/^\s*```json\s*|\s*```\s*$/g,'').trim());
         arr.forEach(m => state.materias.push({ categoria:m.categoria||'insights', titulo:m.titulo||'', texto:m.texto||'', texto_html:esc(m.texto||'').replace(/\n/g,'<br>'), imagens:[], layout:'texto-only' }));
-        renderCanvas(); autosave(); toast(`${arr.length} matérias distribuídas`);
+        renderCanvas(); renderMateriaList(); autosave(); toast(`${arr.length} matérias distribuídas`);
       } catch(e){ toast('Erro: '+e.message, 'err'); }
     }
 
@@ -9643,6 +9720,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
 
     renderCanvas();
+    renderMateriaList();
     // beforeunload warning
     window.addEventListener('beforeunload', function warn(e){
       if (window.currentView !== 'diario-editor') return;
