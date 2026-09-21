@@ -7877,7 +7877,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       { view:'icps',         lbl:'ICPs (matriz)',   icon:'M3 3h18v18H3zM3 9h18M9 3v18' },
     ], actions:false },
     conteudos: { views:[
-      { view:'soon:diario', lbl:'Diário de Bordo', icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5', soon:true },
+      { view:'diario', lbl:'Diário de Bordo', icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
       { view:'soon:insights', lbl:'Insights e Reviews', icon:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2v2M12 20v2M4 12H2M22 12h-2', soon:true },
       { view:'nutricao', lbl:'Conteúdos', icon:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6' },
     ], actions:false },
@@ -8681,7 +8681,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // ═════════ Cria as 4 view-pages e registra em VIEWS ═════════
   function ensureViews(){
     const app = document.getElementById('app');
-    ['base-negocio','segmentos','personas','icps','nutricao'].forEach(v => {
+    ['base-negocio','segmentos','personas','icps','nutricao','diario'].forEach(v => {
       const id = 'v' + v.replace(/[^a-z]/gi,'').replace(/^./, c=>c.toUpperCase());
       if (document.getElementById(id)) return;
       const el = document.createElement('div');
@@ -8694,7 +8694,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (orig && !orig.__cbOndaK){
       const wrap = function(v){
         // se é uma view nova, renderiza
-        if (['base-negocio','segmentos','personas','icps','nutricao'].includes(v)){
+        if (['base-negocio','segmentos','personas','icps','nutricao','diario'].includes(v)){
           document.querySelectorAll('#app > .view-page').forEach(el=>el.classList.remove('active'));
           const id = 'v' + v.replace(/[^a-z]/gi,'').replace(/^./,c=>c.toUpperCase());
           document.getElementById(id)?.classList.add('active');
@@ -8705,6 +8705,7 @@ document.addEventListener('DOMContentLoaded',()=>{
           else if (v==='personas') renderPersonas();
           else if (v==='icps') renderICPs();
           else if (v==='nutricao') renderNutricao();
+          else if (v==='diario') renderDiario();
           return;
         }
         return orig.apply(this, arguments);
@@ -9059,6 +9060,127 @@ document.addEventListener('DOMContentLoaded',()=>{
           <td>${cs.length} <span style="color:#9CA3AF;font-size:11px;">(${cs.filter(x=>x.status==='approved').length} aprovados)</span></td>
         </tr>`;
       }).join('')}</tbody></table></div>`;
+  }
+
+  // ═════════ Diário de Bordo ═════════
+  async function renderDiario(){
+    const v = document.getElementById('vDiario'); if (!v) return;
+    v.innerHTML = `<div class="cbk-wrap" style="max-width:1000px;">
+      <div class="cbk-hi">Conteúdos</div>
+      <div class="cbk-h1">Diário de Bordo</div>
+      <div class="cbk-sub">Registro cronológico do que rolou por BU — decisões, testes, aprendizados, notícias de mercado, insights de campanha. Feed editorial do time.</div>
+      <div class="cbk-row" style="grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:14px;">
+        <div class="cbk-field" style="margin-bottom:0;"><label>BU</label><select id="dia-bu-filt"><option value="">Todos</option>${BUS.map(b=>`<option value="${b.key}">${b.nome}</option>`).join('')}</select></div>
+        <div class="cbk-field" style="margin-bottom:0;"><label>Tema</label><input id="dia-tema-filt" list="dia-tema-list" placeholder="Filtrar por tema"></div>
+        <div class="cbk-field" style="margin-bottom:0;"><label>Buscar</label><input id="dia-q" placeholder="Título ou texto"></div>
+        <div class="cbk-field" style="margin-bottom:0;align-self:end;"><button class="cbk-btn cbk-btn-primary" id="dia-new">+ Novo post</button></div>
+      </div>
+      <datalist id="dia-tema-list"></datalist>
+      <div id="dia-feed"></div>
+    </div>`;
+    document.getElementById('dia-new').addEventListener('click', () => openDiarioModal());
+    ['dia-bu-filt','dia-tema-filt','dia-q'].forEach(id => {
+      const el = document.getElementById(id);
+      let to; el.addEventListener('input', () => { clearTimeout(to); to=setTimeout(loadDiario, 250); });
+      el.addEventListener('change', loadDiario);
+    });
+    await refreshDiarioTemas();
+    await loadDiario();
+  }
+
+  async function refreshDiarioTemas(){
+    const list = document.getElementById('dia-tema-list'); if (!list) return;
+    const { data } = await sb.from('cb_diario_entries').select('tema').not('tema','is',null);
+    const set = new Set(); (data||[]).forEach(r => r.tema && set.add(r.tema));
+    list.innerHTML = Array.from(set).sort().map(t => `<option value="${esc(t)}"></option>`).join('');
+  }
+
+  async function loadDiario(){
+    const holder = document.getElementById('dia-feed'); if (!holder) return;
+    const bu = document.getElementById('dia-bu-filt').value;
+    const tema = document.getElementById('dia-tema-filt').value.trim();
+    const q = document.getElementById('dia-q').value.trim();
+    let query = sb.from('cb_diario_entries').select('*').order('created_at', {ascending:false}).limit(100);
+    if (bu) query = query.eq('bu', bu);
+    if (tema) query = query.ilike('tema', '%'+tema+'%');
+    if (q) query = query.or(`titulo.ilike.%${q}%,texto.ilike.%${q}%`);
+    const { data, error } = await query;
+    if (error){ holder.innerHTML = `Erro: ${esc(error.message)}`; return; }
+    if (!data?.length){ holder.innerHTML = `<div class="cbk-empty">Nenhum post ainda. Clique em "+ Novo post" pra começar.</div>`; return; }
+    // agrupa por data (dia)
+    const groups = {};
+    data.forEach(p => {
+      const d = new Date(p.created_at);
+      const key = d.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+      (groups[key] = groups[key]||[]).push(p);
+    });
+    let html = '';
+    Object.entries(groups).forEach(([dia, posts]) => {
+      html += `<div class="cbk-hi" style="margin:16px 0 10px;">${dia}</div>`;
+      posts.forEach(p => {
+        const buNome = BUS.find(b=>b.key===p.bu)?.nome || p.bu || '—';
+        html += `<div class="cbk-card" style="margin:0 0 12px;padding:16px 18px;cursor:pointer;" data-open="${p.id}">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <span style="background:#EEF5F8;color:var(--cb-navy);padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${esc(buNome)}</span>
+            ${p.tema?`<span style="background:#F3E8FF;color:#6B21A8;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;">🏷 ${esc(p.tema)}</span>`:''}
+            <span style="margin-left:auto;font-size:11px;color:#9CA3AF;">${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${esc(p.autor_nome||p.autor_email||'—')}</span>
+          </div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--cb-navy);margin-bottom:6px;">${esc(p.titulo)}</div>
+          <div style="font-size:13px;color:#4B5563;line-height:1.55;white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;">${nl2br(p.texto||'')}</div>
+        </div>`;
+      });
+    });
+    holder.innerHTML = html;
+    holder.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', async () => {
+      const { data } = await sb.from('cb_diario_entries').select('*').eq('id', el.dataset.open).single();
+      if (data) openDiarioModal(data);
+    }));
+  }
+
+  function openDiarioModal(post){
+    const isNew = !post; post = post || { bu:'', titulo:'', texto:'', tema:'' };
+    const html = `<div class="cbk-modal-h">${isNew?'✎ Novo post no diário':`✎ ${esc(post.titulo)}`}</div>
+      <div class="cbk-modal-s">Registre o que aconteceu, uma decisão, um resultado ou um aprendizado. O time todo consegue ver.</div>
+      <div class="cbk-card cbk-edit-mode">
+        <div class="cbk-row" style="grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="cbk-field"><label>BU</label><select id="dia-bu"><option value="">— Selecione —</option>${BUS.map(b=>`<option value="${b.key}"${b.key===post.bu?' selected':''}>${b.nome}</option>`).join('')}</select></div>
+          <div class="cbk-field"><label>Tema (opcional)</label><input id="dia-tema" list="dia-tema-list" value="${esc(post.tema)}" placeholder="Ex: Antecedência de compra, Bilhetes não voados…"></div>
+        </div>
+        <div class="cbk-field"><label>Título</label><input id="dia-titulo" value="${esc(post.titulo)}" placeholder="Ex: Live Marketing fechou parceria com XYZ"></div>
+        <div class="cbk-field"><label>Texto</label><textarea id="dia-texto" style="min-height:220px;font-family:'Montserrat',sans-serif;line-height:1.6;">${esc(post.texto)}</textarea></div>
+        <div class="cbk-meta">${post.created_at?`Criado em ${fmt(post.created_at)} por ${esc(post.autor_nome||post.autor_email||'—')}`:''}</div>
+      </div>
+      <div class="cbk-actions">
+        ${!isNew && isMaster()?`<button class="cbk-btn cbk-btn-danger" id="dia-del" style="margin-right:auto;">Excluir</button>`:''}
+        <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Cancelar</button>
+        <button class="cbk-btn cbk-btn-primary" id="dia-save">${isNew?'Publicar':'Salvar alterações'}</button>
+      </div>`;
+    openModal(html);
+    document.getElementById('cbk-close').addEventListener('click', closeModal);
+    document.getElementById('dia-save').addEventListener('click', async () => {
+      const bu = document.getElementById('dia-bu').value;
+      const titulo = document.getElementById('dia-titulo').value.trim();
+      const texto = document.getElementById('dia-texto').value.trim();
+      const tema = document.getElementById('dia-tema').value.trim() || null;
+      if (!titulo){ toast('Título é obrigatório','err'); return; }
+      const payload = { bu:bu||null, titulo, texto, tema, updated_at:new Date().toISOString() };
+      let res;
+      if (isNew){
+        payload.autor_email = email();
+        payload.autor_nome = 'Muriel Teixeira';
+        res = await sb.from('cb_diario_entries').insert(payload).select().single();
+      } else {
+        res = await sb.from('cb_diario_entries').update(payload).eq('id', post.id).select().single();
+      }
+      if (res.error){ toast('Erro: '+res.error.message,'err'); return; }
+      toast(isNew?'Post publicado':'Post atualizado');
+      closeModal(); loadDiario(); refreshDiarioTemas();
+    });
+    document.getElementById('dia-del')?.addEventListener('click', async () => {
+      if (!confirm('Excluir esse post?')) return;
+      await sb.from('cb_diario_entries').delete().eq('id', post.id);
+      toast('Post excluído'); closeModal(); loadDiario();
+    });
   }
 
   // ═════════ Nutrição (IA) ═════════
