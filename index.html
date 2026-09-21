@@ -9062,23 +9062,30 @@ document.addEventListener('DOMContentLoaded',()=>{
       }).join('')}</tbody></table></div>`;
   }
 
-  // ═════════ Diário de Bordo ═════════
+  // ═════════ Diário de Bordo — editor de edições/newsletters ═════════
+  const DIARIO_BLOCO_TIPOS = [
+    { t:'texto',    lbl:'Texto',    icon:'📝' },
+    { t:'imagem',   lbl:'Imagem',   icon:'🖼' },
+    { t:'chamada',  lbl:'Chamada',  icon:'💡' },
+    { t:'divisor',  lbl:'Divisor',  icon:'—' },
+  ];
+
   async function renderDiario(){
     const v = document.getElementById('vDiario'); if (!v) return;
-    v.innerHTML = `<div class="cbk-wrap" style="max-width:1000px;">
+    v.innerHTML = `<div class="cbk-wrap" style="max-width:1100px;">
       <div class="cbk-hi">Conteúdos</div>
-      <div class="cbk-h1">Diário de Bordo</div>
-      <div class="cbk-sub">Registro cronológico do que rolou por BU — decisões, testes, aprendizados, notícias de mercado, insights de campanha. Feed editorial do time.</div>
-      <div class="cbk-row" style="grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:14px;">
-        <div class="cbk-field" style="margin-bottom:0;"><label>BU</label><select id="dia-bu-filt"><option value="">Todos</option>${BUS.map(b=>`<option value="${b.key}">${b.nome}</option>`).join('')}</select></div>
+      <div class="cbk-h1">Diário de Bordo · Edições</div>
+      <div class="cbk-sub">Newsletters editoriais do time — cada edição tem capa, título, subtítulo e vários blocos (texto, imagens, chamadas). Substitui a newsletter no Google Sites.</div>
+      <div class="cbk-row" style="grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:20px;">
+        <div class="cbk-field" style="margin-bottom:0;"><label>BU</label><select id="dia-bu-filt"><option value="">Todas</option>${BUS.map(b=>`<option value="${b.key}">${b.nome}</option>`).join('')}</select></div>
         <div class="cbk-field" style="margin-bottom:0;"><label>Tema</label><input id="dia-tema-filt" list="dia-tema-list" placeholder="Filtrar por tema"></div>
-        <div class="cbk-field" style="margin-bottom:0;"><label>Buscar</label><input id="dia-q" placeholder="Título ou texto"></div>
-        <div class="cbk-field" style="margin-bottom:0;align-self:end;"><button class="cbk-btn cbk-btn-primary" id="dia-new">+ Novo post</button></div>
+        <div class="cbk-field" style="margin-bottom:0;"><label>Buscar</label><input id="dia-q" placeholder="Título ou subtítulo"></div>
+        <div class="cbk-field" style="margin-bottom:0;align-self:end;"><button class="cbk-btn cbk-btn-primary" id="dia-new">+ Nova edição</button></div>
       </div>
       <datalist id="dia-tema-list"></datalist>
       <div id="dia-feed"></div>
     </div>`;
-    document.getElementById('dia-new').addEventListener('click', () => openDiarioModal());
+    document.getElementById('dia-new').addEventListener('click', () => openDiarioEditor());
     ['dia-bu-filt','dia-tema-filt','dia-q'].forEach(id => {
       const el = document.getElementById(id);
       let to; el.addEventListener('input', () => { clearTimeout(to); to=setTimeout(loadDiario, 250); });
@@ -9100,70 +9107,176 @@ document.addEventListener('DOMContentLoaded',()=>{
     const bu = document.getElementById('dia-bu-filt').value;
     const tema = document.getElementById('dia-tema-filt').value.trim();
     const q = document.getElementById('dia-q').value.trim();
-    let query = sb.from('cb_diario_entries').select('*').order('created_at', {ascending:false}).limit(100);
+    let query = sb.from('cb_diario_entries').select('*').order('created_at', {ascending:false}).limit(60);
     if (bu) query = query.eq('bu', bu);
     if (tema) query = query.ilike('tema', '%'+tema+'%');
-    if (q) query = query.or(`titulo.ilike.%${q}%,texto.ilike.%${q}%`);
+    if (q) query = query.or(`titulo.ilike.%${q}%,subtitulo.ilike.%${q}%`);
     const { data, error } = await query;
     if (error){ holder.innerHTML = `Erro: ${esc(error.message)}`; return; }
-    if (!data?.length){ holder.innerHTML = `<div class="cbk-empty">Nenhum post ainda. Clique em "+ Novo post" pra começar.</div>`; return; }
-    // agrupa por data (dia)
-    const groups = {};
-    data.forEach(p => {
-      const d = new Date(p.created_at);
-      const key = d.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
-      (groups[key] = groups[key]||[]).push(p);
-    });
-    let html = '';
-    Object.entries(groups).forEach(([dia, posts]) => {
-      html += `<div class="cbk-hi" style="margin:16px 0 10px;">${dia}</div>`;
-      posts.forEach(p => {
-        const buNome = BUS.find(b=>b.key===p.bu)?.nome || p.bu || '—';
-        html += `<div class="cbk-card" style="margin:0 0 12px;padding:16px 18px;cursor:pointer;" data-open="${p.id}">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-            <span style="background:#EEF5F8;color:var(--cb-navy);padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${esc(buNome)}</span>
-            ${p.tema?`<span style="background:#F3E8FF;color:#6B21A8;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;">🏷 ${esc(p.tema)}</span>`:''}
-            <span style="margin-left:auto;font-size:11px;color:#9CA3AF;">${new Date(p.created_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${esc(p.autor_nome||p.autor_email||'—')}</span>
+    if (!data?.length){ holder.innerHTML = `<div class="cbk-empty">Nenhuma edição ainda. Clique em "+ Nova edição" pra começar.</div>`; return; }
+    holder.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">` +
+      data.map(p => {
+        const buNome = BUS.find(b=>b.key===p.bu)?.nome || 'Geral';
+        const capa = p.capa_url ? `background-image:url('${esc(p.capa_url)}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#0F2037,#8CB7C9);';
+        return `<div class="cbk-card" style="margin:0;padding:0;cursor:pointer;overflow:hidden;" data-open="${p.id}">
+          <div style="${capa}height:130px;position:relative;">
+            <div style="position:absolute;top:10px;left:12px;background:rgba(15,32,55,.85);color:#fff;padding:4px 10px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Ed. ${p.numero_edicao||'?'}</div>
+            ${p.bu?`<div style="position:absolute;top:10px;right:12px;background:rgba(255,255,255,.9);color:var(--cb-navy);padding:4px 10px;border-radius:99px;font-size:10.5px;font-weight:600;">${esc(buNome)}</div>`:''}
           </div>
-          <div style="font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--cb-navy);margin-bottom:6px;">${esc(p.titulo)}</div>
-          <div style="font-size:13px;color:#4B5563;line-height:1.55;white-space:pre-wrap;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;">${nl2br(p.texto||'')}</div>
+          <div style="padding:14px 16px;">
+            <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;color:var(--cb-navy);line-height:1.25;">${esc(p.titulo)}</div>
+            ${p.subtitulo?`<div style="font-size:12.5px;color:#6B7280;margin-top:4px;line-height:1.4;">${esc(p.subtitulo)}</div>`:''}
+            <div style="font-size:11px;color:#9CA3AF;margin-top:10px;display:flex;justify-content:space-between;">
+              <span>${new Date(p.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</span>
+              <span>${esc(p.autor_nome||p.autor_email||'—')}</span>
+            </div>
+          </div>
         </div>`;
-      });
-    });
-    holder.innerHTML = html;
+      }).join('') + `</div>`;
     holder.querySelectorAll('[data-open]').forEach(el => el.addEventListener('click', async () => {
       const { data } = await sb.from('cb_diario_entries').select('*').eq('id', el.dataset.open).single();
-      if (data) openDiarioModal(data);
+      if (data) openDiarioReader(data);
     }));
   }
 
-  function openDiarioModal(post){
-    const isNew = !post; post = post || { bu:'', titulo:'', texto:'', tema:'' };
-    const html = `<div class="cbk-modal-h">${isNew?'✎ Novo post no diário':`✎ ${esc(post.titulo)}`}</div>
-      <div class="cbk-modal-s">Registre o que aconteceu, uma decisão, um resultado ou um aprendizado. O time todo consegue ver.</div>
-      <div class="cbk-card cbk-edit-mode">
-        <div class="cbk-row" style="grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="cbk-field"><label>BU</label><select id="dia-bu"><option value="">— Selecione —</option>${BUS.map(b=>`<option value="${b.key}"${b.key===post.bu?' selected':''}>${b.nome}</option>`).join('')}</select></div>
-          <div class="cbk-field"><label>Tema (opcional)</label><input id="dia-tema" list="dia-tema-list" value="${esc(post.tema)}" placeholder="Ex: Antecedência de compra, Bilhetes não voados…"></div>
+  function openDiarioReader(post){
+    const buNome = BUS.find(b=>b.key===post.bu)?.nome || 'Geral';
+    const capa = post.capa_url ? `background-image:url('${esc(post.capa_url)}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#0F2037,#8CB7C9);';
+    const blocos = Array.isArray(post.blocos) ? post.blocos : [];
+    let bhtml = '';
+    blocos.forEach(b => {
+      if (b.tipo==='texto'){
+        bhtml += `<div style="margin:24px 0;">
+          ${b.titulo?`<h3 style="font-family:'Space Grotesk',sans-serif;font-size:20px;color:var(--cb-navy);margin:0 0 10px;">${esc(b.titulo)}</h3>`:''}
+          <div style="font-size:14.5px;color:#374151;line-height:1.7;white-space:pre-wrap;">${nl2br(b.conteudo||'')}</div>
+        </div>`;
+      } else if (b.tipo==='imagem'){
+        bhtml += `<div style="margin:24px 0;text-align:center;">
+          <img src="${esc(b.url||'')}" style="max-width:100%;border-radius:10px;">
+          ${b.legenda?`<div style="font-size:12px;color:#9CA3AF;margin-top:8px;font-style:italic;">${esc(b.legenda)}</div>`:''}
+        </div>`;
+      } else if (b.tipo==='chamada'){
+        bhtml += `<div style="margin:32px 0;padding:24px;background:#EEF5F8;border-left:4px solid #8CB7C9;border-radius:0 10px 10px 0;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--cb-navy);line-height:1.3;">${esc(b.texto||'')}</div>
+        </div>`;
+      } else if (b.tipo==='divisor'){
+        bhtml += `<hr style="border:none;border-top:2px solid #E4E9EF;margin:32px 0;">`;
+      }
+    });
+    const html = `<div style="margin:-24px -24px 0;">
+      <div style="${capa}height:220px;position:relative;">
+        <div style="position:absolute;bottom:20px;left:24px;right:24px;">
+          <div style="background:rgba(15,32,55,.9);color:#fff;display:inline-block;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Edição ${post.numero_edicao||'?'} · ${new Date(post.created_at).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:#fff;line-height:1.15;text-shadow:0 2px 8px rgba(0,0,0,.4);">${esc(post.titulo)}</div>
+          ${post.subtitulo?`<div style="color:#EEF5F8;font-size:14px;margin-top:6px;text-shadow:0 1px 4px rgba(0,0,0,.3);">${esc(post.subtitulo)}</div>`:''}
         </div>
-        <div class="cbk-field"><label>Título</label><input id="dia-titulo" value="${esc(post.titulo)}" placeholder="Ex: Live Marketing fechou parceria com XYZ"></div>
-        <div class="cbk-field"><label>Texto</label><textarea id="dia-texto" style="min-height:220px;font-family:'Montserrat',sans-serif;line-height:1.6;">${esc(post.texto)}</textarea></div>
-        <div class="cbk-meta">${post.created_at?`Criado em ${fmt(post.created_at)} por ${esc(post.autor_nome||post.autor_email||'—')}`:''}</div>
       </div>
-      <div class="cbk-actions">
-        ${!isNew && isMaster()?`<button class="cbk-btn cbk-btn-danger" id="dia-del" style="margin-right:auto;">Excluir</button>`:''}
-        <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Cancelar</button>
-        <button class="cbk-btn cbk-btn-primary" id="dia-save">${isNew?'Publicar':'Salvar alterações'}</button>
-      </div>`;
-    openModal(html);
+      <div style="padding:24px 24px 12px;font-size:12px;color:#6B7280;">${esc(buNome)} · ${esc(post.autor_nome||post.autor_email||'—')} · ${fmt(post.created_at)}</div>
+      <div style="padding:0 24px;">${bhtml || '<div class="cbk-empty">Sem conteúdo — clique em Editar pra adicionar blocos.</div>'}</div>
+    </div>
+    <div class="cbk-actions" style="padding:16px 0 0;border-top:1px solid #F0F3F7;margin-top:24px;">
+      <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Fechar</button>
+      ${canEdit() ? `<button class="cbk-btn cbk-btn-primary" id="dia-edit">✎ Editar edição</button>` : ''}
+    </div>`;
+    openModal(html, true);
     document.getElementById('cbk-close').addEventListener('click', closeModal);
+    document.getElementById('dia-edit')?.addEventListener('click', () => { closeModal(); openDiarioEditor(post); });
+  }
+
+  function openDiarioEditor(post){
+    const isNew = !post; post = post || { bu:'', titulo:'', subtitulo:'', tema:'', numero_edicao:null, capa_url:'', blocos:[] };
+    const blocos = Array.isArray(post.blocos) ? [...post.blocos] : [];
+    // estado local
+    const state = { blocos };
+    const html = `<div class="cbk-modal-h">${isNew?'✎ Nova edição':`✎ Editar edição ${post.numero_edicao||''}`}</div>
+      <div class="cbk-modal-s">Configure a capa e adicione blocos (texto, imagem, chamada, divisor). Cada bloco vira uma seção da newsletter.</div>
+      <div class="cbk-card cbk-edit-mode">
+        <div class="cbk-row" style="grid-template-columns:100px 1fr 1fr;gap:10px;">
+          <div class="cbk-field"><label>Nº edição</label><input id="dia-num" type="number" value="${post.numero_edicao||''}" placeholder="8"></div>
+          <div class="cbk-field"><label>BU</label><select id="dia-bu"><option value="">Geral</option>${BUS.map(b=>`<option value="${b.key}"${b.key===post.bu?' selected':''}>${b.nome}</option>`).join('')}</select></div>
+          <div class="cbk-field"><label>Tema</label><input id="dia-tema" list="dia-tema-list" value="${esc(post.tema)}" placeholder="Ex: Julho de safra"></div>
+        </div>
+        <div class="cbk-field"><label>Título da edição</label><input id="dia-titulo" value="${esc(post.titulo)}" placeholder="Ex: Julho: campanhas de safra + novos ICPs"></div>
+        <div class="cbk-field"><label>Subtítulo (opcional)</label><input id="dia-sub" value="${esc(post.subtitulo)}" placeholder="Uma frase que resume a edição"></div>
+        <div class="cbk-field"><label>URL da capa (opcional)</label><input id="dia-capa" value="${esc(post.capa_url)}" placeholder="https://…/imagem.jpg"></div>
+      </div>
+      <div class="cbk-hi" style="margin:18px 0 10px;">Blocos</div>
+      <div id="dia-blocos"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        ${DIARIO_BLOCO_TIPOS.map(t=>`<button class="cbk-btn cbk-btn-ghost" data-add="${t.t}" style="font-size:11.5px;">${t.icon} + ${t.lbl}</button>`).join('')}
+      </div>
+      <div class="cbk-actions" style="margin-top:20px;">
+        ${!isNew && isMaster()?`<button class="cbk-btn cbk-btn-danger" id="dia-del" style="margin-right:auto;">Excluir edição</button>`:''}
+        <button class="cbk-btn cbk-btn-ghost" id="cbk-close">Cancelar</button>
+        <button class="cbk-btn cbk-btn-primary" id="dia-save">${isNew?'Publicar edição':'Salvar edição'}</button>
+      </div>`;
+    openModal(html, true);
+    document.getElementById('cbk-close').addEventListener('click', closeModal);
+
+    function renderBlocos(){
+      const box = document.getElementById('dia-blocos');
+      if (!state.blocos.length){ box.innerHTML = '<div class="cbk-empty">Nenhum bloco ainda — adicione um abaixo.</div>'; return; }
+      box.innerHTML = state.blocos.map((b, i) => {
+        const bt = DIARIO_BLOCO_TIPOS.find(t=>t.t===b.tipo);
+        let inner = '';
+        if (b.tipo==='texto'){
+          inner = `<input placeholder="Título (opcional)" data-bk="titulo" value="${esc(b.titulo||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;margin-bottom:8px;font-family:inherit;font-size:13px;">
+            <textarea placeholder="Conteúdo do bloco…" data-bk="conteudo" style="width:100%;min-height:100px;padding:10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:13px;line-height:1.5;">${esc(b.conteudo||'')}</textarea>`;
+        } else if (b.tipo==='imagem'){
+          inner = `<input placeholder="URL da imagem" data-bk="url" value="${esc(b.url||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;margin-bottom:8px;font-family:inherit;font-size:13px;">
+            <input placeholder="Legenda (opcional)" data-bk="legenda" value="${esc(b.legenda||'')}" style="width:100%;padding:8px 10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:13px;">`;
+        } else if (b.tipo==='chamada'){
+          inner = `<textarea placeholder="Texto de destaque (uma frase forte)" data-bk="texto" style="width:100%;min-height:70px;padding:10px;border:1px solid #E4E9EF;border-radius:6px;font-family:inherit;font-size:15px;font-weight:600;line-height:1.4;">${esc(b.texto||'')}</textarea>`;
+        } else if (b.tipo==='divisor'){
+          inner = `<div style="color:#9CA3AF;font-size:12px;">Divisor visual — sem conteúdo.</div>`;
+        }
+        return `<div class="cbk-card" style="margin:0 0 10px;padding:14px 16px;" data-idx="${i}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="background:#EEF5F8;color:var(--cb-navy);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;text-transform:uppercase;">${bt?.icon} ${bt?.lbl||b.tipo}</span>
+            <span style="margin-left:auto;display:flex;gap:4px;">
+              <button data-mv="-1" title="Subir" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↑</button>
+              <button data-mv="1" title="Descer" style="border:1px solid #E4E9EF;background:#fff;padding:3px 8px;border-radius:5px;cursor:pointer;">↓</button>
+              <button data-rm="1" title="Remover" style="border:1px solid #FCA5A5;background:#FEE2E2;color:#991B1B;padding:3px 8px;border-radius:5px;cursor:pointer;">✕</button>
+            </span>
+          </div>
+          ${inner}
+        </div>`;
+      }).join('');
+      // eventos
+      box.querySelectorAll('[data-idx]').forEach(bloco => {
+        const idx = parseInt(bloco.dataset.idx, 10);
+        bloco.querySelectorAll('[data-bk]').forEach(inp => inp.addEventListener('input', () => { state.blocos[idx][inp.dataset.bk] = inp.value; }));
+        bloco.querySelector('[data-rm]').addEventListener('click', () => { state.blocos.splice(idx, 1); renderBlocos(); });
+        bloco.querySelector('[data-mv="-1"]').addEventListener('click', () => { if (idx>0){ const t=state.blocos[idx]; state.blocos[idx]=state.blocos[idx-1]; state.blocos[idx-1]=t; renderBlocos(); } });
+        bloco.querySelector('[data-mv="1"]').addEventListener('click', () => { if (idx<state.blocos.length-1){ const t=state.blocos[idx]; state.blocos[idx]=state.blocos[idx+1]; state.blocos[idx+1]=t; renderBlocos(); } });
+      });
+    }
+    renderBlocos();
+
+    document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => {
+      const t = b.dataset.add;
+      const novo = { tipo:t };
+      if (t==='texto') { novo.titulo=''; novo.conteudo=''; }
+      if (t==='imagem') { novo.url=''; novo.legenda=''; }
+      if (t==='chamada') { novo.texto=''; }
+      state.blocos.push(novo);
+      renderBlocos();
+    }));
+
     document.getElementById('dia-save').addEventListener('click', async () => {
-      const bu = document.getElementById('dia-bu').value;
+      const btn = document.getElementById('dia-save'); btn.disabled=true; btn.textContent='Salvando…';
       const titulo = document.getElementById('dia-titulo').value.trim();
-      const texto = document.getElementById('dia-texto').value.trim();
-      const tema = document.getElementById('dia-tema').value.trim() || null;
-      if (!titulo){ toast('Título é obrigatório','err'); return; }
-      const payload = { bu:bu||null, titulo, texto, tema, updated_at:new Date().toISOString() };
+      if (!titulo){ toast('Título é obrigatório','err'); btn.disabled=false; btn.textContent=isNew?'Publicar edição':'Salvar edição'; return; }
+      const payload = {
+        bu: document.getElementById('dia-bu').value || null,
+        titulo,
+        subtitulo: document.getElementById('dia-sub').value.trim() || null,
+        tema: document.getElementById('dia-tema').value.trim() || null,
+        numero_edicao: parseInt(document.getElementById('dia-num').value, 10) || null,
+        capa_url: document.getElementById('dia-capa').value.trim() || null,
+        blocos: state.blocos,
+        updated_at: new Date().toISOString(),
+      };
       let res;
       if (isNew){
         payload.autor_email = email();
@@ -9172,14 +9285,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       } else {
         res = await sb.from('cb_diario_entries').update(payload).eq('id', post.id).select().single();
       }
-      if (res.error){ toast('Erro: '+res.error.message,'err'); return; }
-      toast(isNew?'Post publicado':'Post atualizado');
+      if (res.error){ toast('Erro: '+res.error.message,'err'); btn.disabled=false; btn.textContent=isNew?'Publicar edição':'Salvar edição'; return; }
+      toast(isNew?'Edição publicada':'Edição salva');
       closeModal(); loadDiario(); refreshDiarioTemas();
     });
     document.getElementById('dia-del')?.addEventListener('click', async () => {
-      if (!confirm('Excluir esse post?')) return;
+      if (!confirm('Excluir esta edição inteira?')) return;
       await sb.from('cb_diario_entries').delete().eq('id', post.id);
-      toast('Post excluído'); closeModal(); loadDiario();
+      toast('Edição excluída'); closeModal(); loadDiario();
     });
   }
 
