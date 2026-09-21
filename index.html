@@ -8716,8 +8716,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   .nl-edit-topbar .autosave.show{ opacity:1; }
   .nl-edit-body{ flex:1; overflow:hidden; display:grid; grid-template-columns:340px 1fr; }
   .nl-edit-side{ background:#FAFBFC; border-right:1px solid #E4E9EF; overflow-y:auto; padding:16px; }
-  .nl-edit-canvas{ overflow-y:auto; background:#F0F3F7; padding:24px; }
-  .nl-edit-page{ background:#FFFFFF; border-radius:12px; box-shadow:0 2px 10px rgba(15,32,55,.06); max-width:820px; margin:0 auto; padding:36px 48px; min-height:500px; }
+  .nl-edit-canvas{ overflow-y:auto; background:#F0F3F7; padding:20px; display:flex; flex-direction:column; gap:16px; align-items:center; }
+  .nl-cola-bar{ width:100%; max-width:1080px; background:linear-gradient(135deg,#F3E8FF,#EEF5F8); border:2px dashed #8CB7C9; border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:12px; }
+  .nl-cola-bar button{ margin-left:auto; }
+  .nl-cola-bar .desc{ font-size:12.5px; color:var(--cb-navy); }
+  .nl-cola-bar .desc strong{ font-family:'Space Grotesk',sans-serif; font-size:14px; display:block; margin-bottom:2px; }
+  .nl-w-toggle{ display:flex; gap:4px; background:#fff; padding:3px; border-radius:8px; border:1px solid #E4E9EF; }
+  .nl-w-toggle button{ padding:4px 10px; border:none; background:transparent; border-radius:5px; cursor:pointer; font-family:inherit; font-size:11px; color:#6B7280; font-weight:600; }
+  .nl-w-toggle button.active{ background:var(--cb-navy); color:#fff; }
+  .nl-edit-page{ background:#FFFFFF; border-radius:12px; box-shadow:0 2px 10px rgba(15,32,55,.06); max-width:1080px; margin:0 auto; padding:44px 56px; min-height:500px; }
+  .nl-edit-page.w-mobile{ max-width:420px; }
+  .nl-edit-page.w-notebook{ max-width:1080px; }
+  .nl-edit-page.w-full{ max-width:1400px; }
   .nl-edit-page .nl-materia{ position:relative; padding:28px 0; }
   .nl-edit-page .nl-materia .mv-grip{ position:absolute; top:14px; left:-32px; width:24px; height:24px; background:#E4E9EF; color:#6B7280; border:none; border-radius:6px; cursor:grab; font-size:14px; font-weight:700; opacity:0; transition:opacity .15s; }
   .nl-edit-page .nl-materia:hover .mv-grip{ opacity:1; }
@@ -9355,11 +9365,16 @@ document.addEventListener('DOMContentLoaded',()=>{
     v.id = 'vDiarioeditor';
     v.innerHTML = `
       <div class="nl-edit-topbar">
-        <button class="cbk-btn cbk-btn-ghost" id="ed-back">← Voltar ao Diário</button>
+        <button class="cbk-btn cbk-btn-ghost" id="ed-back">← Voltar</button>
         <span class="brand">${isNew?'Nova edição':`Editar edição ${post.numero_edicao||''}`}</span>
+        <div class="nl-w-toggle" style="margin-left:14px;">
+          <button data-w="w-mobile" title="Celular">📱</button>
+          <button data-w="w-notebook" class="active" title="Notebook">💻</button>
+          <button data-w="w-full" title="Full">🖥</button>
+        </div>
         <span class="autosave" id="ed-autosave">✓ rascunho salvo</span>
         <button class="cbk-btn cbk-btn-ghost" id="ed-html">&lt;/&gt; Ver HTML</button>
-        <button class="cbk-btn cbk-btn-primary" id="ed-save">${isNew?'Publicar edição':'Salvar edição'}</button>
+        <button class="cbk-btn cbk-btn-primary" id="ed-save">${isNew?'Publicar':'Salvar'}</button>
       </div>
       <div class="nl-edit-body">
         <div class="nl-edit-side">
@@ -9375,8 +9390,6 @@ document.addEventListener('DOMContentLoaded',()=>{
           <div style="display:flex;flex-wrap:wrap;gap:5px;">
             ${NEWS_CATEGORIAS.map(c=>`<button data-add-cat="${c.k}" style="background:${c.bg};color:${c.cor};border:none;padding:5px 9px;border-radius:99px;font-family:inherit;font-size:10.5px;font-weight:700;cursor:pointer;">${c.lbl}</button>`).join('')}
           </div>
-
-          <button class="cbk-btn cbk-btn-ghost" id="ed-cola" style="width:100%;margin-top:14px;">📥 Colar bruto — IA distribui</button>
 
           <div style="font-size:11px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin:20px 0 8px;">Matéria selecionada</div>
           <div id="ed-materia-props" style="font-size:12px;color:#6B7280;">Clique numa matéria à direita pra editar categoria/layout/imagens.</div>
@@ -9455,13 +9468,24 @@ document.addEventListener('DOMContentLoaded',()=>{
         <div class="cbk-field" style="margin-top:12px;"><label>Adicionar imagem (URL)</label>
           <div style="display:flex;gap:6px;"><input id="ms-img" style="flex:1;"><button class="cbk-btn cbk-btn-primary" id="ms-img-add" style="font-size:11px;padding:6px 12px;">+</button></div>
         </div>
-        <div class="nl-img-thumbs" id="ms-thumbs">${imgs.map((u,j)=>`<div class="nl-img-thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>`;
+        <div class="nl-img-thumbs" id="ms-thumbs">${imgs.map((u,j)=>`<div class="nl-img-thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #E4E9EF;">
+          <div style="font-size:10.5px;color:#6B7280;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;">Estilo do bloco</div>
+          <div class="cbk-row" style="grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="cbk-field"><label>Cor de fundo</label><input type="color" id="ms-bg" value="${esc(m.bg||'#ffffff')}" style="height:34px;padding:2px;width:100%;"></div>
+            <div class="cbk-field"><label>Espaço vertical (px)</label><input type="number" id="ms-pady" value="${m.padY||28}" min="0" max="120"></div>
+          </div>
+          <button class="cbk-btn cbk-btn-ghost" id="ms-bg-clear" style="width:100%;font-size:11px;">↺ Limpar fundo</button>
+        </div>`;
       document.getElementById('ms-cat').addEventListener('change', (e) => { m.categoria = e.target.value; renderCanvas(); selectMateria(idx); autosave(); });
       document.getElementById('ms-layout').addEventListener('change', (e) => { m.layout = e.target.value; renderCanvas(); autosave(); });
       document.getElementById('ms-ia-layout').addEventListener('click', () => { m.layout = sugerirLayout(imgs); renderCanvas(); selectMateria(idx); autosave(); });
       document.getElementById('ms-ia-revisar').addEventListener('click', () => revisarMateriaIA(idx));
       document.getElementById('ms-img-add').addEventListener('click', () => { const u = document.getElementById('ms-img').value.trim(); if (u){ (m.imagens=m.imagens||[]).push(u); renderCanvas(); selectMateria(idx); autosave(); } });
       document.querySelectorAll('#ms-thumbs [data-rm-img]').forEach(b => b.addEventListener('click', () => { m.imagens.splice(parseInt(b.dataset.rmImg,10),1); renderCanvas(); selectMateria(idx); autosave(); }));
+      document.getElementById('ms-bg').addEventListener('input', (e) => { m.bg = e.target.value; renderCanvas(); autosave(); });
+      document.getElementById('ms-pady').addEventListener('input', (e) => { m.padY = parseInt(e.target.value, 10); renderCanvas(); autosave(); });
+      document.getElementById('ms-bg-clear').addEventListener('click', () => { delete m.bg; renderCanvas(); selectMateria(idx); autosave(); });
     }
 
     function syncFromDom(){
@@ -9478,6 +9502,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       autosave();
     }
 
+    let currentWidth = 'w-notebook';
     function renderCanvas(){
       const canvas = document.getElementById('ed-canvas');
       const capa = document.getElementById('ed-capa').value.trim();
@@ -9485,14 +9510,26 @@ document.addEventListener('DOMContentLoaded',()=>{
       const sub = document.getElementById('ed-sub').value;
       const num = document.getElementById('ed-num').value;
       const capaStyle = capa ? `background-image:url('${esc(capa)}');background-size:cover;background-position:center;` : 'background:linear-gradient(135deg,#0F2037,#8CB7C9);';
-      canvas.innerHTML = `<div class="nl-edit-page">
+      canvas.innerHTML = `
+      <div class="nl-cola-bar">
+        <div class="desc"><strong>✨ IA autopreenchimento</strong>Cole texto bruto ou uma pauta. A IA distribui em matérias, sugere categorias e revisa sem inventar.</div>
+        <button class="cbk-btn cbk-btn-primary" id="ed-cola">📥 Colar conteúdo bruto</button>
+      </div>
+      <div class="nl-edit-page ${currentWidth}">
         <div style="${capaStyle}padding:36px;border-radius:10px;color:#fff;margin-bottom:24px;">
           <div style="background:rgba(15,32,55,.9);display:inline-block;padding:4px 12px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Edição ${esc(num||'?')}</div>
           <div style="font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;line-height:1.15;text-shadow:0 2px 6px rgba(0,0,0,.3);">${esc(titulo||'(sem título)')}</div>
           ${sub?`<div style="font-size:14px;margin-top:6px;color:#EEF5F8;">${esc(sub)}</div>`:''}
         </div>
-        ${state.materias.length ? state.materias.map((m, i) => `<div style="position:relative;">${renderMateriaHTML(m).replace(/^<div class="nl-materia/, `<div class="nl-materia" data-mi="${i}"`)}<button class="mv-grip" data-drag-idx="${i}" draggable="true" title="Arraste pra reordenar">⋮⋮</button><button class="mv-del" data-del-idx="${i}" title="Excluir">✕</button></div>`).join('') : '<div class="cbk-empty" style="margin:30px 0;">Sem matérias — adicione uma pela lateral esquerda.</div>'}
+        ${state.materias.length ? state.materias.map((m, i) => {
+          const bg = m.bg || '';
+          const py = m.padY || '';
+          const wrap = `style="position:relative;${bg?`background:${esc(bg)};`:''}${py?`padding:${esc(py)}px 0;`:''}"`;
+          return `<div ${wrap}>${renderMateriaHTML(m).replace(/^<div class="nl-materia/, `<div class="nl-materia" data-mi="${i}"`)}<button class="mv-grip" data-drag-idx="${i}" draggable="true" title="Arraste pra reordenar">⋮⋮</button><button class="mv-del" data-del-idx="${i}" title="Excluir">✕</button></div>`;
+        }).join('') : '<div class="cbk-empty" style="margin:30px 0;">Sem matérias — clique numa categoria na lateral esquerda pra adicionar a primeira.</div>'}
       </div>`;
+      // rebind cola bar
+      document.getElementById('ed-cola').addEventListener('click', colarBrutoIA);
       // Faz título/texto editáveis
       canvas.querySelectorAll('.nl-materia').forEach((el, i) => {
         const t = el.querySelector('.nl-titulo'); if (t){ t.setAttribute('contenteditable','true'); t.addEventListener('input', syncFromDom); t.addEventListener('focus', () => currentEditable = t); }
@@ -9541,8 +9578,13 @@ document.addEventListener('DOMContentLoaded',()=>{
       renderCanvas(); autosave(); selectMateria(state.materias.length-1);
     }));
 
-    document.getElementById('ed-cola').addEventListener('click', colarBrutoIA);
     document.getElementById('ed-back').addEventListener('click', () => { window.setView('diario'); });
+    document.querySelectorAll('.nl-w-toggle [data-w]').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('.nl-w-toggle [data-w]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      currentWidth = b.dataset.w;
+      const page = document.querySelector('.nl-edit-page'); if (page){ page.classList.remove('w-mobile','w-notebook','w-full'); page.classList.add(currentWidth); }
+    }));
     document.getElementById('ed-html').addEventListener('click', () => {
       const capa = state.capa_url || '';
       const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(state.titulo||'Newsletter')}</title><style>body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;padding:20px;color:#374151;}${document.querySelector('#cb-onda-k-style, style').innerHTML.split('/* Newsletter')[1]||''}</style></head><body>${renderMateriaHTML ? state.materias.map(renderMateriaHTML).join('') : ''}</body></html>`;
