@@ -10972,36 +10972,23 @@ document.addEventListener('DOMContentLoaded',()=>{
   ensureSB();
 
   // -------------------------------------------------------------------------
-  // 1) Remove "Cadência" do menu Plano (defensivo)
+  // 1) Remove "Cadência" do menu Plano (interval — mais confiável que Observer)
   // -------------------------------------------------------------------------
   function removerCadencia(){
     try {
       if (window.CB_GROUPS?.plano?.views){
-        const before = window.CB_GROUPS.plano.views.length;
         window.CB_GROUPS.plano.views = window.CB_GROUPS.plano.views.filter(v => v.view !== 'cadencia');
       }
     } catch(e){}
     document.querySelectorAll('[data-view="cadencia"]').forEach(el => {
-      // só remove se for realmente um botão de menu (não o botão .cb-rail-btn ou algo diferente)
-      if (el.tagName === 'BUTTON' && (el.classList.contains('cb-i-item') || el.classList.contains('cb-acc-btn'))){
-        el.remove();
-      }
+      // só remove botões de menu (não o próprio ícone do rail se algum dia tiver)
+      if (el.tagName === 'BUTTON') el.remove();
     });
   }
-  let mCad = null;
-  function watchMenu(){
-    const nav = $('#cb-ctx-nav');
-    if (!nav){ setTimeout(watchMenu, 400); return; }
-    if (mCad) mCad.disconnect();
-    mCad = new MutationObserver(() => {
-      // debounce leve pra não competir com render
-      if (watchMenu._t) clearTimeout(watchMenu._t);
-      watchMenu._t = setTimeout(removerCadencia, 30);
-    });
-    mCad.observe(nav, { childList:true, subtree:true });
-    removerCadencia();
-  }
-  watchMenu();
+  // interval simples — o overhead é mínimo (1 querySelectorAll a cada 300ms)
+  removerCadencia();
+  window.__cbCadInterval && clearInterval(window.__cbCadInterval);
+  window.__cbCadInterval = setInterval(removerCadencia, 300);
 
   // -------------------------------------------------------------------------
   // 2) Campo Gênero no modal Perfil
