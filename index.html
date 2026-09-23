@@ -10991,6 +10991,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.__cbCadInterval = setInterval(removerCadencia, 300);
 
   // -------------------------------------------------------------------------
+  // 1.5) Home como página padrão ao abrir a plataforma
+  // -------------------------------------------------------------------------
+  function bootHomeDefault(){
+    // só faz uma vez por sessão
+    if (window.__cbHomeBooted) return;
+    // aguarda auth resolver
+    if (!window._cbCurrentEmail){ setTimeout(bootHomeDefault, 500); return; }
+    // aguarda showHome existir e setView já wrapado
+    if (typeof showHome !== 'function' || !window.setView?.__cbHomeM){ setTimeout(bootHomeDefault, 400); return; }
+    window.__cbHomeBooted = true;
+    setTimeout(() => showHome(), 300);
+  }
+  setTimeout(bootHomeDefault, 1500);
+
+  // -------------------------------------------------------------------------
   // 2) Campo Gênero no modal Perfil
   // -------------------------------------------------------------------------
   const GENEROS = [
@@ -11216,15 +11231,6 @@ document.addEventListener('DOMContentLoaded',()=>{
             : abertas.map(winRow).join('') + concluidas.map(winRow).join('')}
         </div>
 
-        <div class="hm-card" style="padding:14px 20px;">
-          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-            <a href="#" data-act="goto-gantt" style="color:#1A3C6E;font-size:12.5px;font-weight:600;text-decoration:none;">→ Ir pro Gantt</a>
-            <span style="color:#C6D2E0;">|</span>
-            <a href="#" data-act="goto-diario" style="color:#1A3C6E;font-size:12.5px;font-weight:600;text-decoration:none;">→ Diário de Bordo</a>
-            <span style="color:#C6D2E0;">|</span>
-            <a href="#" data-act="goto-nutricao" style="color:#1A3C6E;font-size:12.5px;font-weight:600;text-decoration:none;">→ Nutrição de Conteúdos</a>
-          </div>
-        </div>
       </div>
     `;
     // eventos
@@ -11238,9 +11244,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       row.querySelector('[data-act="toggle"]').addEventListener('click', () => toggleConcluida(id));
       row.querySelector('[data-act="del"]').addEventListener('click', () => excluirWin(id));
     });
-    view.querySelector('[data-act="goto-gantt"]')?.addEventListener('click', e => { e.preventDefault(); window.setView?.('gantt'); });
-    view.querySelector('[data-act="goto-diario"]')?.addEventListener('click', e => { e.preventDefault(); window.setView?.('diario'); });
-    view.querySelector('[data-act="goto-nutricao"]')?.addEventListener('click', e => { e.preventDefault(); window.setView?.('nutricao'); });
   }
 
   function ensureHomeView(){
