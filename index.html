@@ -10928,10 +10928,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cb-priority-btn.is-prio::before{ content:'⭐'; }
   .cb-priority-btn:not(.is-prio)::before{ content:'☆'; }
 
-  /* ---- Perfil: campo Gênero ---- */
-  .cb-profile-genero{ padding:0 24px 16px; }
-  .cb-profile-genero label{ display:block; font-size:11px; font-weight:700; color:#6B7280; letter-spacing:.5px; text-transform:uppercase; margin-bottom:6px; }
-  .cb-profile-genero select{ width:100%; padding:9px 12px; border:1.5px solid #E4E9EF; border-radius:8px; font-size:13px; font-family:'Montserrat',sans-serif; background:#fff; color:#0F2037; cursor:pointer; }
+  /* ---- Perfil: campo Gênero (discreto) ---- */
+  .cb-profile-genero{ padding:6px 24px 12px; }
+  .cb-profile-genero label{ display:block; font-size:9.5px; font-weight:600; color:#9CA3AF; letter-spacing:.4px; text-transform:uppercase; margin-bottom:4px; }
+  .cb-profile-genero select{ width:100%; padding:6px 10px; border:1px solid #EEF1F5; border-radius:6px; font-size:11.5px; font-family:'Montserrat',sans-serif; background:#FAFBFC; color:#6B7280; cursor:pointer; }
 </style>
 
 <script id="cb-onda-m-boot">
@@ -11016,8 +11016,20 @@ document.addEventListener('DOMContentLoaded',()=>{
     { v:'prefiro_nao', l:'Prefiro não informar' },
   ];
   async function injectGenero(mask){
-    if (!mask || mask.querySelector('.cb-profile-genero')) return;
+    if (!mask) return;
     const body = mask.querySelector('.cb-profile-body'); if (!body) return;
+    // remove qualquer duplicata que já exista
+    const existentes = body.querySelectorAll('.cb-profile-genero');
+    if (existentes.length > 1){ for (let i=1;i<existentes.length;i++) existentes[i].remove(); }
+    if (existentes.length >= 1) return; // já tem, não injeta de novo
+    // marca placeholder imediato pra bloquear injeções concorrentes
+    const wrap = document.createElement('div');
+    wrap.className = 'cb-profile-genero';
+    wrap.style.opacity = '.6';
+    wrap.innerHTML = `<label style="font-size:9px;">Gênero (discreto)</label><select id="cb-profile-genero-sel" style="font-size:11px;padding:5px 8px;"><option>—</option></select>`;
+    const actions = body.querySelector('.cb-profile-actions');
+    if (actions) body.insertBefore(wrap, actions); else body.appendChild(wrap);
+    // agora carrega dado async e preenche
     const email = (window._cbCurrentEmail || '').toLowerCase();
     const sb = await ensureSB();
     let atual = '';
@@ -11025,17 +11037,14 @@ document.addEventListener('DOMContentLoaded',()=>{
       if (sb){
         const { data } = await sb.from('cb_users').select('genero').eq('email', email).maybeSingle();
         atual = data?.genero || '';
+        window._cbUserGenero = atual;
       }
     } catch(e){}
-    const wrap = document.createElement('div');
-    wrap.className = 'cb-profile-genero';
-    wrap.innerHTML = `<label>Gênero</label>
+    wrap.innerHTML = `<label>Gênero <span style="opacity:.55;font-weight:400;text-transform:none;letter-spacing:0;">(discreto — só afeta como falo com você)</span></label>
       <select id="cb-profile-genero-sel">
         ${GENEROS.map(g=>`<option value="${g.v}"${g.v===atual?' selected':''}>${g.l}</option>`).join('')}
       </select>`;
-    // insere ANTES da .cb-profile-actions
-    const actions = body.querySelector('.cb-profile-actions');
-    if (actions) body.insertBefore(wrap, actions); else body.appendChild(wrap);
+    wrap.style.opacity = '';
     wrap.querySelector('select').addEventListener('change', async (e) => {
       const val = e.target.value;
       try {
@@ -11043,6 +11052,11 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (!sb2){ alert('Supabase não carregado. Recarrega a página.'); return; }
         const { error } = await sb2.from('cb_users').update({ genero: val }).eq('email', email);
         if (error) throw error;
+        window._cbUserGenero = val;
+        // re-render Home pra atualizar saudação
+        if (typeof renderHome === 'function' && document.getElementById('vHome')?.classList.contains('active')){
+          renderHome();
+        }
         if (window.toast) window.toast('Gênero atualizado','ok');
       } catch(err){ alert('Erro ao salvar gênero: '+err.message); }
     });
@@ -11077,7 +11091,28 @@ document.addEventListener('DOMContentLoaded',()=>{
   function fmtBR(d){ return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}); }
   function semanaAtualRef(){ return fmtISO(segundaDe(new Date())); }
 
-  const HOME_STATE = { semanaRef: semanaAtualRef(), wins: [] };
+  const HOME_STATE = { semanaRef: semanaAtualRef(), wins: [], usuarios: [] };
+
+  async function carregarUsuarios(){
+    if (HOME_STATE.usuarios.length) return HOME_STATE.usuarios;
+    const sb = await ensureSB(); if (!sb) return [];
+    try {
+      const { data } = await sb.from('cb_users').select('email,name,role').order('name');
+      HOME_STATE.usuarios = (data||[]).filter(u => u.email && u.role !== 'viewer');
+      return HOME_STATE.usuarios;
+    } catch(e){ return []; }
+  }
+  async function carregarMeuGenero(){
+    if (window._cbUserGenero != null) return window._cbUserGenero;
+    const sb = await ensureSB(); if (!sb) return '';
+    try {
+      const email = (window._cbCurrentEmail || '').toLowerCase();
+      const { data } = await sb.from('cb_users').select('genero,name').eq('email', email).maybeSingle();
+      window._cbUserGenero = data?.genero || '';
+      if (data?.name) window._cbUserName = data.name;
+      return window._cbUserGenero;
+    } catch(e){ return ''; }
+  }
 
   async function carregarWins(){
     const sb = await ensureSB();
@@ -11181,6 +11216,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     const nome = (window._cbUserName || 'Muriel').split(' ')[0];
     const hora = new Date().getHours();
     const saudacao = hora<12?'Bom dia':(hora<18?'Boa tarde':'Boa noite');
+    // saudação neutra ao gênero (Bem-vindo/a); usa preferido do banco quando disponível
+    const gen = window._cbUserGenero || '';
+    const bemvindo = gen==='masculino' ? 'Bem-vindo' : (gen==='feminino' ? 'Bem-vinda' : (gen==='nao_binario' ? 'Bem-vinde' : 'Bem-vindo(a)'));
 
     const winRow = (w) => `
       <div class="hm-win ${w.status==='concluida'?'done':''}" data-id="${w.id}">
@@ -11201,7 +11239,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         <div class="hm-hero">
           <div class="hm-hero-k">Costa Brava · MKT Cockpit 2026</div>
           <h1>${saudacao}, ${esc(nome)} 👋</h1>
-          <p>Wins da semana, prioridades vindas do Gantt e demandas manuais. Marca concluído conforme entrega — o que ficar em aberto rola pra semana seguinte.</p>
+          <p>${bemvindo} de volta ao cockpit. Wins da semana, prioridades vindas do Gantt e demandas manuais. Marca concluído conforme entrega — o que ficar em aberto rola pra semana seguinte.</p>
         </div>
 
         <div class="hm-card">
@@ -11218,8 +11256,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 
           <div class="hm-add-row">
             <input data-hm-titulo type="text" placeholder="Nova demanda pra essa semana…"/>
-            <input data-hm-resp type="text" placeholder="Responsável" style="max-width:160px;"/>
-            <select data-hm-bu>
+            <select data-hm-resp style="max-width:200px;">
+              <option value="">Responsável…</option>
+              ${(HOME_STATE.usuarios||[]).map(u => `<option value="${esc(u.name||u.email)}">${esc(u.name||u.email)}</option>`).join('')}
+            </select>
+            <select data-hm-bu style="max-width:170px;">
               <option value="">Sem BU</option>
               ${Object.entries(BU_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
             </select>
@@ -11264,7 +11305,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     window.currentView = 'home';
     // render loading
     $('#vHome').innerHTML = '<div class="hm-wrap"><div class="hm-empty">Carregando Wins da Semana…</div></div>';
-    await carregarWins();
+    // paralelo: usuários + gênero + wins
+    await Promise.all([ carregarUsuarios(), carregarMeuGenero(), carregarWins() ]);
     renderHome();
   }
 
