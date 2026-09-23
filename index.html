@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Costa Brava · Cockpit MKT 2026</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 80'%3E%3Crect x='10' y='20' width='60' height='42' rx='6' ry='6' fill='none' stroke='%238CB7C9' stroke-width='7'/%3E%3Crect x='32' y='10' width='60' height='42' rx='6' ry='6' fill='none' stroke='%230F2037' stroke-width='7'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10937,23 +10940,65 @@ document.addEventListener('DOMContentLoaded',()=>{
   const $$ = s => document.querySelectorAll(s);
 
   // -------------------------------------------------------------------------
-  // 1) Remove "Cadência" do menu Plano
+  // 0) Garante cliente Supabase próprio (sb da app é const local)
+  // -------------------------------------------------------------------------
+  function getConfig(){
+    // procura URL/ANON_KEY no HTML da própria página
+    const html = document.documentElement.outerHTML;
+    const u = html.match(/URL\s*[:=]\s*['"]([^'"]+\.supabase\.co)['"]/);
+    const k = html.match(/ANON_KEY\s*[:=]\s*['"](eyJ[^'"]+)['"]/);
+    return { url: u?.[1], key: k?.[1] };
+  }
+  async function ensureSB(){
+    if (window.sb?.from) return window.sb;
+    if (!window.supabase?.createClient){
+      // espera lib carregar
+      for (let i=0;i<40;i++){
+        await new Promise(r=>setTimeout(r,250));
+        if (window.supabase?.createClient) break;
+      }
+    }
+    if (!window.supabase?.createClient) return null;
+    const { url, key } = getConfig();
+    if (!url || !key) return null;
+    try {
+      window.sb = window.supabase.createClient(url, key, { auth:{ persistSession:true, autoRefreshToken:true, storageKey:'sb-cxlwkqsxzozfarrmqrfd-auth-token' } });
+      // dá tempo pra hidratar sessão do localStorage
+      await new Promise(r=>setTimeout(r,300));
+      return window.sb;
+    } catch(e){ console.error('[Onda M] createClient', e); return null; }
+  }
+  // dispara logo mas não bloqueia
+  ensureSB();
+
+  // -------------------------------------------------------------------------
+  // 1) Remove "Cadência" do menu Plano (defensivo)
   // -------------------------------------------------------------------------
   function removerCadencia(){
-    // A: hijack CB_GROUPS.plano.views
     try {
       if (window.CB_GROUPS?.plano?.views){
+        const before = window.CB_GROUPS.plano.views.length;
         window.CB_GROUPS.plano.views = window.CB_GROUPS.plano.views.filter(v => v.view !== 'cadencia');
       }
     } catch(e){}
-    // B: remove do DOM sempre que aparecer
-    $$('#cb-ctx-nav [data-view="cadencia"], .cb-i-item[data-view="cadencia"], .cb-acc [data-view="cadencia"]').forEach(el => el.remove());
+    document.querySelectorAll('[data-view="cadencia"]').forEach(el => {
+      // só remove se for realmente um botão de menu (não o botão .cb-rail-btn ou algo diferente)
+      if (el.tagName === 'BUTTON' && (el.classList.contains('cb-i-item') || el.classList.contains('cb-acc-btn'))){
+        el.remove();
+      }
+    });
   }
-  // MutationObserver no #cb-ctx-nav (o menu se redesenha a cada troca de grupo)
+  let mCad = null;
   function watchMenu(){
     const nav = $('#cb-ctx-nav');
     if (!nav){ setTimeout(watchMenu, 400); return; }
-    new MutationObserver(removerCadencia).observe(nav, { childList:true, subtree:true });
+    if (mCad) mCad.disconnect();
+    mCad = new MutationObserver(() => {
+      // debounce leve pra não competir com render
+      if (watchMenu._t) clearTimeout(watchMenu._t);
+      watchMenu._t = setTimeout(removerCadencia, 30);
+    });
+    mCad.observe(nav, { childList:true, subtree:true });
     removerCadencia();
   }
   watchMenu();
@@ -10972,10 +11017,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     if (!mask || mask.querySelector('.cb-profile-genero')) return;
     const body = mask.querySelector('.cb-profile-body'); if (!body) return;
     const email = (window._cbCurrentEmail || '').toLowerCase();
+    const sb = await ensureSB();
     let atual = '';
     try {
-      const { data } = await window.sb.from('cb_users').select('genero').eq('email', email).maybeSingle();
-      atual = data?.genero || '';
+      if (sb){
+        const { data } = await sb.from('cb_users').select('genero').eq('email', email).maybeSingle();
+        atual = data?.genero || '';
+      }
     } catch(e){}
     const wrap = document.createElement('div');
     wrap.className = 'cb-profile-genero';
@@ -10989,7 +11037,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     wrap.querySelector('select').addEventListener('change', async (e) => {
       const val = e.target.value;
       try {
-        await window.sb.from('cb_users').update({ genero: val }).eq('email', email);
+        const sb2 = await ensureSB();
+        if (!sb2){ alert('Supabase não carregado. Recarrega a página.'); return; }
+        const { error } = await sb2.from('cb_users').update({ genero: val }).eq('email', email);
+        if (error) throw error;
         if (window.toast) window.toast('Gênero atualizado','ok');
       } catch(err){ alert('Erro ao salvar gênero: '+err.message); }
     });
@@ -11027,51 +11078,59 @@ document.addEventListener('DOMContentLoaded',()=>{
   const HOME_STATE = { semanaRef: semanaAtualRef(), wins: [] };
 
   async function carregarWins(){
-    const { data, error } = await window.sb.from('cb_wins_semana')
-      .select('*').eq('semana_ref', HOME_STATE.semanaRef).order('ordem').order('created_at');
-    if (error){ console.error('[wins]', error); HOME_STATE.wins = []; return; }
-    HOME_STATE.wins = data || [];
-    // roll-forward: se estamos na semana atual, importa não-concluídas da semana anterior que ainda não foram carregadas
-    if (HOME_STATE.semanaRef === semanaAtualRef()){
-      await rolarAnterior();
-    }
+    const sb = await ensureSB();
+    if (!sb){ HOME_STATE.wins = []; HOME_STATE.err = 'Supabase não conectado'; return; }
+    try {
+      const { data, error } = await sb.from('cb_wins_semana')
+        .select('*').eq('semana_ref', HOME_STATE.semanaRef).order('ordem').order('created_at');
+      if (error){ console.error('[wins]', error); HOME_STATE.wins = []; HOME_STATE.err = error.message; return; }
+      HOME_STATE.wins = data || [];
+      HOME_STATE.err = null;
+      if (HOME_STATE.semanaRef === semanaAtualRef()){
+        await rolarAnterior();
+      }
+    } catch(e){ HOME_STATE.wins = []; HOME_STATE.err = e.message; }
   }
   async function rolarAnterior(){
+    const sb = await ensureSB(); if (!sb) return;
     const semAnt = new Date(HOME_STATE.semanaRef); semAnt.setDate(semAnt.getDate()-7);
     const semAntRef = fmtISO(semAnt);
-    const { data: pend } = await window.sb.from('cb_wins_semana')
-      .select('*').eq('semana_ref', semAntRef).neq('status','concluida');
-    if (!pend?.length) return;
-    // filtra as que já foram carregadas para semana atual (evita duplicar)
-    const jaCarregados = new Set(HOME_STATE.wins.map(w => w.source_task_id || w.titulo));
-    const paraRolar = pend.filter(p => !jaCarregados.has(p.source_task_id || p.titulo));
-    if (!paraRolar.length) return;
-    const novos = paraRolar.map(p => ({
-      semana_ref: HOME_STATE.semanaRef,
-      titulo: p.titulo, descricao: p.descricao, responsavel: p.responsavel,
-      bu: p.bu, origem: (p.origem?p.origem+' · rolada':'rolada da semana anterior'),
-      source_task_id: p.source_task_id,
-      status: 'aberta',
-      created_by: (window._cbCurrentEmail||'').toLowerCase(),
-    }));
-    const { data: ins } = await window.sb.from('cb_wins_semana').insert(novos).select();
-    if (ins?.length) HOME_STATE.wins.push(...ins);
+    try {
+      const { data: pend } = await sb.from('cb_wins_semana')
+        .select('*').eq('semana_ref', semAntRef).neq('status','concluida');
+      if (!pend?.length) return;
+      const jaCarregados = new Set(HOME_STATE.wins.map(w => w.source_task_id || w.titulo));
+      const paraRolar = pend.filter(p => !jaCarregados.has(p.source_task_id || p.titulo));
+      if (!paraRolar.length) return;
+      const novos = paraRolar.map(p => ({
+        semana_ref: HOME_STATE.semanaRef,
+        titulo: p.titulo, descricao: p.descricao, responsavel: p.responsavel,
+        bu: p.bu, origem: (p.origem?p.origem+' · rolada':'rolada da semana anterior'),
+        source_task_id: p.source_task_id,
+        status: 'aberta',
+        created_by: (window._cbCurrentEmail||'').toLowerCase(),
+      }));
+      const { data: ins } = await sb.from('cb_wins_semana').insert(novos).select();
+      if (ins?.length) HOME_STATE.wins.push(...ins);
+    } catch(e){ console.error('[rolar]', e); }
   }
 
   async function toggleConcluida(id){
+    const sb = await ensureSB(); if (!sb) return;
     const w = HOME_STATE.wins.find(x=>x.id===id); if (!w) return;
     const novoStatus = w.status==='concluida' ? 'aberta' : 'concluida';
     const patch = novoStatus==='concluida'
       ? { status:'concluida', concluida_em:new Date().toISOString(), concluida_por:(window._cbCurrentEmail||'').toLowerCase() }
       : { status:'aberta', concluida_em:null, concluida_por:null };
-    const { error } = await window.sb.from('cb_wins_semana').update(patch).eq('id',id);
+    const { error } = await sb.from('cb_wins_semana').update(patch).eq('id',id);
     if (error){ alert('Erro: '+error.message); return; }
     Object.assign(w, patch);
     renderHome();
   }
   async function excluirWin(id){
     if (!confirm('Remover essa Win da Semana?')) return;
-    const { error } = await window.sb.from('cb_wins_semana').delete().eq('id',id);
+    const sb = await ensureSB(); if (!sb) return;
+    const { error } = await sb.from('cb_wins_semana').delete().eq('id',id);
     if (error){ alert('Erro: '+error.message); return; }
     HOME_STATE.wins = HOME_STATE.wins.filter(w=>w.id!==id);
     renderHome();
@@ -11082,6 +11141,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     const responsavel = view.querySelector('[data-hm-resp]')?.value.trim();
     const bu = view.querySelector('[data-hm-bu]')?.value || '';
     if (!titulo){ alert('Escreva o título da demanda.'); return; }
+    const sb = await ensureSB();
+    if (!sb){ alert('Supabase não conectado. Recarrega a página.'); return; }
     const row = {
       semana_ref: HOME_STATE.semanaRef,
       titulo, responsavel, bu,
@@ -11089,7 +11150,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       status: 'aberta',
       created_by: (window._cbCurrentEmail||'').toLowerCase(),
     };
-    const { data, error } = await window.sb.from('cb_wins_semana').insert(row).select().single();
+    const { data, error } = await sb.from('cb_wins_semana').insert(row).select().single();
     if (error){ alert('Erro: '+error.message); return; }
     HOME_STATE.wins.push(data);
     renderHome();
@@ -11246,19 +11307,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   // -------------------------------------------------------------------------
   async function isTarefaPrioridade(taskId){
     if (!taskId) return null;
-    const { data } = await window.sb.from('cb_wins_semana')
-      .select('id,status').eq('semana_ref', semanaAtualRef()).eq('source_task_id', taskId)
-      .neq('status','concluida').maybeSingle();
-    return data;
+    const sb = await ensureSB(); if (!sb) return null;
+    try {
+      const { data } = await sb.from('cb_wins_semana')
+        .select('id,status').eq('semana_ref', semanaAtualRef()).eq('source_task_id', String(taskId))
+        .neq('status','concluida').maybeSingle();
+      return data;
+    } catch(e){ return null; }
   }
   async function toggleTarefaPrioridade(task){
-    const taskId = task.id || task.n; // fallback pro nome se não tiver id
+    const sb = await ensureSB();
+    if (!sb){ alert('Supabase não conectado.'); return; }
+    const taskId = String(task.id || task.n);
     const existing = await isTarefaPrioridade(taskId);
     if (existing){
-      await window.sb.from('cb_wins_semana').delete().eq('id', existing.id);
+      await sb.from('cb_wins_semana').delete().eq('id', existing.id);
       window.toast?.('Removido das Wins da Semana','ok');
     } else {
-      await window.sb.from('cb_wins_semana').insert({
+      await sb.from('cb_wins_semana').insert({
         semana_ref: semanaAtualRef(),
         titulo: task.n || 'Tarefa do Gantt',
         responsavel: task.o || '',
@@ -11270,7 +11336,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       });
       window.toast?.('Adicionado às Wins da Semana ⭐','ok');
     }
-    // re-render botão
     injectPriorityBtn(task);
   }
   async function injectPriorityBtn(task){
