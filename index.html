@@ -10871,5 +10871,495 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     ONDA M — Home + Wins da Semana + Gênero + Gantt filtro/prioridade
+     ═══════════════════════════════════════════════════════════ -->
+<style id="cb-onda-m-style">
+  /* ---- View Home ---- */
+  #vHome{ overflow-y:auto; background:#F7F8FA; padding:32px 40px; }
+  .hm-wrap{ max-width:1180px; margin:0 auto; font-family:'Montserrat',sans-serif; }
+  .hm-hero{ background:linear-gradient(135deg,#0F2037 0%,#1A3C6E 100%); color:#fff; border-radius:18px; padding:28px 32px; margin-bottom:22px; box-shadow:0 8px 28px rgba(15,32,55,.15); }
+  .hm-hero-k{ font-size:11.5px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#8CB7C9; margin-bottom:6px; }
+  .hm-hero h1{ margin:0 0 6px; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:26px; font-weight:700; letter-spacing:-0.4px; }
+  .hm-hero p{ margin:0; opacity:.85; font-size:13.5px; line-height:1.55; }
+  .hm-card{ background:#fff; border:1px solid #E4E9EF; border-radius:14px; padding:22px 24px; margin-bottom:18px; box-shadow:0 2px 6px rgba(15,32,55,.04); }
+  .hm-card-head{ display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+  .hm-card-head h2{ margin:0; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:17px; font-weight:700; color:#0F2037; }
+  .hm-week-nav{ margin-left:auto; display:flex; align-items:center; gap:6px; }
+  .hm-week-nav button{ width:28px; height:28px; border-radius:7px; border:1px solid #E4E9EF; background:#fff; cursor:pointer; font-size:14px; color:#0F2037; }
+  .hm-week-nav button:hover{ background:#F0F3F7; }
+  .hm-week-lbl{ font-size:12.5px; font-weight:700; color:#0F2037; padding:0 6px; }
+  .hm-count-pill{ background:#EBF4F8; color:#0F2037; padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:700; }
+  .hm-add-row{ display:flex; gap:8px; align-items:center; padding:10px; background:#F7F8FA; border:1px dashed #C6D2E0; border-radius:10px; margin-bottom:14px; }
+  .hm-add-row input, .hm-add-row select{ flex:1; padding:9px 11px; border:1px solid #D6DDE6; border-radius:8px; font-size:13px; font-family:inherit; background:#fff; }
+  .hm-add-row input[data-hm-titulo]{ flex:3; }
+  .hm-add-row button{ padding:9px 18px; background:#0F2037; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; }
+  .hm-add-row button:hover{ background:#1A3C6E; }
+  .hm-win{ display:flex; align-items:flex-start; gap:12px; padding:14px 12px; border-bottom:1px solid #F0F3F7; transition:background .12s; }
+  .hm-win:last-child{ border-bottom:none; }
+  .hm-win:hover{ background:#FAFBFC; }
+  .hm-win.done{ opacity:.55; }
+  .hm-win.done .hm-win-titulo{ text-decoration:line-through; }
+  .hm-check{ width:22px; height:22px; border-radius:6px; border:2px solid #C6D2E0; background:#fff; cursor:pointer; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; color:transparent; font-weight:900; font-size:14px; transition:all .15s; }
+  .hm-check:hover{ border-color:#0F2037; }
+  .hm-check.on{ background:#059669; border-color:#059669; color:#fff; }
+  .hm-win-body{ flex:1; min-width:0; }
+  .hm-win-titulo{ font-size:14px; font-weight:600; color:#0F2037; line-height:1.35; margin-bottom:4px; }
+  .hm-win-meta{ display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; color:#6B7280; }
+  .hm-win-meta span{ display:inline-flex; align-items:center; gap:4px; }
+  .hm-win-meta .bu{ background:#EBF4F8; color:#0F2037; padding:2px 8px; border-radius:10px; font-weight:700; }
+  .hm-win-meta .resp{ font-weight:600; color:#374151; }
+  .hm-win-meta .origem{ font-style:italic; }
+  .hm-win-del{ background:none; border:none; color:#DC2626; cursor:pointer; opacity:0; transition:opacity .12s; font-size:16px; padding:4px 8px; }
+  .hm-win:hover .hm-win-del{ opacity:1; }
+  .hm-empty{ text-align:center; padding:40px 20px; color:#9CA3AF; font-size:13px; }
+  .hm-carry-btn{ background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; padding:10px 16px; border-radius:9px; font-weight:700; font-size:12.5px; cursor:pointer; margin-top:12px; }
+  .hm-carry-btn:hover{ background:#FDE68A; }
+
+  /* ---- Gantt: filtro concluídas + botão prioridade ---- */
+  #cb-hide-done-wrap{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; background:#fff; border:1px solid #E4E9EF; border-radius:8px; margin-left:8px; font-size:11.5px; color:#0F2037; cursor:pointer; user-select:none; }
+  #cb-hide-done-wrap input{ margin:0; cursor:pointer; }
+  .cb-priority-btn{ display:flex; align-items:center; gap:6px; width:100%; padding:8px 12px; margin-top:8px; background:#FEF9E7; border:1.5px solid #F5D97A; color:#8B6900; border-radius:8px; font-weight:700; font-size:12px; cursor:pointer; font-family:inherit; }
+  .cb-priority-btn:hover{ background:#FCF3D0; }
+  .cb-priority-btn.is-prio{ background:#FDE68A; border-color:#F59E0B; color:#78350F; }
+  .cb-priority-btn.is-prio::before{ content:'⭐'; }
+  .cb-priority-btn:not(.is-prio)::before{ content:'☆'; }
+
+  /* ---- Perfil: campo Gênero ---- */
+  .cb-profile-genero{ padding:0 24px 16px; }
+  .cb-profile-genero label{ display:block; font-size:11px; font-weight:700; color:#6B7280; letter-spacing:.5px; text-transform:uppercase; margin-bottom:6px; }
+  .cb-profile-genero select{ width:100%; padding:9px 12px; border:1.5px solid #E4E9EF; border-radius:8px; font-size:13px; font-family:'Montserrat',sans-serif; background:#fff; color:#0F2037; cursor:pointer; }
+</style>
+
+<script id="cb-onda-m-boot">
+(function(){
+  const $  = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+
+  // -------------------------------------------------------------------------
+  // 1) Remove "Cadência" do menu Plano
+  // -------------------------------------------------------------------------
+  function removerCadencia(){
+    // A: hijack CB_GROUPS.plano.views
+    try {
+      if (window.CB_GROUPS?.plano?.views){
+        window.CB_GROUPS.plano.views = window.CB_GROUPS.plano.views.filter(v => v.view !== 'cadencia');
+      }
+    } catch(e){}
+    // B: remove do DOM sempre que aparecer
+    $$('#cb-ctx-nav [data-view="cadencia"], .cb-i-item[data-view="cadencia"], .cb-acc [data-view="cadencia"]').forEach(el => el.remove());
+  }
+  // MutationObserver no #cb-ctx-nav (o menu se redesenha a cada troca de grupo)
+  function watchMenu(){
+    const nav = $('#cb-ctx-nav');
+    if (!nav){ setTimeout(watchMenu, 400); return; }
+    new MutationObserver(removerCadencia).observe(nav, { childList:true, subtree:true });
+    removerCadencia();
+  }
+  watchMenu();
+
+  // -------------------------------------------------------------------------
+  // 2) Campo Gênero no modal Perfil
+  // -------------------------------------------------------------------------
+  const GENEROS = [
+    { v:'',            l:'— Selecione —' },
+    { v:'feminino',    l:'Feminino (ela/dela)' },
+    { v:'masculino',   l:'Masculino (ele/dele)' },
+    { v:'nao_binario', l:'Não-binário (elu/delu)' },
+    { v:'prefiro_nao', l:'Prefiro não informar' },
+  ];
+  async function injectGenero(mask){
+    if (!mask || mask.querySelector('.cb-profile-genero')) return;
+    const body = mask.querySelector('.cb-profile-body'); if (!body) return;
+    const email = (window._cbCurrentEmail || '').toLowerCase();
+    let atual = '';
+    try {
+      const { data } = await window.sb.from('cb_users').select('genero').eq('email', email).maybeSingle();
+      atual = data?.genero || '';
+    } catch(e){}
+    const wrap = document.createElement('div');
+    wrap.className = 'cb-profile-genero';
+    wrap.innerHTML = `<label>Gênero</label>
+      <select id="cb-profile-genero-sel">
+        ${GENEROS.map(g=>`<option value="${g.v}"${g.v===atual?' selected':''}>${g.l}</option>`).join('')}
+      </select>`;
+    // insere ANTES da .cb-profile-actions
+    const actions = body.querySelector('.cb-profile-actions');
+    if (actions) body.insertBefore(wrap, actions); else body.appendChild(wrap);
+    wrap.querySelector('select').addEventListener('change', async (e) => {
+      const val = e.target.value;
+      try {
+        await window.sb.from('cb_users').update({ genero: val }).eq('email', email);
+        if (window.toast) window.toast('Gênero atualizado','ok');
+      } catch(err){ alert('Erro ao salvar gênero: '+err.message); }
+    });
+  }
+  new MutationObserver(muts => {
+    muts.forEach(m => {
+      m.addedNodes.forEach(n => {
+        if (n.nodeType!==1) return;
+        if (n.id === 'cb-profile-mask' || n.classList?.contains('cb-profile-mask')){
+          // pode ainda não ter conteúdo — espera classe .open
+          setTimeout(()=>injectGenero(n), 100);
+        }
+      });
+      if (m.type==='attributes' && m.target.id==='cb-profile-mask' && m.target.classList.contains('open')){
+        setTimeout(()=>injectGenero(m.target), 60);
+      }
+    });
+  }).observe(document.body, { childList:true, subtree:false, attributes:true, attributeFilter:['class'], subtree:true });
+
+  // -------------------------------------------------------------------------
+  // 3) HOME · Wins da Semana
+  // -------------------------------------------------------------------------
+  // helpers de semana (referência = segunda-feira)
+  function segundaDe(d){
+    const dt = new Date(d);
+    const dow = dt.getDay(); // 0=dom
+    const diff = dow===0 ? -6 : (1 - dow);
+    dt.setDate(dt.getDate()+diff); dt.setHours(0,0,0,0);
+    return dt;
+  }
+  function fmtISO(d){ return d.toISOString().slice(0,10); }
+  function fmtBR(d){ return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}); }
+  function semanaAtualRef(){ return fmtISO(segundaDe(new Date())); }
+
+  const HOME_STATE = { semanaRef: semanaAtualRef(), wins: [] };
+
+  async function carregarWins(){
+    const { data, error } = await window.sb.from('cb_wins_semana')
+      .select('*').eq('semana_ref', HOME_STATE.semanaRef).order('ordem').order('created_at');
+    if (error){ console.error('[wins]', error); HOME_STATE.wins = []; return; }
+    HOME_STATE.wins = data || [];
+    // roll-forward: se estamos na semana atual, importa não-concluídas da semana anterior que ainda não foram carregadas
+    if (HOME_STATE.semanaRef === semanaAtualRef()){
+      await rolarAnterior();
+    }
+  }
+  async function rolarAnterior(){
+    const semAnt = new Date(HOME_STATE.semanaRef); semAnt.setDate(semAnt.getDate()-7);
+    const semAntRef = fmtISO(semAnt);
+    const { data: pend } = await window.sb.from('cb_wins_semana')
+      .select('*').eq('semana_ref', semAntRef).neq('status','concluida');
+    if (!pend?.length) return;
+    // filtra as que já foram carregadas para semana atual (evita duplicar)
+    const jaCarregados = new Set(HOME_STATE.wins.map(w => w.source_task_id || w.titulo));
+    const paraRolar = pend.filter(p => !jaCarregados.has(p.source_task_id || p.titulo));
+    if (!paraRolar.length) return;
+    const novos = paraRolar.map(p => ({
+      semana_ref: HOME_STATE.semanaRef,
+      titulo: p.titulo, descricao: p.descricao, responsavel: p.responsavel,
+      bu: p.bu, origem: (p.origem?p.origem+' · rolada':'rolada da semana anterior'),
+      source_task_id: p.source_task_id,
+      status: 'aberta',
+      created_by: (window._cbCurrentEmail||'').toLowerCase(),
+    }));
+    const { data: ins } = await window.sb.from('cb_wins_semana').insert(novos).select();
+    if (ins?.length) HOME_STATE.wins.push(...ins);
+  }
+
+  async function toggleConcluida(id){
+    const w = HOME_STATE.wins.find(x=>x.id===id); if (!w) return;
+    const novoStatus = w.status==='concluida' ? 'aberta' : 'concluida';
+    const patch = novoStatus==='concluida'
+      ? { status:'concluida', concluida_em:new Date().toISOString(), concluida_por:(window._cbCurrentEmail||'').toLowerCase() }
+      : { status:'aberta', concluida_em:null, concluida_por:null };
+    const { error } = await window.sb.from('cb_wins_semana').update(patch).eq('id',id);
+    if (error){ alert('Erro: '+error.message); return; }
+    Object.assign(w, patch);
+    renderHome();
+  }
+  async function excluirWin(id){
+    if (!confirm('Remover essa Win da Semana?')) return;
+    const { error } = await window.sb.from('cb_wins_semana').delete().eq('id',id);
+    if (error){ alert('Erro: '+error.message); return; }
+    HOME_STATE.wins = HOME_STATE.wins.filter(w=>w.id!==id);
+    renderHome();
+  }
+  async function adicionarWin(){
+    const view = $('#vHome'); if (!view) return;
+    const titulo = view.querySelector('[data-hm-titulo]')?.value.trim();
+    const responsavel = view.querySelector('[data-hm-resp]')?.value.trim();
+    const bu = view.querySelector('[data-hm-bu]')?.value || '';
+    if (!titulo){ alert('Escreva o título da demanda.'); return; }
+    const row = {
+      semana_ref: HOME_STATE.semanaRef,
+      titulo, responsavel, bu,
+      origem: 'manual',
+      status: 'aberta',
+      created_by: (window._cbCurrentEmail||'').toLowerCase(),
+    };
+    const { data, error } = await window.sb.from('cb_wins_semana').insert(row).select().single();
+    if (error){ alert('Erro: '+error.message); return; }
+    HOME_STATE.wins.push(data);
+    renderHome();
+  }
+  function mudarSemana(delta){
+    const d = new Date(HOME_STATE.semanaRef);
+    d.setDate(d.getDate() + delta*7);
+    HOME_STATE.semanaRef = fmtISO(d);
+    carregarWins().then(renderHome);
+  }
+  function irSemanaAtual(){
+    HOME_STATE.semanaRef = semanaAtualRef();
+    carregarWins().then(renderHome);
+  }
+  const BU_LBL = { bt:'Business Travel', lm:'Live Marketing', you:'YOU', tech:'Tech Hub', vi:'Viagens de Incentivo', yg:'YouGo', chb:'CharlieBravo' };
+  function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function renderHome(){
+    const view = $('#vHome'); if (!view) return;
+    const semIni = new Date(HOME_STATE.semanaRef);
+    const semFim = new Date(semIni); semFim.setDate(semFim.getDate()+6);
+    const semLbl = `${fmtBR(semIni)} – ${fmtBR(semFim)}`;
+    const isAtual = HOME_STATE.semanaRef === semanaAtualRef();
+    const abertas = HOME_STATE.wins.filter(w=>w.status!=='concluida');
+    const concluidas = HOME_STATE.wins.filter(w=>w.status==='concluida');
+    const nome = (window._cbUserName || 'Muriel').split(' ')[0];
+    const hora = new Date().getHours();
+    const saudacao = hora<12?'Bom dia':(hora<18?'Boa tarde':'Boa noite');
+
+    const winRow = (w) => `
+      <div class="hm-win ${w.status==='concluida'?'done':''}" data-id="${w.id}">
+        <button class="hm-check ${w.status==='concluida'?'on':''}" data-act="toggle" title="Marcar concluído">✓</button>
+        <div class="hm-win-body">
+          <div class="hm-win-titulo">${esc(w.titulo)}</div>
+          <div class="hm-win-meta">
+            ${w.bu?`<span class="bu">${esc(BU_LBL[w.bu]||w.bu)}</span>`:''}
+            ${w.responsavel?`<span class="resp">👤 ${esc(w.responsavel)}</span>`:''}
+            ${w.origem?`<span class="origem">${esc(w.origem)}</span>`:''}
+          </div>
+        </div>
+        <button class="hm-win-del" data-act="del" title="Remover">✕</button>
+      </div>`;
+
+    view.innerHTML = `
+      <div class="hm-wrap">
+        <div class="hm-hero">
+          <div class="hm-hero-k">Costa Brava · MKT Cockpit 2026</div>
+          <h1>${saudacao}, ${esc(nome)} 👋</h1>
+          <p>Wins da semana, prioridades vindas do Gantt e demandas manuais. Marca concluído conforme entrega — o que ficar em aberto rola pra semana seguinte.</p>
+        </div>
+
+        <div class="hm-card">
+          <div class="hm-card-head">
+            <h2>Wins da Semana</h2>
+            <span class="hm-count-pill">${abertas.length} aberta${abertas.length===1?'':'s'} · ${concluidas.length} concluída${concluidas.length===1?'':'s'}</span>
+            <div class="hm-week-nav">
+              <button data-act="prev" title="Semana anterior">‹</button>
+              <span class="hm-week-lbl">${semLbl}${isAtual?' · atual':''}</span>
+              <button data-act="next" title="Próxima semana">›</button>
+              ${!isAtual?'<button data-act="hoje" title="Voltar pra semana atual" style="width:auto;padding:0 10px;font-size:11px;font-weight:700;">Hoje</button>':''}
+            </div>
+          </div>
+
+          <div class="hm-add-row">
+            <input data-hm-titulo type="text" placeholder="Nova demanda pra essa semana…"/>
+            <input data-hm-resp type="text" placeholder="Responsável" style="max-width:160px;"/>
+            <select data-hm-bu>
+              <option value="">Sem BU</option>
+              ${Object.entries(BU_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
+            </select>
+            <button data-act="add">+ Adicionar</button>
+          </div>
+
+          ${HOME_STATE.wins.length===0
+            ? `<div class="hm-empty">Nenhuma demanda ainda pra essa semana. Adicione acima ou marque como prioridade em uma tarefa no Gantt.</div>`
+            : abertas.map(winRow).join('') + concluidas.map(winRow).join('')}
+        </div>
+
+        <div class="hm-card" style="padding:14px 20px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <a href="#" data-act="goto-gantt" style="color:#1A3C6E;font-size:12.5px;font-weight:600;text-decoration:none;">→ Ir pro Gantt</a>
+            <span style="color:#C6D2E0;">|</span>
+            <a href="#" data-act="goto-diario" style="color:#1A3C6E;font-size:12.5px;font-weight:600;text-decoration:none;">→ Diário de Bordo</a>
+            <span style="color:#C6D2E0;">|</span>
+            <a href="#" data-act="goto-nutricao" style="color:#1A3C6E;font-size:12.5px;font-weight:600;text-decoration:none;">→ Nutrição de Conteúdos</a>
+          </div>
+        </div>
+      </div>
+    `;
+    // eventos
+    view.querySelector('[data-act="add"]').addEventListener('click', adicionarWin);
+    view.querySelector('[data-hm-titulo]').addEventListener('keydown', e => { if (e.key==='Enter') adicionarWin(); });
+    view.querySelectorAll('[data-act="prev"]').forEach(b=>b.addEventListener('click',()=>mudarSemana(-1)));
+    view.querySelectorAll('[data-act="next"]').forEach(b=>b.addEventListener('click',()=>mudarSemana(1)));
+    view.querySelectorAll('[data-act="hoje"]').forEach(b=>b.addEventListener('click', irSemanaAtual));
+    view.querySelectorAll('.hm-win').forEach(row => {
+      const id = row.dataset.id;
+      row.querySelector('[data-act="toggle"]').addEventListener('click', () => toggleConcluida(id));
+      row.querySelector('[data-act="del"]').addEventListener('click', () => excluirWin(id));
+    });
+    view.querySelector('[data-act="goto-gantt"]')?.addEventListener('click', e => { e.preventDefault(); window.setView?.('gantt'); });
+    view.querySelector('[data-act="goto-diario"]')?.addEventListener('click', e => { e.preventDefault(); window.setView?.('diario'); });
+    view.querySelector('[data-act="goto-nutricao"]')?.addEventListener('click', e => { e.preventDefault(); window.setView?.('nutricao'); });
+  }
+
+  function ensureHomeView(){
+    let v = $('#vHome');
+    if (!v){
+      v = document.createElement('div');
+      v.id = 'vHome';
+      v.className = 'view-page';
+      $('#app')?.appendChild(v);
+    }
+    return v;
+  }
+
+  async function showHome(){
+    $$('#app > .view-page').forEach(el => el.classList.remove('active'));
+    ensureHomeView().classList.add('active');
+    const gc = $('#ganttControls'); if (gc) gc.style.display='none';
+    window.currentView = 'home';
+    // render loading
+    $('#vHome').innerHTML = '<div class="hm-wrap"><div class="hm-empty">Carregando Wins da Semana…</div></div>';
+    await carregarWins();
+    renderHome();
+  }
+
+  // Hook no rail "Home" (logo) e no setGroup('home') — patcha o welcome
+  function bindHomeClick(){
+    const logo = document.querySelector('.cb-rail-logo');
+    if (logo && !logo.__cbHomeBound){
+      logo.__cbHomeBound = true;
+      logo.addEventListener('click', () => setTimeout(showHome, 60));
+    }
+    setTimeout(bindHomeClick, 1500);
+  }
+  setTimeout(bindHomeClick, 800);
+
+  // Wrap setView pra permitir view 'home'
+  function wrapSetView(){
+    const orig = window.setView;
+    if (!orig || orig.__cbHomeM) { setTimeout(wrapSetView, 500); return; }
+    const wrap = function(v){
+      if (v === 'home'){ showHome(); return; }
+      return orig.apply(this, arguments);
+    };
+    wrap.__cbHomeM = true;
+    window.setView = wrap;
+  }
+  setTimeout(wrapSetView, 1000);
+
+  // -------------------------------------------------------------------------
+  // 4) Gantt · botão Prioridade em cada tarefa (dentro do openEdit)
+  // -------------------------------------------------------------------------
+  async function isTarefaPrioridade(taskId){
+    if (!taskId) return null;
+    const { data } = await window.sb.from('cb_wins_semana')
+      .select('id,status').eq('semana_ref', semanaAtualRef()).eq('source_task_id', taskId)
+      .neq('status','concluida').maybeSingle();
+    return data;
+  }
+  async function toggleTarefaPrioridade(task){
+    const taskId = task.id || task.n; // fallback pro nome se não tiver id
+    const existing = await isTarefaPrioridade(taskId);
+    if (existing){
+      await window.sb.from('cb_wins_semana').delete().eq('id', existing.id);
+      window.toast?.('Removido das Wins da Semana','ok');
+    } else {
+      await window.sb.from('cb_wins_semana').insert({
+        semana_ref: semanaAtualRef(),
+        titulo: task.n || 'Tarefa do Gantt',
+        responsavel: task.o || '',
+        bu: task.bu || '',
+        origem: 'Gantt · prioridade',
+        source_task_id: taskId,
+        status: 'aberta',
+        created_by: (window._cbCurrentEmail||'').toLowerCase(),
+      });
+      window.toast?.('Adicionado às Wins da Semana ⭐','ok');
+    }
+    // re-render botão
+    injectPriorityBtn(task);
+  }
+  async function injectPriorityBtn(task){
+    const panel = $('#editPanel'); if (!panel?.classList.contains('open')) return;
+    const body = $('#epBody'); if (!body) return;
+    let btn = body.querySelector('.cb-priority-btn');
+    if (!btn){
+      btn = document.createElement('button');
+      btn.className = 'cb-priority-btn';
+      btn.textContent = 'Marcar como prioridade da semana';
+      // insere depois de ep-actions (ou no final)
+      const acts = body.querySelector('.ep-actions');
+      if (acts) acts.parentNode.insertBefore(btn, acts.nextSibling); else body.appendChild(btn);
+      btn.addEventListener('click', () => toggleTarefaPrioridade(task));
+    }
+    const t = task || window.ET;
+    if (!t) return;
+    const taskId = t.id || t.n;
+    const existing = await isTarefaPrioridade(taskId);
+    btn.classList.toggle('is-prio', !!existing);
+    btn.childNodes[btn.childNodes.length-1].nodeValue = existing
+      ? ' Prioridade da semana (remover)'
+      : ' Marcar como prioridade da semana';
+  }
+  // hook em openEdit
+  function hookOpenEdit(){
+    const orig = window.openEdit;
+    if (!orig || orig.__cbM) { setTimeout(hookOpenEdit, 500); return; }
+    const wrap = function(task, si){
+      const r = orig.apply(this, arguments);
+      setTimeout(()=>injectPriorityBtn(task), 30);
+      return r;
+    };
+    wrap.__cbM = true;
+    window.openEdit = wrap;
+  }
+  setTimeout(hookOpenEdit, 900);
+
+  // -------------------------------------------------------------------------
+  // 5) Gantt · filtro "Ocultar concluídas"
+  // -------------------------------------------------------------------------
+  let HIDE_DONE = localStorage.getItem('cbHideDone') === '1';
+
+  function tarefaConcluida(t){
+    if (!t?.segs?.length) return false;
+    return t.segs.every(s => (s.status||'').startsWith('concluida'));
+  }
+  function aplicarFiltroConcluidas(){
+    if (typeof window.visibleTasks !== 'function') return;
+    const visTasks = window.visibleTasks().filter(t => !t.G);
+    const namesRows = $$('#namesBody .t-row');
+    const chartRows = $$('#chartBody .t-row, #chartBody > *');
+    namesRows.forEach((nr, idx) => {
+      const t = visTasks[idx]; if (!t) return;
+      const hide = HIDE_DONE && tarefaConcluida(t);
+      nr.style.display = hide ? 'none' : '';
+      if (chartRows[idx]) chartRows[idx].style.display = hide ? 'none' : '';
+    });
+  }
+  function addHideDoneToggle(){
+    const gc = $('#ganttControls'); if (!gc) return;
+    if (gc.querySelector('#cb-hide-done-wrap')) return;
+    const lbl = document.createElement('label');
+    lbl.id = 'cb-hide-done-wrap';
+    lbl.title = 'Esconde tarefas com todas as etapas concluídas';
+    lbl.innerHTML = `<input type="checkbox" id="cb-hide-done" ${HIDE_DONE?'checked':''}><span>Ocultar concluídas</span>`;
+    gc.appendChild(lbl);
+    lbl.querySelector('input').addEventListener('change', e => {
+      HIDE_DONE = e.target.checked;
+      localStorage.setItem('cbHideDone', HIDE_DONE?'1':'0');
+      aplicarFiltroConcluidas();
+    });
+  }
+  // hook renderTasks pra reaplicar filtro pós-render
+  function hookRenderTasks(){
+    const orig = window.renderTasks;
+    if (!orig || orig.__cbMHide) { setTimeout(hookRenderTasks, 500); return; }
+    const wrap = function(){
+      const r = orig.apply(this, arguments);
+      try { addHideDoneToggle(); requestAnimationFrame(aplicarFiltroConcluidas); } catch(e){}
+      return r;
+    };
+    wrap.__cbMHide = true;
+    window.renderTasks = wrap;
+  }
+  setTimeout(hookRenderTasks, 1000);
+  setTimeout(addHideDoneToggle, 1200);
+})();
+</script>
+
 </body>
 </html>
