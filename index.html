@@ -9516,6 +9516,13 @@ document.addEventListener('DOMContentLoaded',()=>{
               <button class="btn-mini" data-act="down">↓</button>
               <button class="btn-mini danger" data-act="del">✕</button>
             </div>
+            <div class="row"><label>Título</label>
+              <input data-set="titulo" value="${esc(m.titulo||'')}" placeholder="Sem título">
+            </div>
+            <div class="row"><label>Texto da matéria</label>
+              <textarea data-set-txt style="width:100%;min-height:100px;padding:6px 8px;border:1px solid #E4E9EF;border-radius:5px;font-family:inherit;font-size:12px;line-height:1.5;resize:vertical;">${esc(m.texto||'')}</textarea>
+              <button class="btn-mini danger" data-act="clear-text" style="margin-top:4px;">🗑 Limpar texto</button>
+            </div>
             <div class="row"><label>Imagens</label>
               <div style="display:flex;gap:5px;"><input placeholder="URL da imagem" data-input="img-url"><button class="btn-mini" data-act="add-img">+</button></div>
               <div class="side-mat-thumbs">${imgs.map((u,j)=>`<div class="thumb"><img src="${esc(u)}"><button data-rm-img="${j}">×</button></div>`).join('')}</div>
@@ -9568,6 +9575,15 @@ document.addEventListener('DOMContentLoaded',()=>{
           inp.addEventListener('input', handler);
           inp.addEventListener('change', handler);
         });
+        // Sync textarea de texto
+        const txtArea = card.querySelector('[data-set-txt]');
+        if (txtArea){
+          txtArea.addEventListener('input', () => {
+            m.texto = txtArea.value;
+            m.texto_html = esc(txtArea.value).replace(/\n/g,'<br>');
+            renderCanvas(); autosave();
+          });
+        }
         card.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', (e) => {
           e.stopPropagation();
           const a = b.dataset.act;
@@ -9578,6 +9594,7 @@ document.addEventListener('DOMContentLoaded',()=>{
           else if (a==='del'){ state.materias.splice(idx,1); if (selectedIdx===idx) selectedIdx=-1; renderCanvas(); renderMateriaList(); autosave(); }
           else if (a==='add-img'){ const inp = card.querySelector('[data-input="img-url"]'); const u = inp.value.trim(); if (u){ (m.imagens = m.imagens||[]).push(u); inp.value=''; renderCanvas(); renderMateriaList(); autosave(); } }
           else if (a==='bg-clear'){ delete m.bg; renderCanvas(); renderMateriaList(); autosave(); }
+          else if (a==='clear-text'){ m.texto=''; m.texto_html=''; renderCanvas(); renderMateriaList(); autosave(); toast('Texto limpo'); }
         }));
         card.querySelectorAll('[data-rm-img]').forEach(b => b.addEventListener('click', (e) => {
           e.stopPropagation();
