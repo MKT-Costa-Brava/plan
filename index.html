@@ -11060,6 +11060,37 @@ document.addEventListener('DOMContentLoaded',()=>{
         if (window.toast) window.toast('Gênero atualizado','ok');
       } catch(err){ alert('Erro ao salvar gênero: '+err.message); }
     });
+
+    // Botão "Gerenciar acessos" (só Master)
+    if (window._cbRole === 'master' && !body.querySelector('.cb-profile-admusers')){
+      const btn = document.createElement('button');
+      btn.className = 'cb-profile-admusers';
+      btn.type = 'button';
+      btn.textContent = '🔐  Gerenciar usuários e permissões';
+      btn.style.cssText = 'display:block;width:calc(100% - 48px);margin:0 24px 12px;padding:11px 14px;background:#F3EEF9;color:#5A4570;border:1.5px solid #E1D5EC;border-radius:9px;font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;text-align:center;';
+      btn.onmouseover = () => btn.style.background = '#EBE2F5';
+      btn.onmouseout = () => btn.style.background = '#F3EEF9';
+      btn.addEventListener('click', () => {
+        document.getElementById('cb-profile-mask')?.classList.remove('open');
+        try { if (typeof window.ensureAcessosInfra === 'function') window.ensureAcessosInfra(); } catch(e){}
+        // fallback: se ensureAcessosInfra não estiver global, chama a função (declarada com function no fase 8)
+        try { window.cbRenderAcessosPage?.(); } catch(e){}
+        // ativa view
+        if (typeof window.setView === 'function') window.setView('acessos');
+        // caso setView não conheça 'acessos', ativa manualmente
+        setTimeout(() => {
+          const v = document.getElementById('vAcessos');
+          if (v && !v.classList.contains('active')){
+            document.querySelectorAll('#app > .view-page').forEach(el => el.classList.remove('active'));
+            v.classList.add('active');
+            window.cbRenderAcessosPage?.();
+            const gc = document.getElementById('ganttControls'); if (gc) gc.style.display='none';
+          }
+        }, 200);
+      });
+      const actions2 = body.querySelector('.cb-profile-actions');
+      if (actions2) body.insertBefore(btn, actions2); else body.appendChild(btn);
+    }
   }
   new MutationObserver(muts => {
     muts.forEach(m => {
