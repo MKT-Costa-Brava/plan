@@ -11489,5 +11489,481 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     ONDA N — Concorrentes + Materiais na Base de Negócio
+     ═══════════════════════════════════════════════════════════ -->
+<style id="cb-onda-n-style">
+  .cbn-subtabs{ display:flex; gap:2px; margin:14px 0 18px; border-bottom:2px solid #E4E9EF; }
+  .cbn-subtab{ padding:9px 18px; border:none; background:transparent; cursor:pointer; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:600; color:#6B7280; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; }
+  .cbn-subtab:hover{ color:#0F2037; }
+  .cbn-subtab.active{ color:#0F2037; border-bottom-color:#0F2037; }
+
+  /* Concorrentes */
+  .cbn-conc-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .cbn-conc-head h3{ margin:0; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:17px; font-weight:700; color:#0F2037; }
+  .cbn-conc-head .count{ background:#EBF4F8; color:#0F2037; padding:3px 10px; border-radius:12px; font-size:11.5px; font-weight:700; }
+  .cbn-btn-refresh{ margin-left:auto; padding:7px 14px; background:#FEF9E7; border:1.5px solid #F5D97A; color:#8B6900; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+  .cbn-btn-refresh:hover{ background:#FCF3D0; }
+  .cbn-btn-refresh:disabled{ opacity:.6; cursor:wait; }
+  .cbn-btn-add{ padding:7px 14px; background:#0F2037; border:none; color:#fff; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; }
+  .cbn-btn-add:hover{ background:#1A3C6E; }
+  .cbn-conc-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:14px; }
+  .cbn-conc-card{ background:#fff; border:1px solid #E4E9EF; border-radius:12px; padding:16px 18px; }
+  .cbn-conc-card h4{ margin:0 0 4px; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:15.5px; font-weight:700; color:#0F2037; }
+  .cbn-conc-site{ font-size:11.5px; color:#6B7280; margin-bottom:12px; display:block; text-decoration:none; }
+  .cbn-conc-site:hover{ color:#1A3C6E; }
+  .cbn-conc-row{ margin-bottom:10px; }
+  .cbn-conc-row .k{ font-size:9.5px; font-weight:700; color:#9CA3AF; letter-spacing:.5px; text-transform:uppercase; margin-bottom:2px; }
+  .cbn-conc-row .v{ font-size:12.5px; color:#374151; line-height:1.4; white-space:pre-wrap; }
+  .cbn-conc-row .v.empty{ color:#C6D2E0; font-style:italic; }
+  .cbn-resumo{ background:linear-gradient(135deg,#F3EEF9 0%,#EBF4F8 100%); border-radius:10px; padding:12px 14px; margin-top:12px; }
+  .cbn-resumo .k{ font-size:9.5px; font-weight:700; color:#5A4570; letter-spacing:.5px; text-transform:uppercase; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+  .cbn-resumo .v{ font-size:12.5px; color:#1A3C6E; line-height:1.5; }
+  .cbn-resumo .data{ font-size:10px; color:#6B7280; margin-top:6px; }
+  .cbn-noticias{ margin-top:10px; border-top:1px solid #F0F3F7; padding-top:10px; }
+  .cbn-not{ padding:6px 0; font-size:11.5px; }
+  .cbn-not a{ color:#1A3C6E; text-decoration:none; font-weight:600; }
+  .cbn-not a:hover{ text-decoration:underline; }
+  .cbn-not .meta{ color:#9CA3AF; font-size:10px; margin-top:2px; }
+  .cbn-conc-actions{ display:flex; gap:6px; margin-top:12px; border-top:1px solid #F0F3F7; padding-top:10px; }
+  .cbn-conc-actions button{ flex:1; padding:6px 8px; background:transparent; border:1px solid #E4E9EF; color:#6B7280; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .cbn-conc-actions button:hover{ background:#F7F8FA; color:#0F2037; }
+  .cbn-conc-actions button.danger:hover{ background:#FEE2E2; color:#DC2626; border-color:#DC2626; }
+
+  /* Modal (concorrente + material) */
+  .cbn-modal-mask{ position:fixed; inset:0; background:rgba(15,32,55,.45); display:none; align-items:center; justify-content:center; z-index:9000; }
+  .cbn-modal-mask.open{ display:flex; }
+  .cbn-modal{ background:#fff; border-radius:14px; width:min(560px,92vw); max-height:85vh; overflow-y:auto; padding:24px 28px; box-shadow:0 20px 60px rgba(15,32,55,.3); font-family:'Montserrat',sans-serif; }
+  .cbn-modal h3{ margin:0 0 4px; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:18px; color:#0F2037; }
+  .cbn-modal .sub{ font-size:12px; color:#6B7280; margin-bottom:16px; }
+  .cbn-modal label{ display:block; font-size:10px; font-weight:700; color:#6B7280; letter-spacing:.5px; text-transform:uppercase; margin-bottom:4px; margin-top:12px; }
+  .cbn-modal input, .cbn-modal textarea, .cbn-modal select{ width:100%; padding:9px 12px; border:1.5px solid #E4E9EF; border-radius:8px; font-size:13px; font-family:inherit; background:#fff; color:#0F2037; box-sizing:border-box; }
+  .cbn-modal textarea{ min-height:70px; resize:vertical; }
+  .cbn-modal-acts{ display:flex; gap:8px; justify-content:flex-end; margin-top:20px; }
+  .cbn-modal-acts button{ padding:9px 18px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .cbn-modal-acts .cancel{ background:#F0F3F7; border:none; color:#6B7280; }
+  .cbn-modal-acts .save{ background:#0F2037; border:none; color:#fff; }
+  .cbn-modal-acts .save:disabled{ opacity:.6; cursor:wait; }
+
+  /* Materiais */
+  .cbn-mat-drop{ border:2px dashed #C6D2E0; border-radius:12px; padding:30px 20px; text-align:center; color:#6B7280; background:#FAFBFC; transition:all .15s; cursor:pointer; margin-bottom:16px; }
+  .cbn-mat-drop:hover, .cbn-mat-drop.hover{ border-color:#1A3C6E; background:#EBF4F8; color:#1A3C6E; }
+  .cbn-mat-drop .icon{ font-size:28px; display:block; margin-bottom:6px; }
+  .cbn-mat-drop .title{ font-weight:700; font-size:13.5px; color:#0F2037; margin-bottom:4px; }
+  .cbn-mat-drop .sub{ font-size:11px; }
+  .cbn-mat-list{ display:flex; flex-direction:column; gap:8px; }
+  .cbn-mat-item{ display:flex; align-items:center; gap:12px; padding:12px 14px; background:#fff; border:1px solid #E4E9EF; border-radius:10px; }
+  .cbn-mat-icon{ width:36px; height:36px; border-radius:8px; background:#F3EEF9; display:flex; align-items:center; justify-content:center; font-size:16px; color:#5A4570; flex-shrink:0; }
+  .cbn-mat-info{ flex:1; min-width:0; }
+  .cbn-mat-info .nome{ font-size:13px; font-weight:600; color:#0F2037; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cbn-mat-info .meta{ font-size:10.5px; color:#9CA3AF; margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; }
+  .cbn-mat-badge{ padding:2px 8px; border-radius:10px; font-size:9.5px; font-weight:700; letter-spacing:.3px; }
+  .cbn-mat-badge.done{ background:#D1FAE5; color:#065F46; }
+  .cbn-mat-badge.processing{ background:#FEF3C7; color:#92400E; }
+  .cbn-mat-badge.pending{ background:#F0F3F7; color:#6B7280; }
+  .cbn-mat-badge.error{ background:#FEE2E2; color:#DC2626; }
+  .cbn-mat-badge.unsupported{ background:#F3EEF9; color:#5A4570; }
+  .cbn-mat-badge.pdf_pending{ background:#FEF3C7; color:#92400E; }
+  .cbn-mat-acts{ display:flex; gap:4px; }
+  .cbn-mat-acts button{ width:32px; height:32px; border:1px solid #E4E9EF; background:#fff; border-radius:6px; cursor:pointer; font-size:13px; color:#6B7280; }
+  .cbn-mat-acts button:hover{ background:#F0F3F7; color:#0F2037; }
+  .cbn-mat-acts .danger:hover{ background:#FEE2E2; color:#DC2626; border-color:#DC2626; }
+
+  .cbn-loading{ text-align:center; padding:30px 20px; color:#9CA3AF; font-size:12.5px; }
+  .cbn-empty{ text-align:center; padding:30px 20px; color:#9CA3AF; font-size:12.5px; background:#FAFBFC; border-radius:10px; border:1px dashed #E4E9EF; }
+</style>
+
+<script id="cb-onda-n-boot">
+(function(){
+  const $ = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const nl2br = s => esc(s).replace(/\n/g,'<br>');
+  const fmt = ts => ts ? new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  const fmtDate = ts => ts ? new Date(ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}) : '';
+
+  async function sb(){
+    if (window.sb?.from) return window.sb;
+    if (!window.supabase?.createClient){
+      for (let i=0;i<40;i++){ await new Promise(r=>setTimeout(r,250)); if (window.supabase?.createClient) break; }
+    }
+    if (!window.supabase?.createClient) return null;
+    const html = document.documentElement.outerHTML;
+    const url = html.match(/URL\s*[:=]\s*['"]([^'"]+\.supabase\.co)['"]/)?.[1];
+    const key = html.match(/ANON_KEY\s*[:=]\s*['"](eyJ[^'"]+)['"]/)?.[1];
+    if (!url || !key) return null;
+    window.sb = window.supabase.createClient(url, key, { auth:{ persistSession:true, autoRefreshToken:true, storageKey:'sb-cxlwkqsxzozfarrmqrfd-auth-token' } });
+    await new Promise(r=>setTimeout(r,300));
+    return window.sb;
+  }
+  const email = () => (window._cbCurrentEmail || '').toLowerCase();
+  const canEdit = () => ['master','adm'].includes(window._cbRole);
+  const BU_NAMES = { bt:'Business Travel', lm:'Live Marketing', you:'YOU by Costa Brava', tech:'Tech Hub', vi:'Viagens de Incentivo', yg:'YouGo', chb:'CharlieBravo' };
+
+  const SUBTAB_KEY = 'cbnBaseNegocioSubtab';
+  function getSubtab(){ return localStorage.getItem(SUBTAB_KEY) || 'bu'; }
+  function setSubtab(t){ localStorage.setItem(SUBTAB_KEY, t); }
+
+  // ───────── Patch renderBaseNegocio pra inserir sub-abas ─────────
+  function patchRender(){
+    if (typeof window.renderBaseNegocio !== 'function'){ setTimeout(patchRender, 500); return; }
+    if (window.renderBaseNegocio.__cbN) return;
+    const orig = window.renderBaseNegocio;
+    const wrapped = async function(){
+      await orig.apply(this, arguments);
+      injectSubtabs();
+    };
+    wrapped.__cbN = true;
+    window.renderBaseNegocio = wrapped;
+    // caso já esteja renderizada
+    if (document.getElementById('vBasenegocio')?.classList.contains('active')) injectSubtabs();
+  }
+  setTimeout(patchRender, 1000);
+
+  function injectSubtabs(){
+    const v = document.getElementById('vBasenegocio'); if (!v) return;
+    const tabs = v.querySelector('.cbk-tabs'); if (!tabs) return;
+    if (v.querySelector('.cbn-subtabs')) return; // já injetado
+    const sub = document.createElement('div');
+    sub.className = 'cbn-subtabs';
+    const cur = getSubtab();
+    sub.innerHTML = `
+      <button class="cbn-subtab${cur==='bu'?' active':''}" data-sub="bu">📊 BU</button>
+      <button class="cbn-subtab${cur==='concorrentes'?' active':''}" data-sub="concorrentes">⚔️ Concorrentes</button>
+      <button class="cbn-subtab${cur==='materiais'?' active':''}" data-sub="materiais">📎 Materiais</button>
+    `;
+    tabs.parentNode.insertBefore(sub, tabs.nextSibling);
+    sub.querySelectorAll('.cbn-subtab').forEach(b => b.addEventListener('click', () => {
+      setSubtab(b.dataset.sub);
+      sub.querySelectorAll('.cbn-subtab').forEach(x => x.classList.toggle('active', x===b));
+      applySubtab();
+    }));
+    applySubtab();
+  }
+
+  function applySubtab(){
+    const v = document.getElementById('vBasenegocio'); if (!v) return;
+    const form = v.querySelector('#cbk-bu-form'); if (!form) return;
+    const sub = getSubtab();
+    const activeBU = v.querySelector('.cbk-tab.active')?.dataset.bu || 'bt';
+    // esconde form BU original (apenas quando não é "bu")
+    if (sub === 'bu'){
+      form.style.display = '';
+      // remove containers de concorrentes/materiais
+      v.querySelector('#cbn-conc-container')?.remove();
+      v.querySelector('#cbn-mat-container')?.remove();
+    } else if (sub === 'concorrentes'){
+      form.style.display = 'none';
+      v.querySelector('#cbn-mat-container')?.remove();
+      renderConcorrentes(activeBU);
+    } else if (sub === 'materiais'){
+      form.style.display = 'none';
+      v.querySelector('#cbn-conc-container')?.remove();
+      renderMateriais('bu', activeBU);
+    }
+  }
+
+  // ───────── CONCORRENTES ─────────
+  async function renderConcorrentes(bu){
+    const v = document.getElementById('vBasenegocio'); if (!v) return;
+    let cont = v.querySelector('#cbn-conc-container');
+    if (!cont){
+      cont = document.createElement('div');
+      cont.id = 'cbn-conc-container';
+      v.querySelector('.cbk-wrap')?.appendChild(cont);
+    }
+    cont.innerHTML = `<div class="cbn-loading">Carregando concorrentes de ${esc(BU_NAMES[bu]||bu)}…</div>`;
+    const client = await sb();
+    if (!client){ cont.innerHTML = '<div class="cbn-empty">Supabase não conectado.</div>'; return; }
+    const { data: concs, error } = await client.from('cb_concorrentes').select('*').eq('bu', bu).order('nome');
+    if (error){ cont.innerHTML = `<div class="cbn-empty">Erro: ${esc(error.message)}</div>`; return; }
+    const head = `<div class="cbn-conc-head">
+      <h3>Concorrentes de ${esc(BU_NAMES[bu]||bu)}</h3>
+      <span class="count">${(concs||[]).length}</span>
+      ${canEdit() ? `<button class="cbn-btn-refresh" data-act="refresh-all">↻ Atualizar notícias agora</button>
+      <button class="cbn-btn-add" data-act="add">+ Novo concorrente</button>` : ''}
+    </div>`;
+    if (!concs?.length){
+      cont.innerHTML = head + `<div class="cbn-empty">Nenhum concorrente cadastrado pra essa BU ainda. ${canEdit()?'Clica em <strong>Novo concorrente</strong> acima pra começar.':'Peça pra uma pessoa Master ou ADM cadastrar.'}</div>`;
+    } else {
+      const cards = await Promise.all(concs.map(c => renderCard(c, client)));
+      cont.innerHTML = head + `<div class="cbn-conc-grid">${cards.join('')}</div>`;
+    }
+    cont.querySelector('[data-act="add"]')?.addEventListener('click', () => openConcModal(bu, null));
+    cont.querySelector('[data-act="refresh-all"]')?.addEventListener('click', (e) => refreshNoticias(bu, e.target));
+    cont.querySelectorAll('[data-conc-edit]').forEach(b => b.addEventListener('click', () => openConcModal(bu, b.dataset.concEdit)));
+    cont.querySelectorAll('[data-conc-del]').forEach(b => b.addEventListener('click', () => deleteConc(b.dataset.concDel, bu)));
+  }
+
+  async function renderCard(c, client){
+    const { data: nots } = await client.from('cb_concorrente_noticias')
+      .select('titulo,fonte,url,publicado_em').eq('concorrente_id', c.id)
+      .order('publicado_em',{ascending:false}).limit(5);
+    const resumo = c.resumo_noticias
+      ? `<div class="cbn-resumo"><div class="k">🤖 Resumo IA (últimos 15 dias)</div><div class="v">${esc(c.resumo_noticias)}</div><div class="data">Atualizado em ${fmt(c.resumo_atualizado_em)}</div></div>`
+      : `<div class="cbn-resumo" style="background:#F7F8FA;"><div class="k">Resumo IA</div><div class="v" style="color:#9CA3AF;font-style:italic;">Ainda sem notícias processadas. O cron roda diariamente ou clique em "Atualizar notícias agora".</div></div>`;
+    const noticias = (nots?.length)
+      ? `<div class="cbn-noticias">${nots.map(n => `<div class="cbn-not"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.titulo)}</a><div class="meta">${esc(n.fonte||'—')} · ${fmtDate(n.publicado_em)}</div></div>`).join('')}</div>`
+      : '';
+    return `<div class="cbn-conc-card" data-id="${c.id}">
+      <h4>${esc(c.nome)}</h4>
+      ${c.site?`<a class="cbn-conc-site" href="${esc(c.site)}" target="_blank" rel="noopener">${esc(c.site)}</a>`:''}
+      <div class="cbn-conc-row"><div class="k">Pontos fortes</div><div class="v${c.pontos_fortes?'':' empty'}">${c.pontos_fortes?esc(c.pontos_fortes):'Não preenchido'}</div></div>
+      <div class="cbn-conc-row"><div class="k">Pontos fracos</div><div class="v${c.pontos_fracos?'':' empty'}">${c.pontos_fracos?esc(c.pontos_fracos):'Não preenchido'}</div></div>
+      <div class="cbn-conc-row"><div class="k">Posicionamento</div><div class="v${c.posicionamento?'':' empty'}">${c.posicionamento?esc(c.posicionamento):'Não preenchido'}</div></div>
+      ${c.presenca_midia?`<div class="cbn-conc-row"><div class="k">Presença na mídia</div><div class="v">${esc(c.presenca_midia)}</div></div>`:''}
+      ${resumo}
+      ${noticias}
+      ${canEdit()?`<div class="cbn-conc-actions">
+        <button data-conc-edit="${c.id}">✎ Editar</button>
+        <button class="danger" data-conc-del="${c.id}">🗑 Remover</button>
+      </div>`:''}
+    </div>`;
+  }
+
+  function openConcModal(bu, id){
+    const mask = ensureModal();
+    const body = mask.querySelector('.cbn-modal');
+    body.innerHTML = `<h3>${id?'Editar concorrente':'Novo concorrente'}</h3>
+      <div class="sub">${esc(BU_NAMES[bu]||bu)} · ${id?'Alterações salvas no banco':'Será rastreado nas notícias automáticas'}</div>
+      <label>Nome do concorrente *</label><input data-f="nome" placeholder="Ex: Egencia">
+      <label>Site</label><input data-f="site" placeholder="https://...">
+      <label>Termo de busca (opcional)</label><input data-f="busca_termo" placeholder="Ex: Egencia viagens corporativas — se vazio usa o nome">
+      <label>Pontos fortes</label><textarea data-f="pontos_fortes" placeholder="O que ele faz bem..."></textarea>
+      <label>Pontos fracos</label><textarea data-f="pontos_fracos" placeholder="O que ele deixa a desejar (vai virar munição pra nossos conteúdos)..."></textarea>
+      <label>Posicionamento</label><textarea data-f="posicionamento" placeholder="Como ele se vende..."></textarea>
+      <label>Presença na mídia</label><textarea data-f="presenca_midia" placeholder="Imprensa, redes, eventos..."></textarea>
+      <div class="cbn-modal-acts">
+        <button class="cancel" data-m="cancel">Cancelar</button>
+        <button class="save" data-m="save">${id?'Salvar':'Criar'}</button>
+      </div>`;
+    mask.classList.add('open');
+    body.querySelector('[data-m="cancel"]').addEventListener('click', () => mask.classList.remove('open'));
+    (async () => {
+      if (id){
+        const client = await sb(); if (!client) return;
+        const { data } = await client.from('cb_concorrentes').select('*').eq('id', id).single();
+        if (data){ body.querySelectorAll('[data-f]').forEach(el => { if (data[el.dataset.f]!=null) el.value = data[el.dataset.f]; }); }
+      }
+    })();
+    body.querySelector('[data-m="save"]').addEventListener('click', async (e) => {
+      const btn = e.target;
+      const payload = { bu };
+      body.querySelectorAll('[data-f]').forEach(el => { payload[el.dataset.f] = el.value.trim() || null; });
+      if (!payload.nome){ alert('Nome é obrigatório'); return; }
+      btn.disabled = true; btn.textContent = 'Salvando…';
+      const client = await sb();
+      if (!client){ alert('Supabase não conectado'); btn.disabled=false; btn.textContent=id?'Salvar':'Criar'; return; }
+      let res;
+      if (id){ res = await client.from('cb_concorrentes').update(payload).eq('id', id); }
+      else { payload.created_by = email(); res = await client.from('cb_concorrentes').insert(payload); }
+      if (res.error){ alert('Erro: '+res.error.message); btn.disabled=false; btn.textContent=id?'Salvar':'Criar'; return; }
+      mask.classList.remove('open');
+      renderConcorrentes(bu);
+      window.toast?.(id?'Concorrente atualizado':'Concorrente adicionado — notícias serão coletadas na próxima execução','ok');
+    });
+  }
+
+  async function deleteConc(id, bu){
+    if (!confirm('Remover esse concorrente e todas as notícias salvas dele?')) return;
+    const client = await sb(); if (!client) return;
+    const { error } = await client.from('cb_concorrentes').delete().eq('id', id);
+    if (error){ alert('Erro: '+error.message); return; }
+    renderConcorrentes(bu);
+  }
+
+  async function refreshNoticias(bu, btn){
+    if (btn){ btn.disabled = true; btn.textContent = '↻ Buscando notícias…'; }
+    try {
+      const client = await sb();
+      const session = (await client.auth.getSession()).data.session;
+      const url = `${client.supabaseUrl}/functions/v1/competitor-news`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token||client.supabaseKey}`, 'apikey': client.supabaseKey },
+        body: JSON.stringify({ bu }),
+      });
+      const j = await resp.json();
+      if (!resp.ok || j.error){ throw new Error(j.error || `HTTP ${resp.status}`); }
+      window.toast?.(`Notícias atualizadas pra ${(j.results||[]).length} concorrente(s)`,'ok');
+      renderConcorrentes(bu);
+    } catch(e){
+      alert('Erro ao buscar notícias: '+e.message);
+      if (btn){ btn.disabled = false; btn.textContent = '↻ Atualizar notícias agora'; }
+    }
+  }
+
+  // ───────── MATERIAIS ─────────
+  async function renderMateriais(ownerType, ownerKey){
+    const v = document.getElementById('vBasenegocio'); if (!v) return;
+    let cont = v.querySelector('#cbn-mat-container');
+    if (!cont){
+      cont = document.createElement('div');
+      cont.id = 'cbn-mat-container';
+      v.querySelector('.cbk-wrap')?.appendChild(cont);
+    }
+    const label = ownerType==='bu' ? (BU_NAMES[ownerKey]||ownerKey) : 'concorrente';
+    cont.innerHTML = `<div class="cbn-loading">Carregando materiais de ${esc(label)}…</div>`;
+    const client = await sb();
+    if (!client){ cont.innerHTML = '<div class="cbn-empty">Supabase não conectado.</div>'; return; }
+    const { data: assets, error } = await client.from('cb_assets').select('*').eq('owner_type', ownerType).eq('owner_key', ownerKey).order('created_at',{ascending:false});
+    if (error){ cont.innerHTML = `<div class="cbn-empty">Erro: ${esc(error.message)}</div>`; return; }
+    const head = `<div class="cbn-conc-head">
+      <h3>Materiais de ${esc(label)}</h3>
+      <span class="count">${assets?.length||0}</span>
+    </div>`;
+    const drop = canEdit() ? `<div class="cbn-mat-drop" id="cbn-mat-drop">
+      <span class="icon">📎</span>
+      <div class="title">Arraste arquivos aqui ou clique pra selecionar</div>
+      <div class="sub">PDF, DOCX, PPTX, TXT — máx 25MB cada · a IA lê o conteúdo e usa como referência editorial</div>
+      <input type="file" id="cbn-mat-input" multiple style="display:none" accept=".pdf,.docx,.pptx,.txt,.md,.csv">
+    </div>` : '';
+    const list = (assets?.length)
+      ? `<div class="cbn-mat-list">${assets.map(a => renderMatItem(a)).join('')}</div>`
+      : `<div class="cbn-empty">Nenhum material subido ainda.</div>`;
+    cont.innerHTML = head + drop + list;
+    // handlers
+    const dropEl = cont.querySelector('#cbn-mat-drop');
+    const input = cont.querySelector('#cbn-mat-input');
+    if (dropEl && input){
+      dropEl.addEventListener('click', () => input.click());
+      dropEl.addEventListener('dragover', e => { e.preventDefault(); dropEl.classList.add('hover'); });
+      dropEl.addEventListener('dragleave', () => dropEl.classList.remove('hover'));
+      dropEl.addEventListener('drop', e => { e.preventDefault(); dropEl.classList.remove('hover'); uploadFiles(e.dataTransfer.files, ownerType, ownerKey); });
+      input.addEventListener('change', e => uploadFiles(e.target.files, ownerType, ownerKey));
+    }
+    cont.querySelectorAll('[data-mat-del]').forEach(b => b.addEventListener('click', () => deleteMat(b.dataset.matDel, ownerType, ownerKey)));
+    cont.querySelectorAll('[data-mat-dl]').forEach(b => b.addEventListener('click', () => downloadMat(b.dataset.matDl)));
+    cont.querySelectorAll('[data-mat-reproc]').forEach(b => b.addEventListener('click', () => reprocess(b.dataset.matReproc, ownerType, ownerKey)));
+  }
+
+  function renderMatItem(a){
+    const ext = (a.nome.split('.').pop()||'').toLowerCase();
+    const icon = ext==='pdf'?'📕':(ext==='docx'?'📘':(ext==='pptx'?'📙':'📄'));
+    const sizeKb = a.tamanho ? Math.round(a.tamanho/1024) : 0;
+    const sizeStr = sizeKb > 1024 ? `${(sizeKb/1024).toFixed(1)} MB` : `${sizeKb} KB`;
+    const badges = {
+      done:'✓ IA leu', processing:'Processando…', pending:'Aguardando', error:'Erro', unsupported:'Formato não suportado', pdf_pending:'PDF — em breve'
+    };
+    const status = a.extract_status || 'pending';
+    return `<div class="cbn-mat-item" data-id="${a.id}">
+      <div class="cbn-mat-icon">${icon}</div>
+      <div class="cbn-mat-info">
+        <div class="nome">${esc(a.nome)}</div>
+        <div class="meta">
+          <span>${sizeStr}</span>
+          <span>${fmt(a.created_at)}</span>
+          <span class="cbn-mat-badge ${status}">${badges[status]||status}</span>
+        </div>
+      </div>
+      <div class="cbn-mat-acts">
+        <button data-mat-dl="${a.id}" title="Baixar">⬇</button>
+        ${canEdit() && status!=='processing'?`<button data-mat-reproc="${a.id}" title="Reprocessar extração IA">↻</button>`:''}
+        ${canEdit()?`<button class="danger" data-mat-del="${a.id}" title="Excluir">✕</button>`:''}
+      </div>
+    </div>`;
+  }
+
+  async function uploadFiles(files, ownerType, ownerKey){
+    if (!files || !files.length) return;
+    const client = await sb(); if (!client) return;
+    for (const file of files){
+      if (file.size > 25*1024*1024){ alert(`"${file.name}" excede 25MB. Pulando.`); continue; }
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path = `${ownerType}/${ownerKey}/${Date.now()}_${safeName}`;
+      window.toast?.(`Enviando ${file.name}…`,'ok');
+      const { error: upErr } = await client.storage.from('cb-assets').upload(path, file, { upsert:false });
+      if (upErr){ alert(`Erro upload ${file.name}: ${upErr.message}`); continue; }
+      const { data: row, error: insErr } = await client.from('cb_assets').insert({
+        owner_type: ownerType, owner_key: ownerKey, nome: file.name, tipo: 'material',
+        storage_path: path, mime_type: file.type, tamanho: file.size,
+        extract_status: 'pending', created_by: email()
+      }).select().single();
+      if (insErr){ alert(`Erro ao registrar ${file.name}: ${insErr.message}`); continue; }
+      // dispara extract-text
+      try {
+        const session = (await client.auth.getSession()).data.session;
+        fetch(`${client.supabaseUrl}/functions/v1/extract-text`, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token||client.supabaseKey}`, 'apikey': client.supabaseKey },
+          body: JSON.stringify({ asset_id: row.id })
+        }).catch(e => console.error('[extract-text]', e));
+      } catch(e){ console.error(e); }
+    }
+    renderMateriais(ownerType, ownerKey);
+    // poll pra atualizar status
+    setTimeout(() => renderMateriais(ownerType, ownerKey), 5000);
+    setTimeout(() => renderMateriais(ownerType, ownerKey), 15000);
+  }
+
+  async function deleteMat(id, ownerType, ownerKey){
+    if (!confirm('Excluir esse material? O arquivo e o texto extraído serão removidos.')) return;
+    const client = await sb(); if (!client) return;
+    const { data: asset } = await client.from('cb_assets').select('storage_path').eq('id', id).single();
+    if (asset?.storage_path){ await client.storage.from('cb-assets').remove([asset.storage_path]); }
+    const { error } = await client.from('cb_assets').delete().eq('id', id);
+    if (error){ alert('Erro: '+error.message); return; }
+    renderMateriais(ownerType, ownerKey);
+  }
+
+  async function downloadMat(id){
+    const client = await sb(); if (!client) return;
+    const { data: asset } = await client.from('cb_assets').select('storage_path,nome').eq('id', id).single();
+    if (!asset?.storage_path) return;
+    const { data: url } = await client.storage.from('cb-assets').createSignedUrl(asset.storage_path, 60);
+    if (url?.signedUrl) window.open(url.signedUrl, '_blank');
+  }
+
+  async function reprocess(id, ownerType, ownerKey){
+    const client = await sb(); if (!client) return;
+    await client.from('cb_assets').update({ extract_status:'processing' }).eq('id', id);
+    renderMateriais(ownerType, ownerKey);
+    try {
+      const session = (await client.auth.getSession()).data.session;
+      await fetch(`${client.supabaseUrl}/functions/v1/extract-text`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token||client.supabaseKey}`, 'apikey': client.supabaseKey },
+        body: JSON.stringify({ asset_id: id })
+      });
+    } catch(e){ console.error(e); }
+    setTimeout(() => renderMateriais(ownerType, ownerKey), 3000);
+  }
+
+  // ───────── Modal helper ─────────
+  function ensureModal(){
+    let m = document.getElementById('cbn-modal-mask');
+    if (m) return m;
+    m = document.createElement('div');
+    m.id = 'cbn-modal-mask';
+    m.className = 'cbn-modal-mask';
+    m.innerHTML = '<div class="cbn-modal"></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    return m;
+  }
+
+  // reaplica subtabs ao trocar BU
+  const origSetAttr = Element.prototype.setAttribute;
+  // observa mudanças na aba BU ativa
+  new MutationObserver(() => {
+    const v = document.getElementById('vBasenegocio');
+    if (!v?.classList.contains('active')) return;
+    if (!v.querySelector('.cbn-subtabs')) injectSubtabs();
+  }).observe(document.body, { childList:true, subtree:true });
+
+  // reaplica quando clica em uma tab BU
+  document.body.addEventListener('click', e => {
+    const t = e.target.closest('.cbk-tab[data-bu]');
+    if (!t) return;
+    setTimeout(() => {
+      const v = document.getElementById('vBasenegocio');
+      if (!v?.classList.contains('active')) return;
+      if (!v.querySelector('.cbn-subtabs')) injectSubtabs();
+      else applySubtab();
+    }, 150);
+  });
+})();
+</script>
+
 </body>
 </html>
