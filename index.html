@@ -11681,6 +11681,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       <h3>Concorrentes de ${esc(BU_NAMES[bu]||bu)}</h3>
       <span class="count">${(concs||[]).length}</span>
       ${canEdit() ? `<button class="cbn-btn-refresh" data-act="refresh-all">↻ Atualizar notícias agora</button>
+      <button class="cbn-btn-add" data-act="bulk" style="background:#5A4570;">📝 Importar em massa</button>
       <button class="cbn-btn-add" data-act="add">+ Novo concorrente</button>` : ''}
     </div>`;
     if (!concs?.length){
@@ -11696,10 +11697,130 @@ document.addEventListener('DOMContentLoaded',()=>{
       cont.innerHTML = head + `<div class="cbn-conc-grid">${cards.join('')}</div>`;
     }
     cont.querySelector('[data-act="add"]')?.addEventListener('click', () => openConcModal(bu, null));
+    cont.querySelector('[data-act="bulk"]')?.addEventListener('click', () => openBulkImport(bu));
     cont.querySelector('[data-act="refresh-all"]')?.addEventListener('click', (e) => refreshNoticias(bu, e.target));
     cont.querySelectorAll('[data-conc-edit]').forEach(b => b.addEventListener('click', () => openConcModal(bu, b.dataset.concEdit)));
     cont.querySelectorAll('[data-conc-del]').forEach(b => b.addEventListener('click', () => deleteConc(b.dataset.concDel, bu)));
     cont.querySelectorAll('[data-conc-mat]').forEach(b => b.addEventListener('click', () => openConcMateriais(b.dataset.concMat, b.dataset.concNome, bu)));
+  }
+
+  // ───────── Importação em massa com IA ─────────
+  function openBulkImport(bu){
+    const mask = ensureModal();
+    const body = mask.querySelector('.cbn-modal');
+    body.style.width = 'min(760px, 94vw)';
+    body.innerHTML = `<h3>📝 Importar concorrentes em massa</h3>
+      <div class="sub">Cole uma lista de nomes (um por linha, ou separados por vírgula). A IA busca site, pontos fortes, fracos e posicionamento. <strong>Você revisa antes de salvar.</strong></div>
+      <label>Lista de concorrentes</label>
+      <textarea id="cbn-bulk-input" placeholder="Egencia&#10;FROSCH Business Travel&#10;Flyways&#10;CWT&#10;Amex GBT" style="min-height:140px;font-family:'Space Mono',monospace;font-size:12px;"></textarea>
+      <div style="margin-top:8px;font-size:11px;color:#9CA3AF;">A IA usa só o que sabe com confiança. Concorrentes locais pequenos podem voltar vazios — você preenche na mão.</div>
+      <div class="cbn-modal-acts">
+        <button class="cancel" data-m="cancel">Cancelar</button>
+        <button class="save" data-m="enrich">🤖 Buscar com IA</button>
+      </div>
+      <div id="cbn-bulk-results" style="margin-top:16px;"></div>`;
+    mask.classList.add('open');
+    body.querySelector('[data-m="cancel"]').addEventListener('click', () => { mask.classList.remove('open'); body.style.width=''; });
+    body.querySelector('[data-m="enrich"]').addEventListener('click', async (e) => {
+      const btn = e.target;
+      const raw = body.querySelector('#cbn-bulk-input').value;
+      // split por newline OU vírgula; trim; remove vazios e duplicados
+      const nomes = [...new Set(raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean))];
+      if (!nomes.length){ alert('Cole pelo menos 1 nome'); return; }
+      if (nomes.length > 15){
+        if (!confirm(`Vai processar ${nomes.length} concorrentes. Pode levar ${Math.ceil(nomes.length*3)}s. Continuar?`)) return;
+      }
+      btn.disabled = true; btn.textContent = `Buscando ${nomes.length}…`;
+      await enrichLote(nomes, bu);
+      btn.disabled = false; btn.textContent = '🤖 Buscar de novo';
+    });
+  }
+
+  async function enrichLote(nomes, bu){
+    const results = document.querySelector('#cbn-bulk-results');
+    if (!results) return;
+    results.innerHTML = `<div style="font-size:12px;color:#6B7280;margin-bottom:8px;">Processando ${nomes.length} concorrente(s)…</div>`;
+    const client = await sb(); if (!client) return;
+    const session = (await client.auth.getSession()).data.session;
+    const url = `${client.supabaseUrl}/functions/v1/competitor-enrich`;
+    // dispara todos em paralelo
+    const promises = nomes.map(async (nome) => {
+      try {
+        const r = await fetch(url, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':`Bearer ${session?.access_token||client.supabaseKey}`,'apikey': client.supabaseKey},
+          body: JSON.stringify({ nome, bu }),
+        });
+        const j = await r.json();
+        if (!r.ok || j.error) return { nome, error: j.error || `HTTP ${r.status}` };
+        return j.data;
+      } catch(e){ return { nome, error: String(e?.message||e) }; }
+    });
+    const dados = await Promise.all(promises);
+    renderBulkPreview(dados, bu);
+  }
+
+  function renderBulkPreview(dados, bu){
+    const results = document.querySelector('#cbn-bulk-results');
+    if (!results) return;
+    const confCor = { alta:'#059669', media:'#D97706', baixa:'#DC2626' };
+    const confLbl = { alta:'alta', media:'média', baixa:'baixa' };
+    results.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;">
+        <strong style="font-size:13px;color:#0F2037;">Pré-visualização (${dados.length}) — edite antes de salvar</strong>
+        <button class="save" id="cbn-bulk-save" style="padding:7px 16px;background:#059669;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">💾 Salvar todos</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-height:50vh;overflow-y:auto;padding-right:4px;">
+        ${dados.map((d, i) => d.error ? `
+          <div style="border:1px solid #FEE2E2;background:#FEF2F2;border-radius:9px;padding:10px 12px;">
+            <strong style="color:#DC2626;font-size:12.5px;">${esc(d.nome)}</strong>
+            <div style="font-size:11px;color:#991B1B;margin-top:4px;">Erro: ${esc(d.error)}</div>
+            <button data-skip="${i}" style="margin-top:6px;font-size:10.5px;background:#fff;border:1px solid #FCA5A5;color:#DC2626;padding:3px 10px;border-radius:5px;cursor:pointer;">Remover da lista</button>
+          </div>` : `
+          <div class="cbn-bulk-card" data-idx="${i}" style="border:1px solid #E4E9EF;border-radius:9px;padding:12px 14px;background:#fff;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <input data-bulk-f="nome" value="${esc(d.nome)}" style="flex:1;padding:6px 10px;border:1px solid #E4E9EF;border-radius:6px;font-weight:700;font-size:13px;">
+              <span style="font-size:9.5px;font-weight:700;color:${confCor[d.confianca]||'#6B7280'};background:${(confCor[d.confianca]||'#6B7280')}18;padding:3px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px;">Confiança ${confLbl[d.confianca]||d.confianca}</span>
+              <button data-skip="${i}" title="Pular esse" style="background:transparent;border:none;color:#DC2626;cursor:pointer;font-size:16px;">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><label style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.4px;text-transform:uppercase;">Site</label><input data-bulk-f="site" value="${esc(d.site)}" style="width:100%;padding:5px 8px;border:1px solid #E4E9EF;border-radius:5px;font-size:11.5px;box-sizing:border-box;"></div>
+              <div><label style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.4px;text-transform:uppercase;">Termo de busca</label><input data-bulk-f="busca_termo" value="${esc(d.busca_termo)}" style="width:100%;padding:5px 8px;border:1px solid #E4E9EF;border-radius:5px;font-size:11.5px;box-sizing:border-box;"></div>
+            </div>
+            <label style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.4px;text-transform:uppercase;margin-top:8px;">Posicionamento</label>
+            <textarea data-bulk-f="posicionamento" style="width:100%;padding:6px 10px;border:1px solid #E4E9EF;border-radius:5px;font-size:11.5px;box-sizing:border-box;min-height:38px;">${esc(d.posicionamento)}</textarea>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+              <div><label style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.4px;text-transform:uppercase;">Pontos fortes</label><textarea data-bulk-f="pontos_fortes" style="width:100%;padding:6px 10px;border:1px solid #E4E9EF;border-radius:5px;font-size:11.5px;box-sizing:border-box;min-height:60px;">${esc(d.pontos_fortes)}</textarea></div>
+              <div><label style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.4px;text-transform:uppercase;">Pontos fracos</label><textarea data-bulk-f="pontos_fracos" style="width:100%;padding:6px 10px;border:1px solid #E4E9EF;border-radius:5px;font-size:11.5px;box-sizing:border-box;min-height:60px;">${esc(d.pontos_fracos)}</textarea></div>
+            </div>
+            <label style="font-size:9px;font-weight:700;color:#9CA3AF;letter-spacing:.4px;text-transform:uppercase;margin-top:6px;">Presença na mídia</label>
+            <textarea data-bulk-f="presenca_midia" style="width:100%;padding:6px 10px;border:1px solid #E4E9EF;border-radius:5px;font-size:11.5px;box-sizing:border-box;min-height:38px;">${esc(d.presenca_midia)}</textarea>
+          </div>`).join('')}
+      </div>`;
+    // skip buttons
+    results.querySelectorAll('[data-skip]').forEach(b => b.addEventListener('click', () => {
+      const idx = +b.dataset.skip;
+      dados[idx] = null;
+      renderBulkPreview(dados.filter(Boolean), bu);
+    }));
+    results.querySelector('#cbn-bulk-save').addEventListener('click', async (e) => {
+      const btn = e.target;
+      btn.disabled = true; btn.textContent = 'Salvando…';
+      const cards = results.querySelectorAll('.cbn-bulk-card');
+      const payloads = [...cards].map(card => {
+        const p = { bu, created_by: email() };
+        card.querySelectorAll('[data-bulk-f]').forEach(el => { p[el.dataset.bulkF] = el.value.trim() || null; });
+        return p;
+      }).filter(p => p.nome);
+      if (!payloads.length){ alert('Nenhum concorrente válido pra salvar'); btn.disabled=false; btn.textContent='💾 Salvar todos'; return; }
+      const client = await sb();
+      const { error } = await client.from('cb_concorrentes').insert(payloads);
+      if (error){ alert('Erro: '+error.message); btn.disabled=false; btn.textContent='💾 Salvar todos'; return; }
+      document.getElementById('cbn-modal-mask')?.classList.remove('open');
+      document.querySelector('.cbn-modal').style.width = '';
+      window.toast?.(`${payloads.length} concorrente(s) adicionado(s) 🎉`,'ok');
+      renderConcorrentes(bu);
+    });
   }
 
   // ───────── Materiais de UM concorrente (modal) ─────────
