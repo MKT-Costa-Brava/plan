@@ -11510,8 +11510,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cbn-conc-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:14px; }
   .cbn-conc-card{ background:#fff; border:1px solid #E4E9EF; border-radius:12px; padding:16px 18px; }
   .cbn-conc-card h4{ margin:0 0 4px; font-family:'Space Grotesk','Montserrat',sans-serif; font-size:15.5px; font-weight:700; color:#0F2037; }
-  .cbn-conc-site{ font-size:11.5px; color:#6B7280; margin-bottom:12px; display:block; text-decoration:none; }
+  .cbn-conc-site{ font-size:11.5px; color:#6B7280; margin-bottom:4px; display:block; text-decoration:none; }
   .cbn-conc-site:hover{ color:#1A3C6E; }
+  .cbn-conc-last{ font-size:10px; color:#9CA3AF; margin-bottom:10px; font-style:italic; }
+  .cbn-conc-refresh-one{ width:28px; height:28px; border:1px solid #E4E9EF; background:#fff; border-radius:6px; cursor:pointer; font-size:13px; color:#6B7280; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .cbn-conc-refresh-one:hover{ background:#FEF9E7; border-color:#F5D97A; color:#8B6900; }
+  .cbn-conc-refresh-one:disabled{ opacity:.5; cursor:wait; }
+  .cbn-conc-refresh-one.spinning{ animation:cbn-spin 1s linear infinite; }
+  @keyframes cbn-spin{ to{ transform:rotate(360deg); } }
   .cbn-conc-row{ margin-bottom:10px; }
   .cbn-conc-row .k{ font-size:9.5px; font-weight:700; color:#9CA3AF; letter-spacing:.5px; text-transform:uppercase; margin-bottom:2px; }
   .cbn-conc-row .v{ font-size:12.5px; color:#374151; line-height:1.4; white-space:pre-wrap; }
@@ -11702,6 +11708,30 @@ document.addEventListener('DOMContentLoaded',()=>{
     cont.querySelectorAll('[data-conc-edit]').forEach(b => b.addEventListener('click', () => openConcModal(bu, b.dataset.concEdit)));
     cont.querySelectorAll('[data-conc-del]').forEach(b => b.addEventListener('click', () => deleteConc(b.dataset.concDel, bu)));
     cont.querySelectorAll('[data-conc-mat]').forEach(b => b.addEventListener('click', () => openConcMateriais(b.dataset.concMat, b.dataset.concNome, bu)));
+    cont.querySelectorAll('[data-conc-refresh]').forEach(b => b.addEventListener('click', (e) => refreshOneConcorrente(b.dataset.concRefresh, b.dataset.concNome, bu, b)));
+  }
+
+  async function refreshOneConcorrente(id, nome, bu, btn){
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    try {
+      const client = await sb();
+      const session = (await client.auth.getSession()).data.session;
+      const url = `${client.supabaseUrl}/functions/v1/competitor-news`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${session?.access_token||client.supabaseKey}`, 'apikey': client.supabaseKey },
+        body: JSON.stringify({ concorrente_id: id }),
+      });
+      const j = await resp.json();
+      if (!resp.ok || j.error) throw new Error(j.error || `HTTP ${resp.status}`);
+      window.toast?.(`${esc(nome)} atualizado · ${j.processed||0} notícias`, 'ok');
+      renderConcorrentes(bu);
+    } catch(e){
+      alert(`Erro ao atualizar ${nome}: `+e.message);
+      btn.classList.remove('spinning');
+      btn.disabled = false;
+    }
   }
 
   // ───────── Importação em massa com IA ─────────
@@ -11929,14 +11959,21 @@ document.addEventListener('DOMContentLoaded',()=>{
       .select('titulo,fonte,url,publicado_em').eq('concorrente_id', c.id)
       .order('publicado_em',{ascending:false}).limit(5);
     const resumo = c.resumo_noticias
-      ? `<div class="cbn-resumo"><div class="k">🤖 Resumo IA (últimos 15 dias)</div><div class="v">${esc(c.resumo_noticias)}</div><div class="data">Atualizado em ${fmt(c.resumo_atualizado_em)}</div></div>`
-      : `<div class="cbn-resumo" style="background:#F7F8FA;"><div class="k">Resumo IA</div><div class="v" style="color:#9CA3AF;font-style:italic;">Ainda sem notícias processadas. O cron roda diariamente ou clique em "Atualizar notícias agora".</div></div>`;
+      ? `<div class="cbn-resumo"><div class="k">🤖 Resumo IA (últimos 15 dias)</div><div class="v">${esc(c.resumo_noticias)}</div></div>`
+      : `<div class="cbn-resumo" style="background:#F7F8FA;"><div class="k">Resumo IA</div><div class="v" style="color:#9CA3AF;font-style:italic;">Ainda sem notícias processadas. Clica em ↻ no topo do card ou espera o cron de amanhã.</div></div>`;
     const noticias = (nots?.length)
       ? `<div class="cbn-noticias">${nots.map(n => `<div class="cbn-not"><a href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.titulo)}</a><div class="meta">${esc(n.fonte||'—')} · ${fmtDate(n.publicado_em)}</div></div>`).join('')}</div>`
       : '';
+    const ultimaAt = c.resumo_atualizado_em ? fmt(c.resumo_atualizado_em) : null;
     return `<div class="cbn-conc-card" data-id="${c.id}">
-      <h4>${esc(c.nome)}</h4>
-      ${c.site?`<a class="cbn-conc-site" href="${esc(c.site)}" target="_blank" rel="noopener">${esc(c.site)}</a>`:''}
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <h4>${esc(c.nome)}</h4>
+          ${c.site?`<a class="cbn-conc-site" href="${esc(c.site)}" target="_blank" rel="noopener">${esc(c.site)}</a>`:''}
+        </div>
+        ${canEdit() ? `<button class="cbn-conc-refresh-one" data-conc-refresh="${c.id}" data-conc-nome="${esc(c.nome)}" title="Atualizar notícias deste concorrente">↻</button>` : ''}
+      </div>
+      ${ultimaAt ? `<div class="cbn-conc-last">Atualizado ${esc(ultimaAt)}</div>` : `<div class="cbn-conc-last">Sem atualização ainda</div>`}
       <div class="cbn-conc-row"><div class="k">Pontos fortes</div><div class="v${c.pontos_fortes?'':' empty'}">${c.pontos_fortes?esc(c.pontos_fortes):'Não preenchido'}</div></div>
       <div class="cbn-conc-row"><div class="k">Pontos fracos</div><div class="v${c.pontos_fracos?'':' empty'}">${c.pontos_fracos?esc(c.pontos_fracos):'Não preenchido'}</div></div>
       <div class="cbn-conc-row"><div class="k">Posicionamento</div><div class="v${c.posicionamento?'':' empty'}">${c.posicionamento?esc(c.posicionamento):'Não preenchido'}</div></div>
