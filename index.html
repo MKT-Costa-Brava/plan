@@ -9871,6 +9871,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   function openDiarioEditor_LEGACY(post){
     const isNew = !post; post = post || { titulo:'', subtitulo:'', numero_edicao:null, capa_url:'', blocos:[] };
     const state = { materias: Array.isArray(post.blocos) ? JSON.parse(JSON.stringify(post.blocos)) : [] };
+    window._diarioState = state; // expõe pra Onda P (revisão completa IA)
     let previewTimer;
     function updatePreview(){
       clearTimeout(previewTimer);
@@ -11838,19 +11839,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     body.querySelector('#cbp-cats-close').addEventListener('click', () => document.getElementById('cbp-cats-mask').classList.remove('open'));
   }
 
-  // ───────── 3) Upload de imagens direto no servidor ─────────
-  // Toda vez que aparece um input de "URL de imagem" ou "URL da capa", injeta botão "📎 Enviar"
+  // ───────── 3) Upload de imagens direto no servidor (bucket público) ─────────
   async function uploadImagem(file, ownerKey){
     const client = await sb();
     if (!client){ alert('Supabase não conectado'); return null; }
     if (file.size > 10*1024*1024){ alert(`"${file.name}" excede 10MB`); return null; }
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-    const path = `diario/${ownerKey||'tmp'}/${Date.now()}_${safeName}`;
-    const { error } = await client.storage.from('cb-assets').upload(path, file, { upsert:false, contentType:file.type });
+    const path = `${ownerKey||'inline'}/${Date.now()}_${safeName}`;
+    const { error } = await client.storage.from('cb-diario-imgs').upload(path, file, { upsert:false, contentType:file.type });
     if (error){ alert(`Erro upload: ${error.message}`); return null; }
-    const { data } = client.storage.from('cb-assets').getPublicUrl(path);
+    const { data } = client.storage.from('cb-diario-imgs').getPublicUrl(path);
     return data?.publicUrl || null;
   }
+  window.cbpUploadImagem = uploadImagem;
 
   function anexarUploaderInputs(){
     document.querySelectorAll('input[placeholder*="URL" i][placeholder*="imagem" i], input#dia-capa').forEach(inp => {
@@ -12070,6 +12071,69 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
   setInterval(acoplarSpinnerColar, 1200);
+
+  // ───────── 7) Botão "Revisão completa IA" (gramática + ortografia + layout) ─────────
+  function injetarBotaoRevisaoCompleta(){
+    const colaBtn = document.getElementById('ed-cola');
+    if (!colaBtn) return;
+    const header = colaBtn.closest('.cbk-wrap, .cbk-card, [class*="cbk"]') || colaBtn.parentElement;
+    if (!header || header.querySelector('#cbp-revisao-tudo')) return;
+    const btn = document.createElement('button');
+    btn.id = 'cbp-revisao-tudo';
+    btn.className = colaBtn.className;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"/></svg>Revisão IA (texto + layout)';
+    btn.style.cssText = 'margin-left:8px;background:linear-gradient(135deg,#5A4570,#8CB7C9);color:#fff;';
+    btn.addEventListener('click', revisaoCompletaIA);
+    colaBtn.parentNode.insertBefore(btn, colaBtn.nextSibling);
+  }
+  setInterval(injetarBotaoRevisaoCompleta, 1200);
+
+  async function revisaoCompletaIA(){
+    // tenta achar o state do editor
+    const state = window.__cbDiarioState || window._diarioState;
+    if (!state?.materias?.length){
+      alert('Não achei matérias pra revisar. Adicione pelo menos uma matéria antes.');
+      return;
+    }
+    const total = state.materias.length;
+    if (!confirm(`Vou revisar ${total} matéria(s):\n\n• Texto: gramática, ortografia e tom "leve mas corporativo"\n• Layout: sugerir melhor disposição das imagens pra não deixar lacunas\n\nIsso pode levar ${Math.ceil(total*8)}s. Continuar?`)) return;
+    showSpinner(`IA revisando (0/${total})…`, 'Texto + layout · persona Costa Brava');
+    const client = await sb();
+    let ok = 0, errs = [];
+    for (let i = 0; i < state.materias.length; i++){
+      const m = state.materias[i];
+      showSpinner(`IA revisando (${i+1}/${total})…`, `Matéria: "${(m.titulo||m.texto||'').slice(0,40)}…"`);
+      // Revisa texto
+      if ((m.texto||'').trim().length > 20){
+        try {
+          const { data, error } = await client.functions.invoke('diario-ia', {
+            body: { mode:'revisar', texto:m.texto, titulo:m.titulo, categoria:m.categoria }
+          });
+          if (!error && data?.ok && data?.texto){
+            m.texto = data.texto;
+            m.texto_html = data.texto.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])).replace(/\n/g,'<br>');
+            ok++;
+          } else if (data?.error){ errs.push(`#${i+1} texto: ${data.error}`); }
+        } catch(e){ errs.push(`#${i+1} texto: ${e.message}`); }
+      }
+      // Sugere layout
+      try {
+        const imagens = (m.imagens||[]).map(src => ({ src, temPessoa:null }));
+        const { data, error } = await client.functions.invoke('diario-ia', {
+          body: { mode:'sugerir-layout', texto:m.texto||'', imagens }
+        });
+        if (!error && data?.layout){
+          m.layout = data.layout;
+          m._object_position = data.object_position || 'center top';
+        }
+      } catch(e){}
+    }
+    window.renderCanvas?.(); window.renderMateriaList?.(); window.autosave?.();
+    hideSpinner();
+    const msg = `${ok}/${total} matérias revisadas.${errs.length?'\n\nAvisos:\n'+errs.slice(0,3).join('\n'):''}`;
+    alert(msg);
+    window.toast?.(`Revisão IA concluída: ${ok}/${total}`,'ok');
+  }
 
   // Mesmo tratamento pra "Revisar com IA" nos cards (spinner + persona dedicada)
   function patchRevisarIA(){
