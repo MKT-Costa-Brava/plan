@@ -11875,6 +11875,16 @@ document.addEventListener('DOMContentLoaded',()=>{
           setter.call(inp, url);
           inp.dispatchEvent(new Event('input',{bubbles:true}));
           inp.dispatchEvent(new Event('change',{bubbles:true}));
+          inp.dispatchEvent(new Event('blur',{bubbles:true}));
+          // fallback: injeta direto no state via findIdxFromDom
+          const matCard = inp.closest('[data-idx], [data-i]');
+          const idx = matCard ? +(matCard.dataset.idx ?? matCard.dataset.i) : null;
+          if (idx != null && window._diarioState?.materias?.[idx]){
+            const m = window._diarioState.materias[idx];
+            m.imagens = m.imagens || [];
+            if (!m.imagens.includes(url)) m.imagens.push(url);
+            window.renderCanvas?.(); window.renderMateriaList?.(); window.autosave?.();
+          }
           window.toast?.('Imagem enviada','ok');
         }
         btn.disabled = false;
@@ -11914,6 +11924,17 @@ document.addEventListener('DOMContentLoaded',()=>{
           const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
           setter.call(ta, novo);
           ta.dispatchEvent(new Event('input',{bubbles:true}));
+          ta.dispatchEvent(new Event('change',{bubbles:true}));
+          ta.dispatchEvent(new Event('blur',{bubbles:true}));
+          // fallback direto no state
+          const matCard = ta.closest('[data-idx], [data-i]');
+          const idx = matCard ? +(matCard.dataset.idx ?? matCard.dataset.i) : null;
+          if (idx != null && window._diarioState?.materias?.[idx]){
+            const m = window._diarioState.materias[idx];
+            m.imagens = m.imagens || [];
+            urls.forEach(u => { if (!m.imagens.includes(u)) m.imagens.push(u); });
+            window.renderCanvas?.(); window.renderMateriaList?.(); window.autosave?.();
+          }
           window.toast?.(`${urls.length} imagem(ns) enviadas`,'ok');
         }
         btn.disabled = false;
@@ -11966,6 +11987,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // ───────── 5) Botão "IA sugere layout" em cada card de matéria do editor ─────────
   function anexarBotaoLayoutIA(){
+    // DESATIVADO — substituído pelo botão único "Revisão IA (texto + layout)" na barra do editor
+    // Remove quaisquer botões antigos que ainda estejam no DOM
+    document.querySelectorAll('.cbp-ia-layout').forEach(b => b.remove());
+    return;
     document.querySelectorAll('.nl-materia-card, .nl-editor-materia').forEach((card, idx) => {
       if (card.dataset.pLayoutIA === '1') return;
       card.dataset.pLayoutIA = '1';
@@ -12074,12 +12099,17 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // ───────── 7) Botão "Revisão completa IA" (gramática + ortografia + layout) ─────────
   function injetarBotaoRevisaoCompleta(){
+    // remove TODOS os duplicados primeiro — garante só 1 botão no DOM inteiro
+    const existentes = document.querySelectorAll('#cbp-revisao-tudo, [data-p-revisao-tudo]');
+    if (existentes.length > 1){
+      for (let i = 1; i < existentes.length; i++) existentes[i].remove();
+    }
+    if (existentes.length >= 1) return; // já tem 1 válido
     const colaBtn = document.getElementById('ed-cola');
     if (!colaBtn) return;
-    const header = colaBtn.closest('.cbk-wrap, .cbk-card, [class*="cbk"]') || colaBtn.parentElement;
-    if (!header || header.querySelector('#cbp-revisao-tudo')) return;
     const btn = document.createElement('button');
     btn.id = 'cbp-revisao-tudo';
+    btn.dataset.pRevisaoTudo = '1';
     btn.className = colaBtn.className;
     btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"/></svg>Revisão IA (texto + layout)';
     btn.style.cssText = 'margin-left:8px;background:linear-gradient(135deg,#5A4570,#8CB7C9);color:#fff;';
