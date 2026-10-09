@@ -10896,6 +10896,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   .hm-add-row{ display:flex; gap:8px; align-items:center; padding:10px; background:#F7F8FA; border:1px dashed #C6D2E0; border-radius:10px; margin-bottom:14px; }
   .hm-add-row input, .hm-add-row select{ flex:1; padding:9px 11px; border:1px solid #D6DDE6; border-radius:8px; font-size:13px; font-family:inherit; background:#fff; }
   .hm-add-row input[data-hm-titulo]{ flex:3; }
+  .hm-resp-multi{ position:relative; flex:1.5; max-width:260px; border:1px solid #D6DDE6; border-radius:8px; background:#fff; padding:5px 7px; display:flex; flex-wrap:wrap; gap:4px; align-items:center; min-height:38px; cursor:pointer; }
+  .hm-resp-multi:hover{ border-color:#9CA3AF; }
+  .hm-resp-chip{ background:#EBF4F8; color:#0F2037; font-size:11.5px; padding:3px 7px; border-radius:12px; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+  .hm-resp-chip button{ background:none; border:none; color:#1A3C6E; cursor:pointer; padding:0; font-size:12px; line-height:1; display:flex; }
+  .hm-resp-add{ background:transparent; border:none; color:#6B7280; font-size:12px; cursor:pointer; padding:3px 6px; font-family:inherit; }
+  .hm-resp-add:hover{ color:#0F2037; }
+  .hm-resp-menu{ position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid #E4E9EF; border-radius:9px; box-shadow:0 10px 30px rgba(15,32,55,.12); z-index:10; max-height:220px; overflow-y:auto; padding:4px; }
+  .hm-resp-menu label{ display:flex; align-items:center; gap:8px; padding:7px 10px; cursor:pointer; border-radius:6px; font-size:12.5px; color:#374151; }
+  .hm-resp-menu label:hover{ background:#F0F3F7; }
+  .hm-resp-menu input{ margin:0; }
   .hm-add-row button{ padding:9px 18px; background:#0F2037; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; }
   .hm-add-row button:hover{ background:#1A3C6E; }
   .hm-win{ display:flex; align-items:flex-start; gap:12px; padding:14px 12px; border-bottom:1px solid #F0F3F7; transition:background .12s; }
@@ -11198,6 +11208,76 @@ document.addEventListener('DOMContentLoaded',()=>{
     Object.assign(w, patch);
     renderHome();
   }
+  function editarWin(id){
+    const w = HOME_STATE.wins.find(x => x.id === id);
+    if (!w){ alert('Win não encontrada'); return; }
+    const atuais = Array.isArray(w.responsaveis) && w.responsaveis.length ? w.responsaveis : (w.responsavel ? [w.responsavel] : []);
+    // monta modal
+    let mask = document.getElementById('hm-edit-mask');
+    if (!mask){
+      mask = document.createElement('div');
+      mask.id = 'hm-edit-mask';
+      mask.style.cssText = 'position:fixed;inset:0;background:rgba(15,32,55,.45);display:flex;align-items:center;justify-content:center;z-index:9500;';
+      document.body.appendChild(mask);
+      mask.addEventListener('click', e => { if (e.target === mask) mask.remove(); });
+    }
+    mask.innerHTML = `<div style="background:#fff;border-radius:14px;width:min(520px,92vw);padding:24px 28px;box-shadow:0 20px 60px rgba(15,32,55,.3);font-family:'Montserrat',sans-serif;">
+      <h3 style="margin:0 0 4px;font-size:17px;color:#0F2037;">Editar Win</h3>
+      <div style="font-size:12px;color:#6B7280;margin-bottom:14px;">Alterações salvas no banco imediatamente ao clicar Salvar.</div>
+
+      <label style="display:block;font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;">Título</label>
+      <input id="hm-edit-titulo" value="${esc(w.titulo||'')}" style="width:100%;padding:9px 12px;border:1.5px solid #E4E9EF;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;">
+
+      <label style="display:block;font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.5px;text-transform:uppercase;margin:12px 0 4px;">Responsáveis</label>
+      <div class="hm-resp-multi" id="hm-edit-resp-wrap" style="max-width:none;flex:none;">
+        <div class="hm-resp-chips" data-hm-resp-chips></div>
+        <button type="button" class="hm-resp-add" data-hm-resp-toggle>+ Responsável</button>
+        <div class="hm-resp-menu" data-hm-resp-menu style="display:none;">
+          ${(HOME_STATE.usuarios||[]).map(u => {
+            const n = u.name||u.email;
+            return `<label><input type="checkbox" value="${esc(n)}"${atuais.includes(n)?' checked':''}><span>${esc(n)}</span></label>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <label style="display:block;font-size:10px;font-weight:700;color:#6B7280;letter-spacing:.5px;text-transform:uppercase;margin:12px 0 4px;">BU</label>
+      <select id="hm-edit-bu" style="width:100%;padding:9px 12px;border:1.5px solid #E4E9EF;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;">
+        <option value="">Sem BU</option>
+        ${Object.entries(BU_LBL).map(([k,v])=>`<option value="${k}"${w.bu===k?' selected':''}>${v}</option>`).join('')}
+      </select>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px;">
+        <button id="hm-edit-cancel" style="padding:9px 18px;background:#F0F3F7;border:none;color:#6B7280;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;">Cancelar</button>
+        <button id="hm-edit-save" style="padding:9px 18px;background:#0F2037;border:none;color:#fff;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;">Salvar</button>
+      </div>
+    </div>`;
+    const wrap = mask.querySelector('#hm-edit-resp-wrap');
+    const menu = wrap.querySelector('[data-hm-resp-menu]');
+    const toggle = wrap.querySelector('[data-hm-resp-toggle]');
+    toggle.addEventListener('click', (e) => { e.stopPropagation(); menu.style.display = menu.style.display==='none' ? 'block' : 'none'; });
+    menu.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', () => renderRespChips(wrap)));
+    renderRespChips(wrap);
+
+    mask.querySelector('#hm-edit-cancel').addEventListener('click', () => mask.remove());
+    mask.querySelector('#hm-edit-save').addEventListener('click', async () => {
+      const titulo = mask.querySelector('#hm-edit-titulo').value.trim();
+      if (!titulo){ alert('Título obrigatório'); return; }
+      const bu = mask.querySelector('#hm-edit-bu').value || null;
+      const responsaveis = [...menu.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value);
+      const sb = await ensureSB();
+      if (!sb){ alert('Supabase não conectado'); return; }
+      const { error } = await sb.from('cb_wins_semana').update({
+        titulo, bu,
+        responsavel: responsaveis[0] || null,
+        responsaveis: responsaveis.length ? responsaveis : null,
+      }).eq('id', id);
+      if (error){ alert('Erro: '+error.message); return; }
+      Object.assign(w, { titulo, bu, responsavel: responsaveis[0]||null, responsaveis });
+      mask.remove();
+      renderHome();
+    });
+  }
+
   async function excluirWin(id){
     if (!confirm('Remover essa Win da Semana?')) return;
     const sb = await ensureSB(); if (!sb) return;
@@ -11206,17 +11286,34 @@ document.addEventListener('DOMContentLoaded',()=>{
     HOME_STATE.wins = HOME_STATE.wins.filter(w=>w.id!==id);
     renderHome();
   }
+  function renderRespChips(wrap){
+    if (!wrap) return;
+    const menu = wrap.querySelector('[data-hm-resp-menu]');
+    const chipsEl = wrap.querySelector('[data-hm-resp-chips]');
+    const selecionados = [...menu.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value);
+    chipsEl.innerHTML = selecionados.map(n => `<span class="hm-resp-chip">${esc(n)}<button type="button" data-off="${esc(n)}"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></span>`).join('');
+    chipsEl.querySelectorAll('[data-off]').forEach(b => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const cb = [...menu.querySelectorAll('input[type="checkbox"]')].find(c => c.value === b.dataset.off);
+      if (cb){ cb.checked = false; renderRespChips(wrap); }
+    }));
+  }
+
   async function adicionarWin(){
     const view = $('#vHome'); if (!view) return;
     const titulo = view.querySelector('[data-hm-titulo]')?.value.trim();
-    const responsavel = view.querySelector('[data-hm-resp]')?.value.trim();
+    const menu = view.querySelector('[data-hm-resp-menu]');
+    const responsaveis = menu ? [...menu.querySelectorAll('input[type="checkbox"]:checked')].map(c => c.value) : [];
     const bu = view.querySelector('[data-hm-bu]')?.value || '';
     if (!titulo){ alert('Escreva o título da demanda.'); return; }
     const sb = await ensureSB();
     if (!sb){ alert('Supabase não conectado. Recarrega a página.'); return; }
     const row = {
       semana_ref: HOME_STATE.semanaRef,
-      titulo, responsavel, bu,
+      titulo,
+      responsavel: responsaveis[0] || null, // compat retroativa
+      responsaveis: responsaveis.length ? responsaveis : null,
+      bu,
       origem: 'manual',
       status: 'aberta',
       created_by: (window._cbCurrentEmail||'').toLowerCase(),
@@ -11261,10 +11358,16 @@ document.addEventListener('DOMContentLoaded',()=>{
           <div class="hm-win-titulo">${esc(w.titulo)}</div>
           <div class="hm-win-meta">
             ${w.bu?`<span class="bu">${esc(BU_LBL[w.bu]||w.bu)}</span>`:''}
-            ${w.responsavel?`<span class="resp"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>${esc(w.responsavel)}</span>`:''}
+            ${(() => {
+              const lista = Array.isArray(w.responsaveis) && w.responsaveis.length ? w.responsaveis : (w.responsavel ? [w.responsavel] : []);
+              if (!lista.length) return '';
+              const svg = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>';
+              return `<span class="resp">${svg}${lista.map(esc).join(', ')}</span>`;
+            })()}
             ${w.origem?`<span class="origem">${esc(w.origem)}</span>`:''}
           </div>
         </div>
+        <button class="hm-win-del" data-act="edit" title="Editar"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg></button>
         <button class="hm-win-del" data-act="del" title="Remover"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>`;
 
@@ -11290,10 +11393,13 @@ document.addEventListener('DOMContentLoaded',()=>{
 
           <div class="hm-add-row">
             <input data-hm-titulo type="text" placeholder="Nova demanda pra essa semana…"/>
-            <select data-hm-resp style="max-width:200px;">
-              <option value="">Responsável…</option>
-              ${(HOME_STATE.usuarios||[]).map(u => `<option value="${esc(u.name||u.email)}">${esc(u.name||u.email)}</option>`).join('')}
-            </select>
+            <div class="hm-resp-multi" data-hm-resp-wrap>
+              <div class="hm-resp-chips" data-hm-resp-chips></div>
+              <button type="button" class="hm-resp-add" data-hm-resp-toggle>+ Responsável</button>
+              <div class="hm-resp-menu" data-hm-resp-menu style="display:none;">
+                ${(HOME_STATE.usuarios||[]).map(u => `<label><input type="checkbox" value="${esc(u.name||u.email)}"><span>${esc(u.name||u.email)}</span></label>`).join('')}
+              </div>
+            </div>
             <select data-hm-bu style="max-width:170px;">
               <option value="">Sem BU</option>
               ${Object.entries(BU_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}
@@ -11311,12 +11417,22 @@ document.addEventListener('DOMContentLoaded',()=>{
     // eventos
     view.querySelector('[data-act="add"]').addEventListener('click', adicionarWin);
     view.querySelector('[data-hm-titulo]').addEventListener('keydown', e => { if (e.key==='Enter') adicionarWin(); });
+    // multi-select responsáveis
+    const wrap = view.querySelector('[data-hm-resp-wrap]');
+    const menu = wrap?.querySelector('[data-hm-resp-menu]');
+    const toggle = wrap?.querySelector('[data-hm-resp-toggle]');
+    toggle?.addEventListener('click', (e) => { e.stopPropagation(); menu.style.display = menu.style.display==='none' ? 'block' : 'none'; });
+    wrap?.addEventListener('click', (e) => { if (e.target === wrap && menu.style.display==='none') { menu.style.display='block'; } });
+    document.addEventListener('click', (e) => { if (menu && !wrap.contains(e.target)) menu.style.display='none'; }, { once:true });
+    menu?.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', () => renderRespChips(wrap)));
+    renderRespChips(wrap);
     view.querySelectorAll('[data-act="prev"]').forEach(b=>b.addEventListener('click',()=>mudarSemana(-1)));
     view.querySelectorAll('[data-act="next"]').forEach(b=>b.addEventListener('click',()=>mudarSemana(1)));
     view.querySelectorAll('[data-act="hoje"]').forEach(b=>b.addEventListener('click', irSemanaAtual));
     view.querySelectorAll('.hm-win').forEach(row => {
       const id = row.dataset.id;
       row.querySelector('[data-act="toggle"]').addEventListener('click', () => toggleConcluida(id));
+      row.querySelector('[data-act="edit"]').addEventListener('click', () => editarWin(id));
       row.querySelector('[data-act="del"]').addEventListener('click', () => excluirWin(id));
     });
   }
