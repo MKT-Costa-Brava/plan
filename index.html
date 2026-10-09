@@ -9201,6 +9201,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     { k:'charliebravo',        lbl:'CharlieBravo',          cor:'#0F2037', bg:'#E4E9EF' },
     { k:'insights',            lbl:'Insights & Reviews',    cor:'#8CB7C9', bg:'#EEF5F8' },
   ];
+  window.NEWS_CATEGORIAS = NEWS_CATEGORIAS;
   const NEWS_LAYOUTS = [
     { k:'img-esq',    lbl:'Imagem à esquerda' },
     { k:'img-dir',    lbl:'Imagem à direita' },
@@ -11604,6 +11605,374 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   setTimeout(hookRenderTasks, 1000);
   setTimeout(addHideDoneToggle, 1200);
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ONDA P — Diário: categorias editáveis + upload de imagem + fix visual
+     ═══════════════════════════════════════════════════════════ -->
+<style id="cb-onda-p-style">
+  /* fix do fundo branco desconfigurado na visualização do diário */
+  .nl-page{ background:#FFF; overflow:hidden; }
+  .nl-page > div[style*="padding:32px"]{ background:#FFF !important; }
+  .nl-materia{ background:#FFF; }
+  .nl-materia .nl-conteudo{ background:transparent; }
+  .nl-materia > .nl-media img, .nl-materia .nl-img{ background:#F7F8FA; }
+  /* separador limpo entre matérias (remove linha branca "flutuante") */
+  .nl-materia + .nl-materia{ border-top:1px solid #F0F3F7; margin-top:0; padding-top:28px; }
+
+  /* Modal de categorias */
+  .cbp-cats-mask{ position:fixed; inset:0; background:rgba(15,32,55,.45); display:none; align-items:center; justify-content:center; z-index:9400; }
+  .cbp-cats-mask.open{ display:flex; }
+  .cbp-cats-modal{ background:#fff; border-radius:14px; width:min(640px, 94vw); max-height:85vh; overflow-y:auto; padding:24px 28px; box-shadow:0 20px 60px rgba(15,32,55,.3); font-family:'Montserrat',sans-serif; }
+  .cbp-cats-modal h3{ margin:0 0 4px; font-size:17px; color:#0F2037; }
+  .cbp-cats-modal .sub{ font-size:12px; color:#6B7280; margin-bottom:16px; }
+  .cbp-cat-row{ display:flex; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid #F0F3F7; }
+  .cbp-cat-row:last-child{ border-bottom:none; }
+  .cbp-cat-row .preview{ padding:4px 12px; border-radius:99px; font-size:10.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; min-width:140px; text-align:center; }
+  .cbp-cat-row input[type="text"]{ flex:1; padding:7px 10px; border:1px solid #E4E9EF; border-radius:6px; font-size:12.5px; font-family:inherit; }
+  .cbp-cat-row input[type="color"]{ width:34px; height:30px; border:1px solid #E4E9EF; border-radius:6px; padding:0; cursor:pointer; background:none; }
+  .cbp-cat-row .lbl{ font-size:9px; color:#9CA3AF; text-transform:uppercase; font-weight:700; letter-spacing:.3px; }
+  .cbp-cat-row button{ background:transparent; border:1px solid transparent; cursor:pointer; padding:4px 6px; border-radius:4px; color:#6B7280; }
+  .cbp-cat-row button.danger:hover{ background:#FEE2E2; color:#DC2626; border-color:#FCA5A5; }
+  .cbp-cats-add{ margin-top:12px; padding:10px; background:#F7F8FA; border:1px dashed #C6D2E0; border-radius:8px; display:flex; gap:8px; align-items:center; }
+  .cbp-cats-add input{ flex:1; padding:7px 10px; border:1px solid #E4E9EF; border-radius:6px; font-size:12.5px; font-family:inherit; }
+  .cbp-cats-add button{ padding:7px 14px; background:#0F2037; color:#fff; border:none; border-radius:6px; font-weight:700; font-size:12px; cursor:pointer; font-family:inherit; }
+
+  .cbp-upload-btn{ background:#F3EEF9; color:#5A4570; border:1px solid #E1D5EC; padding:6px 12px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:5px; margin-left:5px; }
+  .cbp-upload-btn:hover{ background:#EBE2F5; }
+  .cbp-upload-btn[disabled]{ opacity:.6; cursor:wait; }
+
+  /* Preserva cabeças de pessoas em todas as imagens de matéria */
+  .nl-img, .nl-media img{ object-fit:cover; object-position:center top; }
+  /* layouts que mostram imagem grande evitam cortar o rosto */
+  .nl-materia.layout-img-full .nl-media img{ aspect-ratio:16/9; height:auto; width:100%; }
+  .nl-materia.layout-img-esq .nl-media img, .nl-materia.layout-img-dir .nl-media img{ aspect-ratio:4/3; height:auto; width:100%; }
+  .nl-materia.layout-grade .nl-media img{ aspect-ratio:1/1; }
+
+  /* Botão "IA sugere layout" nos cards de matéria */
+  .cbp-ia-layout{ background:linear-gradient(135deg,#5A4570,#8CB7C9); color:#fff; border:none; padding:6px 12px; border-radius:7px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:5px; }
+  .cbp-ia-layout:hover{ opacity:.9; }
+  .cbp-ia-layout[disabled]{ opacity:.6; cursor:wait; }
+</style>
+
+<script id="cb-onda-p-boot">
+(function(){
+  const esc = s => (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  async function sb(){
+    if (window.sb?.from) return window.sb;
+    if (!window.supabase?.createClient){ for (let i=0;i<40;i++){ await new Promise(r=>setTimeout(r,250)); if (window.supabase?.createClient) break; } }
+    if (!window.supabase?.createClient) return null;
+    const html = document.documentElement.outerHTML;
+    const url = html.match(/URL\s*[:=]\s*['"]([^'"]+\.supabase\.co)['"]/)?.[1];
+    const key = html.match(/ANON_KEY\s*[:=]\s*['"](eyJ[^'"]+)['"]/)?.[1];
+    if (!url || !key) return null;
+    window.sb = window.supabase.createClient(url, key, { auth:{persistSession:true,autoRefreshToken:true,storageKey:'sb-cxlwkqsxzozfarrmqrfd-auth-token'}});
+    await new Promise(r=>setTimeout(r,300));
+    return window.sb;
+  }
+  const canEdit = () => ['master','adm'].includes(window._cbRole);
+
+  // ───────── 1) Carrega categorias do banco e substitui NEWS_CATEGORIAS ─────────
+  async function carregarCategorias(){
+    const client = await sb(); if (!client) return;
+    if (!window.NEWS_CATEGORIAS){ setTimeout(carregarCategorias, 500); return; }
+    try {
+      const { data, error } = await client.from('cb_diario_categorias').select('*').eq('ativo',true).order('ordem');
+      if (error || !data?.length) return;
+      // substitui conteúdo do array in-place (NEWS_CATEGORIAS é const mas é array)
+      window.NEWS_CATEGORIAS.splice(0, window.NEWS_CATEGORIAS.length, ...data.map(d => ({ k:d.k, lbl:d.lbl, cor:d.cor, bg:d.bg })));
+    } catch(e){ console.error('[Onda P cats]', e); }
+  }
+  setTimeout(carregarCategorias, 1200);
+
+  // ───────── 2) Botão "Categorias" no header do Diário + modal ─────────
+  function injetarBotaoCategorias(){
+    const v = document.getElementById('vDiario');
+    if (!v || !v.classList.contains('active')) return;
+    if (v.querySelector('[data-p-cats]')) return;
+    // procura um lugar bom pra colocar o botão
+    const hdr = v.querySelector('.cbk-wrap > div:nth-child(4)') || v.querySelector('.cbk-wrap > div:nth-child(3)') || v.querySelector('.cbk-wrap');
+    if (!hdr || !canEdit()) return;
+    const btn = document.createElement('button');
+    btn.className = 'cbk-btn cbk-btn-ghost';
+    btn.dataset.pCats = '1';
+    btn.style.cssText = 'margin-left:8px;padding:8px 14px;font-size:12px;font-weight:700;background:#F3EEF9;color:#5A4570;border:1px solid #E1D5EC;border-radius:7px;cursor:pointer;font-family:inherit;';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01"/></svg>Categorias';
+    btn.addEventListener('click', abrirModalCategorias);
+    // adiciona no fim do header
+    const dstBtn = v.querySelector('button[onclick*="openDiarioEditor"], .cbk-btn-primary');
+    if (dstBtn) dstBtn.parentNode.insertBefore(btn, dstBtn); else hdr.appendChild(btn);
+  }
+  // observa mudanças pra reinjetar quando o Diário renderiza
+  new MutationObserver(() => injetarBotaoCategorias()).observe(document.body, { childList:true, subtree:true });
+  setInterval(injetarBotaoCategorias, 1200);
+
+  function ensureCatsMask(){
+    let m = document.getElementById('cbp-cats-mask');
+    if (m) return m;
+    m = document.createElement('div');
+    m.id = 'cbp-cats-mask';
+    m.className = 'cbp-cats-mask';
+    m.innerHTML = '<div class="cbp-cats-modal"></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+    return m;
+  }
+
+  async function abrirModalCategorias(){
+    const mask = ensureCatsMask();
+    const body = mask.querySelector('.cbp-cats-modal');
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:#9CA3AF;">Carregando…</div>';
+    mask.classList.add('open');
+    const client = await sb(); if (!client) return;
+    const { data: cats } = await client.from('cb_diario_categorias').select('*').order('ordem');
+    renderCategoriasModal(body, cats||[]);
+  }
+
+  function renderCategoriasModal(body, cats){
+    body.innerHTML = `<h3>Gerenciar Categorias do Diário</h3>
+      <div class="sub">Cada categoria vira uma tag colorida nas matérias. Mudanças refletem imediatamente nas novas matérias.</div>
+      <div id="cbp-cats-list">
+        ${cats.map(c => `
+          <div class="cbp-cat-row" data-k="${esc(c.k)}">
+            <span class="preview" style="background:${esc(c.bg)};color:${esc(c.cor)};">${esc(c.lbl)}</span>
+            <input type="text" data-f="lbl" value="${esc(c.lbl)}" placeholder="Nome da categoria">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span class="lbl">Texto</span><input type="color" data-f="cor" value="${esc(c.cor)}" title="Cor do texto"></div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:1px;"><span class="lbl">Fundo</span><input type="color" data-f="bg" value="${esc(c.bg)}" title="Cor de fundo"></div>
+            <button data-act="save" title="Salvar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></button>
+            <button data-act="del" class="danger" title="Excluir"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="cbp-cats-add">
+        <input id="cbp-cat-newnome" placeholder="Nova categoria (nome)…">
+        <input type="color" id="cbp-cat-newcor" value="#0F2037" title="Cor do texto">
+        <input type="color" id="cbp-cat-newbg" value="#E4E9EF" title="Fundo">
+        <button id="cbp-cat-add">+ Adicionar</button>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px;">
+        <button id="cbp-cats-close" style="padding:9px 18px;background:#F0F3F7;border:none;color:#6B7280;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;">Fechar</button>
+      </div>`;
+    body.querySelectorAll('.cbp-cat-row').forEach(row => {
+      // live preview
+      const preview = row.querySelector('.preview');
+      const inpLbl = row.querySelector('[data-f="lbl"]');
+      const inpCor = row.querySelector('[data-f="cor"]');
+      const inpBg = row.querySelector('[data-f="bg"]');
+      [inpLbl, inpCor, inpBg].forEach(el => el.addEventListener('input', () => {
+        preview.textContent = inpLbl.value;
+        preview.style.color = inpCor.value;
+        preview.style.background = inpBg.value;
+      }));
+      row.querySelector('[data-act="save"]').addEventListener('click', async () => {
+        const k = row.dataset.k;
+        const client = await sb();
+        const { error } = await client.from('cb_diario_categorias').update({
+          lbl: inpLbl.value.trim(), cor: inpCor.value, bg: inpBg.value, updated_at: new Date().toISOString()
+        }).eq('k', k);
+        if (error){ alert('Erro: '+error.message); return; }
+        window.toast?.(`Categoria "${inpLbl.value}" atualizada`,'ok');
+        carregarCategorias();
+      });
+      row.querySelector('[data-act="del"]').addEventListener('click', async () => {
+        if (!confirm(`Excluir categoria "${inpLbl.value}"? Matérias que usam ela vão continuar funcionando (mantém a chave guardada).`)) return;
+        const k = row.dataset.k;
+        const client = await sb();
+        const { error } = await client.from('cb_diario_categorias').update({ ativo:false }).eq('k', k);
+        if (error){ alert('Erro: '+error.message); return; }
+        row.remove();
+        carregarCategorias();
+      });
+    });
+    body.querySelector('#cbp-cat-add').addEventListener('click', async () => {
+      const nome = body.querySelector('#cbp-cat-newnome').value.trim();
+      if (!nome){ alert('Nome é obrigatório'); return; }
+      const k = nome.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+      const cor = body.querySelector('#cbp-cat-newcor').value;
+      const bg = body.querySelector('#cbp-cat-newbg').value;
+      const client = await sb();
+      const { data: existing } = await client.from('cb_diario_categorias').select('ordem').order('ordem',{ascending:false}).limit(1).maybeSingle();
+      const prox = (existing?.ordem || 0) + 1;
+      const { error } = await client.from('cb_diario_categorias').insert({ k, lbl:nome, cor, bg, ordem:prox, ativo:true });
+      if (error){
+        if (/duplicate|unique/i.test(error.message)) alert('Já existe uma categoria com esse nome');
+        else alert('Erro: '+error.message);
+        return;
+      }
+      window.toast?.(`Categoria "${nome}" criada`,'ok');
+      carregarCategorias();
+      // re-renderiza modal
+      const { data: catsAtual } = await client.from('cb_diario_categorias').select('*').order('ordem');
+      renderCategoriasModal(body, catsAtual||[]);
+    });
+    body.querySelector('#cbp-cats-close').addEventListener('click', () => document.getElementById('cbp-cats-mask').classList.remove('open'));
+  }
+
+  // ───────── 3) Upload de imagens direto no servidor ─────────
+  // Toda vez que aparece um input de "URL de imagem" ou "URL da capa", injeta botão "📎 Enviar"
+  async function uploadImagem(file, ownerKey){
+    const client = await sb();
+    if (!client){ alert('Supabase não conectado'); return null; }
+    if (file.size > 10*1024*1024){ alert(`"${file.name}" excede 10MB`); return null; }
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+    const path = `diario/${ownerKey||'tmp'}/${Date.now()}_${safeName}`;
+    const { error } = await client.storage.from('cb-assets').upload(path, file, { upsert:false, contentType:file.type });
+    if (error){ alert(`Erro upload: ${error.message}`); return null; }
+    const { data } = client.storage.from('cb-assets').getPublicUrl(path);
+    return data?.publicUrl || null;
+  }
+
+  function anexarUploaderInputs(){
+    document.querySelectorAll('input[placeholder*="URL" i][placeholder*="imagem" i], input#dia-capa').forEach(inp => {
+      if (inp.dataset.pUploader === '1') return;
+      inp.dataset.pUploader = '1';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cbp-upload-btn';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Enviar';
+      const file = document.createElement('input');
+      file.type = 'file';
+      file.accept = 'image/*';
+      file.style.display = 'none';
+      btn.addEventListener('click', () => file.click());
+      file.addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        btn.disabled = true; btn.innerHTML = 'Enviando…';
+        const url = await uploadImagem(f, 'inline');
+        if (url){
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+          setter.call(inp, url);
+          inp.dispatchEvent(new Event('input',{bubbles:true}));
+          inp.dispatchEvent(new Event('change',{bubbles:true}));
+          window.toast?.('Imagem enviada','ok');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Enviar';
+        file.value = '';
+      });
+      inp.parentNode.insertBefore(btn, inp.nextSibling);
+      inp.parentNode.insertBefore(file, inp.nextSibling);
+    });
+    // textarea "Imagens (uma URL por linha)"
+    document.querySelectorAll('textarea').forEach(ta => {
+      if (ta.dataset.pUploader === '1') return;
+      if (!/uma url por linha|url.*imagem/i.test(ta.placeholder||'') && ta.id !== 'wiz-imgs') return;
+      ta.dataset.pUploader = '1';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cbp-upload-btn';
+      btn.style.marginTop = '6px';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Enviar imagens';
+      const file = document.createElement('input');
+      file.type = 'file';
+      file.accept = 'image/*';
+      file.multiple = true;
+      file.style.display = 'none';
+      btn.addEventListener('click', () => file.click());
+      file.addEventListener('change', async (e) => {
+        const files = [...e.target.files]; if (!files.length) return;
+        btn.disabled = true; btn.innerHTML = `Enviando ${files.length}…`;
+        const urls = [];
+        for (const f of files){
+          const url = await uploadImagem(f, 'inline');
+          if (url) urls.push(url);
+        }
+        if (urls.length){
+          const atual = ta.value.trim();
+          const novo = (atual ? atual+'\n' : '') + urls.join('\n');
+          const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+          setter.call(ta, novo);
+          ta.dispatchEvent(new Event('input',{bubbles:true}));
+          window.toast?.(`${urls.length} imagem(ns) enviadas`,'ok');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Enviar imagens';
+        file.value = '';
+      });
+      ta.parentNode.insertBefore(btn, ta.nextSibling);
+      ta.parentNode.insertBefore(file, ta.nextSibling);
+    });
+  }
+  setInterval(anexarUploaderInputs, 1000);
+
+  // ───────── 4) Hijack IA do diário: usa persona dedicada diario-ia ─────────
+  // Intercepta sb.functions.invoke('nutricao-ai', ...) chamado do diário
+  // e redireciona pra 'diario-ia' com mode='revisar'
+  async function hookDiarioIA(){
+    const client = await sb(); if (!client) return;
+    if (!client.functions || client.functions.__pHooked) return;
+    const origInvoke = client.functions.invoke.bind(client.functions);
+    client.functions.invoke = async function(name, opts){
+      // só intercepta chamadas que vêm do editor do diário (identificado pelo prompt)
+      const body = opts?.body || {};
+      const promptStr = body.prompt || '';
+      if (name === 'nutricao-ai' && /^Reescreva o texto abaixo \(categoria:/i.test(promptStr)){
+        // extrai texto e título do prompt antigo
+        const textoMatch = promptStr.match(/TEXTO:\s*"""([\s\S]*?)"""/);
+        const texto = textoMatch?.[1] || '';
+        const cat = (promptStr.match(/categoria:\s*([^)]+)\)/)?.[1] || '').trim();
+        const titulo = body.titulo || '';
+        const resp = await origInvoke('diario-ia', { body:{ mode:'revisar', texto, titulo, categoria:cat } });
+        if (resp?.error || resp?.data?.error) return resp;
+        // adapta resposta pro formato esperado pelo caller antigo
+        return { data: { output: resp.data?.texto || '' }, error: null };
+      }
+      if (name === 'nutricao-ai' && /^Divida o texto em mat[eé]rias/i.test(promptStr)){
+        // dividir bruto
+        const brutoMatch = promptStr.match(/Texto:\s*"""([\s\S]*?)"""/);
+        const bruto = brutoMatch?.[1] || '';
+        const cats = window.NEWS_CATEGORIAS || [];
+        const resp = await origInvoke('diario-ia', { body:{ mode:'dividir-bruto', bruto, categorias:cats } });
+        if (resp?.error || resp?.data?.error) return resp;
+        return { data: { output: JSON.stringify(resp.data?.materias || []) }, error: null };
+      }
+      return origInvoke(name, opts);
+    };
+    client.functions.__pHooked = true;
+  }
+  setTimeout(hookDiarioIA, 1500);
+  setInterval(hookDiarioIA, 5000);
+
+  // ───────── 5) Botão "IA sugere layout" em cada card de matéria do editor ─────────
+  function anexarBotaoLayoutIA(){
+    document.querySelectorAll('.nl-materia-card, .nl-editor-materia').forEach((card, idx) => {
+      if (card.dataset.pLayoutIA === '1') return;
+      card.dataset.pLayoutIA = '1';
+      const body = card.querySelector('.nl-materia-body, .nl-materia-content') || card;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cbp-ia-layout';
+      btn.style.marginTop = '8px';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"/></svg>IA sugere layout';
+      btn.addEventListener('click', async () => {
+        btn.disabled = true; btn.innerHTML = 'IA pensando…';
+        try {
+          // tenta encontrar o estado da matéria
+          const state = window.__cbDiarioState || window._diarioState;
+          const idxReal = +(card.dataset.idx || card.dataset.i || idx);
+          const m = state?.materias?.[idxReal];
+          if (!m){ throw new Error('Não localizei a matéria no editor'); }
+          const client = await sb();
+          const imagens = (m.imagens||[]).map(src => ({ src, temPessoa: null }));
+          const { data, error } = await client.functions.invoke('diario-ia', {
+            body: { mode:'sugerir-layout', texto: m.texto || '', imagens }
+          });
+          if (error || data?.error) throw new Error(error?.message || data.error);
+          m.layout = data.layout;
+          m._object_position = data.object_position;
+          window.toast?.(`IA sugeriu: ${data.layout} — ${data.motivo||''}`,'ok');
+          // força re-render
+          if (typeof window.renderCanvas === 'function') window.renderCanvas();
+          if (typeof window.renderMateriaList === 'function') window.renderMateriaList();
+        } catch(e){ alert('Erro: '+e.message); }
+        btn.disabled = false;
+        btn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"/></svg>IA sugere layout';
+      });
+      body.appendChild(btn);
+    });
+  }
+  setInterval(anexarBotaoLayoutIA, 1200);
 })();
 </script>
 
