@@ -9807,15 +9807,36 @@ document.addEventListener('DOMContentLoaded',()=>{
     async function colarBrutoIA(){
       const bruto = prompt('Cole texto bruto — IA divide em matérias:');
       if (!bruto?.trim()) return;
-      toast('IA distribuindo…');
+      if (bruto.length < 50){ toast('Texto muito curto','err'); return; }
+      window.cbpShowSpinner?.('IA distribuindo em matérias…', `${bruto.length} caracteres · persona Costa Brava · 20-60s`);
       try {
-        const cats = NEWS_CATEGORIAS.map(c=>`- ${c.k}: ${c.lbl}`).join('\n');
-        const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{ mode:'unico', bu:'bt', formato:'artigo-blog', prompt:`Divida o texto em matérias. Devolva JSON: [{"categoria":"chave","titulo":"...","texto":"..."}]. Categorias:\n${cats}\n\nAnti-IA: preserve fatos, evite jargões.\n\nTexto:\n"""${bruto}"""` }});
-        if (error || data?.error) throw new Error(error?.message || data.error);
-        const arr = JSON.parse(data.output.replace(/^\s*```json\s*|\s*```\s*$/g,'').trim());
-        arr.forEach(m => state.materias.push({ categoria:m.categoria||'insights', titulo:m.titulo||'', texto:m.texto||'', texto_html:esc(m.texto||'').replace(/\n/g,'<br>'), imagens:[], layout:'texto-only' }));
-        renderCanvas(); renderMateriaList(); autosave(); toast(`${arr.length} matérias distribuídas`);
-      } catch(e){ toast('Erro: '+e.message, 'err'); }
+        const cats = NEWS_CATEGORIAS.map(c => ({ k:c.k, lbl:c.lbl }));
+        const { data, error } = await sb.functions.invoke('diario-ia', {
+          body: { mode:'dividir-bruto', bruto, categorias:cats }
+        });
+        if (error) throw new Error(error.message || 'Erro HTTP');
+        if (data?.error){
+          const raw = data.raw ? '\n\nIA respondeu (primeiros 300 chars):\n'+data.raw.slice(0,300) : '';
+          throw new Error(data.error + raw);
+        }
+        const materias = data?.materias || [];
+        if (!materias.length) throw new Error('IA não devolveu nenhuma matéria. Tente colar mais texto ou dividir em partes.');
+        materias.forEach(m => state.materias.push({
+          categoria: m.categoria||'insights',
+          titulo: m.titulo||'',
+          texto: m.texto||'',
+          texto_html: esc(m.texto||'').replace(/\n/g,'<br>'),
+          imagens: [],
+          layout: 'texto-only'
+        }));
+        renderCanvas(); renderMateriaList(); autosave();
+        window.cbpHideSpinner?.();
+        toast(`${materias.length} matérias distribuídas pela IA`);
+      } catch(e){
+        window.cbpHideSpinner?.();
+        alert('IA falhou: '+e.message);
+        toast('Erro na IA','err');
+      }
     }
 
     document.getElementById('ed-save').addEventListener('click', async () => {
@@ -10020,17 +10041,20 @@ document.addEventListener('DOMContentLoaded',()=>{
     async function colarBrutoIA(){
       const bruto = prompt('Cole aqui o texto bruto da newsletter (matéria, anotações, tudo junto). A IA vai dividir em matérias por categoria:');
       if (!bruto || !bruto.trim()) return;
-      toast('IA distribuindo…');
+      if (bruto.length < 50){ toast('Texto muito curto','err'); return; }
+      window.cbpShowSpinner?.('IA distribuindo em matérias…', `${bruto.length} caracteres · persona Costa Brava · 20-60s`);
       try {
-        const cats = NEWS_CATEGORIAS.map(c=>`- ${c.k}: ${c.lbl}`).join('\n');
-        const { data, error } = await sb.functions.invoke('nutricao-ai', { body:{
-          mode:'unico', bu:'bt', segment_id:null, persona_id:null, formato:'artigo-blog',
-          titulo:'',
-          prompt: `Divida o texto bruto abaixo em matérias de newsletter. Cada matéria deve ter categoria (uma das listadas), título, texto revisado. NÃO invente fatos. Devolva SOMENTE JSON válido (sem markdown) no formato: [{"categoria":"chave","titulo":"...","texto":"..."}]. Categorias disponíveis:\n${cats}\n\nREGRAS: preserve fatos, melhore clareza, evite jargões IA ("vale ouro","não é sobre X, é sobre Y"), evite travessão excessivo, prefira frases curtas.\n\nTexto bruto:\n"""${bruto}"""`
-        }});
-        if (error || data?.error) throw new Error(error?.message || data.error);
-        let arr = [];
-        try { arr = JSON.parse(data.output.replace(/^\s*```json\s*|\s*```\s*$/g,'').trim()); } catch(e){ throw new Error('Formato IA inesperado'); }
+        const cats = NEWS_CATEGORIAS.map(c => ({ k:c.k, lbl:c.lbl }));
+        const { data, error } = await sb.functions.invoke('diario-ia', {
+          body: { mode:'dividir-bruto', bruto, categorias: cats }
+        });
+        if (error) throw new Error(error.message || 'Erro HTTP');
+        if (data?.error){
+          const raw = data.raw ? '\n\nIA respondeu (primeiros 300 chars):\n'+data.raw.slice(0,300) : '';
+          throw new Error(data.error + raw);
+        }
+        const arr = data?.materias || [];
+        if (!arr.length) throw new Error('IA não devolveu nenhuma matéria. Tente colar texto menor ou dividir em partes.');
         arr.forEach(m => state.materias.push({
           categoria: m.categoria || 'insights',
           titulo: m.titulo || '',
@@ -10040,8 +10064,13 @@ document.addEventListener('DOMContentLoaded',()=>{
           layout: 'texto-only',
         }));
         renderEditor();
-        toast(`${arr.length} matérias distribuídas`);
-      } catch(e){ toast('Erro: '+e.message, 'err'); }
+        window.cbpHideSpinner?.();
+        toast(`${arr.length} matérias distribuídas pela IA`);
+      } catch(e){
+        window.cbpHideSpinner?.();
+        alert('IA falhou: '+e.message);
+        toast('Erro na IA','err');
+      }
     }
 
     document.getElementById('dia-cola').addEventListener('click', colarBrutoIA);
@@ -12009,62 +12038,38 @@ document.addEventListener('DOMContentLoaded',()=>{
   window.cbpShowSpinner = showSpinner;
   window.cbpHideSpinner = hideSpinner;
 
-  // Substitui todos os botões "Colar bruto" por um que chama diario-ia direto
-  function reescreverColarBruto(){
-    const alvos = document.querySelectorAll('#ed-cola, #dia-cola');
-    alvos.forEach(btn => {
-      if (btn.dataset.pRewritten === '1') return;
-      btn.dataset.pRewritten = '1';
-      // remove listeners antigos clonando o node
-      const novo = btn.cloneNode(true);
-      btn.parentNode.replaceChild(novo, btn);
-      novo.addEventListener('click', async () => {
-        const bruto = prompt('Cole texto bruto — IA divide em matérias:');
-        if (!bruto?.trim()) return;
-        if (bruto.length < 50){ alert('Texto muito curto. Cole pelo menos umas 2-3 frases.'); return; }
-        showSpinner('IA distribuindo em matérias…', `${bruto.length} caracteres · persona Costa Brava ativa`);
-        try {
-          const client = await sb();
-          if (!client){ throw new Error('Supabase não conectado'); }
-          const cats = window.NEWS_CATEGORIAS || [];
-          const { data, error } = await client.functions.invoke('diario-ia', {
-            body: { mode:'dividir-bruto', bruto, categorias: cats.map(c => ({ k:c.k, lbl:c.lbl })) }
-          });
-          if (error) throw new Error(error.message || 'Erro HTTP');
-          if (data?.error){
-            // mostra erro com raw pra debug
-            const detalhe = data.raw ? `\n\nIA respondeu:\n${data.raw.slice(0,300)}` : '';
-            throw new Error(data.error + detalhe);
-          }
-          const materias = data?.materias || [];
-          if (!materias.length) throw new Error('IA não devolveu nenhuma matéria. Tente colar mais texto.');
-          // injeta no state do editor
-          const state = window.__cbDiarioState || window._diarioState;
-          if (!state?.materias){
-            // procura state pelo DOM
-            console.warn('[cbp] state não localizado — adicionando via evento customizado');
-            document.dispatchEvent(new CustomEvent('cbp-materias-adicionar', { detail: materias }));
-          } else {
-            materias.forEach(m => state.materias.push({
-              categoria: m.categoria || 'insights',
-              titulo: m.titulo || '',
-              texto: m.texto || '',
-              texto_html: (m.texto||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])).replace(/\n/g,'<br>'),
-              imagens: [],
-              layout: 'texto-only',
-            }));
-            window.renderCanvas?.(); window.renderMateriaList?.(); window.autosave?.();
-          }
-          hideSpinner();
-          window.toast?.(`${materias.length} matéria(s) adicionadas pela IA`, 'ok');
-        } catch(e){
-          hideSpinner();
-          alert('Erro: ' + e.message);
-        }
-      });
+  // Spinner acoplado aos botões "Colar bruto" originais (sem substituir — preserva state interno)
+  function acoplarSpinnerColar(){
+    document.querySelectorAll('#ed-cola, #dia-cola').forEach(btn => {
+      if (btn.dataset.pSpinner === '1') return;
+      btn.dataset.pSpinner = '1';
+      btn.addEventListener('click', () => {
+        // dispara spinner num delay pequeno pra pegar depois do prompt() do código original
+        setTimeout(() => {
+          // só mostra se o toast "IA distribuindo…" aparecer (sinal de que o processo começou)
+          const checkStart = setInterval(() => {
+            const toastEl = document.getElementById('cbk-toast');
+            if (toastEl?.classList.contains('show')){
+              const txt = toastEl.textContent || '';
+              if (/distribuindo|revisando/i.test(txt)){
+                clearInterval(checkStart);
+                showSpinner('IA distribuindo em matérias…', 'Persona Costa Brava · pode levar 15-40s');
+                // esconde quando terminar
+                const checkDone = setInterval(() => {
+                  const t2 = document.getElementById('cbk-toast');
+                  const txt2 = t2?.textContent || '';
+                  if (/matérias distribuídas|Erro/i.test(txt2)){ hideSpinner(); clearInterval(checkDone); }
+                }, 400);
+                setTimeout(() => { hideSpinner(); clearInterval(checkDone); }, 90000);
+              }
+            }
+          }, 200);
+          setTimeout(() => clearInterval(checkStart), 5000);
+        }, 50);
+      }, true);
     });
   }
-  setInterval(reescreverColarBruto, 1200);
+  setInterval(acoplarSpinnerColar, 1200);
 
   // Mesmo tratamento pra "Revisar com IA" nos cards (spinner + persona dedicada)
   function patchRevisarIA(){
