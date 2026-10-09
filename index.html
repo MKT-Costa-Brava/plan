@@ -11973,6 +11973,119 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
   setInterval(anexarBotaoLayoutIA, 1200);
+
+  // ───────── 6) Spinner global + substituição completa do "Colar bruto" ─────────
+  function ensureSpinnerCSS(){
+    if (document.getElementById('cbp-spin-style')) return;
+    const st = document.createElement('style');
+    st.id = 'cbp-spin-style';
+    st.textContent = `
+      #cbp-spin-mask{ position:fixed; inset:0; background:rgba(15,32,55,.55); backdrop-filter:blur(2px); display:flex; align-items:center; justify-content:center; z-index:9800; font-family:'Montserrat',sans-serif; }
+      #cbp-spin-box{ background:#fff; border-radius:14px; padding:30px 36px; display:flex; flex-direction:column; align-items:center; gap:14px; box-shadow:0 20px 60px rgba(15,32,55,.3); min-width:260px; }
+      #cbp-spin-anim{ width:48px; height:48px; border:4px solid #EEF5F8; border-top-color:#5A4570; border-radius:50%; animation:cbp-spin 0.9s linear infinite; }
+      @keyframes cbp-spin{ to{ transform:rotate(360deg); } }
+      #cbp-spin-txt{ font-size:13.5px; color:#0F2037; font-weight:600; text-align:center; }
+      #cbp-spin-sub{ font-size:11px; color:#9CA3AF; text-align:center; }
+    `;
+    document.head.appendChild(st);
+  }
+  function showSpinner(txt='Processando…', sub='Isso pode levar 10-30 segundos'){
+    ensureSpinnerCSS();
+    let m = document.getElementById('cbp-spin-mask');
+    if (!m){
+      m = document.createElement('div');
+      m.id = 'cbp-spin-mask';
+      m.innerHTML = `<div id="cbp-spin-box"><div id="cbp-spin-anim"></div><div id="cbp-spin-txt"></div><div id="cbp-spin-sub"></div></div>`;
+      document.body.appendChild(m);
+    }
+    m.querySelector('#cbp-spin-txt').textContent = txt;
+    m.querySelector('#cbp-spin-sub').textContent = sub;
+    m.style.display = 'flex';
+  }
+  function hideSpinner(){
+    const m = document.getElementById('cbp-spin-mask');
+    if (m) m.style.display = 'none';
+  }
+  window.cbpShowSpinner = showSpinner;
+  window.cbpHideSpinner = hideSpinner;
+
+  // Substitui todos os botões "Colar bruto" por um que chama diario-ia direto
+  function reescreverColarBruto(){
+    const alvos = document.querySelectorAll('#ed-cola, #dia-cola');
+    alvos.forEach(btn => {
+      if (btn.dataset.pRewritten === '1') return;
+      btn.dataset.pRewritten = '1';
+      // remove listeners antigos clonando o node
+      const novo = btn.cloneNode(true);
+      btn.parentNode.replaceChild(novo, btn);
+      novo.addEventListener('click', async () => {
+        const bruto = prompt('Cole texto bruto — IA divide em matérias:');
+        if (!bruto?.trim()) return;
+        if (bruto.length < 50){ alert('Texto muito curto. Cole pelo menos umas 2-3 frases.'); return; }
+        showSpinner('IA distribuindo em matérias…', `${bruto.length} caracteres · persona Costa Brava ativa`);
+        try {
+          const client = await sb();
+          if (!client){ throw new Error('Supabase não conectado'); }
+          const cats = window.NEWS_CATEGORIAS || [];
+          const { data, error } = await client.functions.invoke('diario-ia', {
+            body: { mode:'dividir-bruto', bruto, categorias: cats.map(c => ({ k:c.k, lbl:c.lbl })) }
+          });
+          if (error) throw new Error(error.message || 'Erro HTTP');
+          if (data?.error){
+            // mostra erro com raw pra debug
+            const detalhe = data.raw ? `\n\nIA respondeu:\n${data.raw.slice(0,300)}` : '';
+            throw new Error(data.error + detalhe);
+          }
+          const materias = data?.materias || [];
+          if (!materias.length) throw new Error('IA não devolveu nenhuma matéria. Tente colar mais texto.');
+          // injeta no state do editor
+          const state = window.__cbDiarioState || window._diarioState;
+          if (!state?.materias){
+            // procura state pelo DOM
+            console.warn('[cbp] state não localizado — adicionando via evento customizado');
+            document.dispatchEvent(new CustomEvent('cbp-materias-adicionar', { detail: materias }));
+          } else {
+            materias.forEach(m => state.materias.push({
+              categoria: m.categoria || 'insights',
+              titulo: m.titulo || '',
+              texto: m.texto || '',
+              texto_html: (m.texto||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])).replace(/\n/g,'<br>'),
+              imagens: [],
+              layout: 'texto-only',
+            }));
+            window.renderCanvas?.(); window.renderMateriaList?.(); window.autosave?.();
+          }
+          hideSpinner();
+          window.toast?.(`${materias.length} matéria(s) adicionadas pela IA`, 'ok');
+        } catch(e){
+          hideSpinner();
+          alert('Erro: ' + e.message);
+        }
+      });
+    });
+  }
+  setInterval(reescreverColarBruto, 1200);
+
+  // Mesmo tratamento pra "Revisar com IA" nos cards (spinner + persona dedicada)
+  function patchRevisarIA(){
+    document.querySelectorAll('[data-ia-revisar], [data-act="revisar"]').forEach(btn => {
+      if (btn.dataset.pRevisarPatched === '1') return;
+      btn.dataset.pRevisarPatched = '1';
+      btn.addEventListener('click', () => {
+        setTimeout(() => showSpinner('IA revisando texto…', 'Mantendo tom leve + corporativo'), 50);
+        // esconde quando terminar (observa toast ou timeout longo)
+        const checkDone = setInterval(() => {
+          const toastEl = document.getElementById('cbk-toast');
+          if (toastEl?.classList.contains('show')){
+            const txt = toastEl.textContent || '';
+            if (/revisado|erro/i.test(txt)){ hideSpinner(); clearInterval(checkDone); }
+          }
+        }, 300);
+        setTimeout(() => { hideSpinner(); clearInterval(checkDone); }, 60000);
+      }, true);
+    });
+  }
+  setInterval(patchRevisarIA, 1200);
 })();
 </script>
 
