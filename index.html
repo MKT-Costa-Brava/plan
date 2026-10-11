@@ -9389,6 +9389,15 @@ document.addEventListener('DOMContentLoaded',()=>{
       try { const d = JSON.parse(draft); if (confirm('Rascunho local encontrado. Restaurar edição anterior?')) base = d; } catch(e){}
     }
     const state = base;
+    window._diarioState = state; // expõe pra Onda P (revisão IA completa)
+    // bind das funções de render serão expostas após serem definidas (defer)
+    setTimeout(() => {
+      try {
+        if (typeof renderCanvas === 'function') window.renderCanvas = renderCanvas;
+        if (typeof renderMateriaList === 'function') window.renderMateriaList = renderMateriaList;
+        if (typeof autosave === 'function') window.autosave = autosave;
+      } catch(e){}
+    }, 100);
 
     const v = document.getElementById('vDiarioEditor') || document.getElementById('vDiarioeditor');
     if (!v){ toast('View editor não disponível','err'); return; }
