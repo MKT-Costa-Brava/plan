@@ -9867,8 +9867,38 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
         }
         const materias = data?.materias || [];
         if (!materias.length) throw new Error('IA não devolveu nenhuma matéria. Tente colar mais texto ou dividir em partes.');
+
+        // Fallback no cliente: se a IA não extraiu imagens, extrai do bruto e distribui pelas matérias
+        function cbpDriveToImg(u){
+          const dm = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/) || u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+          return dm ? `https://lh3.googleusercontent.com/d/${dm[1]}=w1600` : u;
+        }
+        const totalImgs = materias.reduce((n,m) => n + (Array.isArray(m.imagens)?m.imagens.length:0), 0);
+        if (totalImgs === 0){
+          const urlRe = /https?:\/\/(?!(?:www\.)?(?:instagram\.com\/reel|youtube\.com|youtu\.be|tiktok\.com))[^\s<>"'()]+/g;
+          const todas = [...bruto.matchAll(urlRe)].map(m => m[0]);
+          const imgUrls = todas.filter(u => /drive\.google|dropbox|\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(u));
+          if (imgUrls.length){
+            // posição de cada URL no bruto
+            const urlPos = imgUrls.map(u => ({ url: cbpDriveToImg(u), pos: bruto.indexOf(u) }));
+            // posição aproximada de cada matéria (busca por 3 primeiras palavras do título ou divide proporcional)
+            const matPos = materias.map((m, idx) => {
+              const needle = (m.titulo||m.texto||'').split(' ').slice(0,3).join(' ').toLowerCase();
+              let pos = needle.length > 5 ? bruto.toLowerCase().indexOf(needle) : -1;
+              if (pos < 0) pos = Math.floor(bruto.length * (idx / materias.length));
+              return { idx, pos };
+            }).sort((a,b) => a.pos - b.pos);
+            urlPos.forEach(({ url, pos }) => {
+              let best = matPos[0];
+              for (const mp of matPos){ if (mp.pos <= pos) best = mp; else break; }
+              materias[best.idx].imagens = materias[best.idx].imagens || [];
+              if (materias[best.idx].imagens.length < 10) materias[best.idx].imagens.push(url);
+            });
+          }
+        }
+
         materias.forEach(m => {
-          const imgs = Array.isArray(m.imagens) ? m.imagens.filter(u => u) : [];
+          const imgs = (Array.isArray(m.imagens) ? m.imagens : []).map(cbpDriveToImg).filter(u => u);
           state.materias.push({
             categoria: m.categoria||'insights',
             titulo: m.titulo||'',
@@ -10106,8 +10136,36 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
         }
         const arr = data?.materias || [];
         if (!arr.length) throw new Error('IA não devolveu nenhuma matéria. Tente colar texto menor ou dividir em partes.');
+
+        // Fallback: se IA não extraiu imagens, extrai do bruto e distribui pela posição no texto
+        function cbpDriveToImg2(u){
+          const dm = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/) || u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+          return dm ? `https://lh3.googleusercontent.com/d/${dm[1]}=w1600` : u;
+        }
+        const totalImgs = arr.reduce((n,m) => n + (Array.isArray(m.imagens)?m.imagens.length:0), 0);
+        if (totalImgs === 0){
+          const urlRe = /https?:\/\/(?!(?:www\.)?(?:instagram\.com\/reel|youtube\.com|youtu\.be|tiktok\.com))[^\s<>"'()]+/g;
+          const todas = [...bruto.matchAll(urlRe)].map(m => m[0]);
+          const imgUrls = todas.filter(u => /drive\.google|dropbox|\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(u));
+          if (imgUrls.length){
+            const urlPos = imgUrls.map(u => ({ url: cbpDriveToImg2(u), pos: bruto.indexOf(u) }));
+            const matPos = arr.map((m, idx) => {
+              const needle = (m.titulo||m.texto||'').split(' ').slice(0,3).join(' ').toLowerCase();
+              let pos = needle.length > 5 ? bruto.toLowerCase().indexOf(needle) : -1;
+              if (pos < 0) pos = Math.floor(bruto.length * (idx / arr.length));
+              return { idx, pos };
+            }).sort((a,b) => a.pos - b.pos);
+            urlPos.forEach(({ url, pos }) => {
+              let best = matPos[0];
+              for (const mp of matPos){ if (mp.pos <= pos) best = mp; else break; }
+              arr[best.idx].imagens = arr[best.idx].imagens || [];
+              if (arr[best.idx].imagens.length < 10) arr[best.idx].imagens.push(url);
+            });
+          }
+        }
+
         arr.forEach(m => {
-          const imgs = Array.isArray(m.imagens) ? m.imagens.filter(u => u) : [];
+          const imgs = (Array.isArray(m.imagens) ? m.imagens : []).map(cbpDriveToImg2).filter(u => u);
           state.materias.push({
             categoria: m.categoria || 'insights',
             titulo: m.titulo || '',
