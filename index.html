@@ -7855,8 +7855,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     { g:'home',        title:'Home',        icon:'M3 12l9-8 9 8v9a2 2 0 0 1-2 2h-4v-6h-6v6H5a2 2 0 0 1-2-2z' },
     { g:'plano',       title:'Plano',       icon:'M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z' },
     { g:'dashboard',   title:'Dashboard',   icon:'M3 3v18h18M7 15l4-4 4 4 5-6' },
-    { g:'inteligencia',title:'Inteligência',icon:'M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z' },
-    { g:'conteudos',   title:'Conteúdos',   icon:'M4 4h16v16H4zM4 9h16' },
+    { g:'inteligencia',title:'Inteligência',icon:'M9.5 2a3.5 3.5 0 0 0-3.5 3.5v.5a3 3 0 0 0-2 5.4A3 3 0 0 0 6 17.5a3 3 0 0 0 6 0V5.5A3.5 3.5 0 0 0 9.5 2zm5 0A3.5 3.5 0 0 1 18 5.5V6a3 3 0 0 1 2 5.4 3 3 0 0 1 2 2.6 3 3 0 0 1-4 2.8 3 3 0 0 1-6-.3V5.5A3.5 3.5 0 0 1 14.5 2z' },
+    { g:'conteudos',   title:'Conteúdos',   icon:'M15 4V2M15 10V8M8.5 2.5l1.4 1.4M19.4 13.4l1.4 1.4M3 15h2M9 9l10 10-4 2-2-2-6 2 2-6-2-2z' },
   ];
   const GROUPS = {
     plano: {
@@ -7897,8 +7897,11 @@ document.addEventListener('DOMContentLoaded',()=>{
     const group = GROUPS[cur];
     let html = '';
     if (group.welcome){
+      const _g = (window._cbUserGenero || '').toLowerCase();
+      const _bv = _g==='masculino' ? 'Bem-vindo' : (_g==='feminino' ? 'Bem-vinda' : (_g==='nao_binario' ? 'Bem-vinde' : 'Olá'));
+      const _nome = (window._cbUserName || 'Muriel').split(' ')[0];
       html = `<div style="padding:24px 12px;text-align:center;color:#6B7280;font-size:13px;">
-        <div style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:700;color:var(--cb-navy);margin-bottom:6px;">Bem-vinda, Muriel</div>
+        <div style="font-family:'Montserrat',sans-serif;font-size:16px;font-weight:700;color:var(--cb-navy);margin-bottom:6px;">${_bv}, ${_nome}</div>
         <div>Escolha um módulo no menu ao lado.</div>
       </div>`;
     } else if (group.views.length){
@@ -13244,25 +13247,28 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     document.body.appendChild(pv);
   }
 
-  // ───────── Hook setView ─────────
+  // ───────── Hook setView (idempotente, re-wrappa se outro wrap foi adicionado depois) ─────────
   function hookRouter(){
-    const orig = window.setView;
-    if (orig && !orig.__cbirQ){
-      const wrap = function(v){
-        if (v === 'insights'){
-          ensureView();
-          document.querySelectorAll('#app > .view-page').forEach(el=>el.classList.remove('active'));
-          document.getElementById('vInsights').classList.add('active');
-          window.currentView = 'insights';
-          const gc = document.getElementById('ganttControls'); if (gc) gc.style.display='none';
-          renderView();
-          return;
-        }
-        return orig.apply(this, arguments);
-      };
-      wrap.__cbirQ = true;
-      window.setView = wrap;
-    }
+    const cur = window.setView;
+    if (!cur) return;
+    if (cur.__cbirQ) return; // já é o topo
+    const wrap = function(v){
+      if (v === 'insights'){
+        ensureView();
+        document.querySelectorAll('.view-page').forEach(el=>el.classList.remove('active'));
+        const vi = document.getElementById('vInsights');
+        if (vi) vi.classList.add('active');
+        window.currentView = 'insights';
+        const gc = document.getElementById('ganttControls'); if (gc) gc.style.display='none';
+        // esconde outras overlays conhecidas
+        document.querySelectorAll('.cb-ov').forEach(o=>o.classList.remove('open'));
+        try { renderView(); } catch(e){ console.error('[cbir] renderView', e); }
+        return;
+      }
+      return cur.apply(this, arguments);
+    };
+    wrap.__cbirQ = true;
+    window.setView = wrap;
   }
 
   function setVertical(bu){
@@ -13752,27 +13758,39 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
 
   // ───────── Init ─────────
   function cbirInit(){
-    ensureView();
-    hookRouter();
-    // seta default
+    try { ensureView(); } catch(e){ console.error('[cbir] ensureView', e); }
+    try { hookRouter(); } catch(e){ console.error('[cbir] hookRouter', e); }
     state.vertical = 'bt';
-    setTimeout(()=>{ setVertical('bt'); }, 50);
+    setTimeout(()=>{ try { setVertical('bt'); } catch(e){} }, 50);
   }
 
-  // expose
-  setTimeout(() => {
-    window.cbirInit = cbirInit;
-    window.cbirGerarNova = cbirGerarNova;
-    window.cbirAbrirEditor = cbirAbrirEditor;
-    window.cbirGerarHTML = cbirGerarHTML;
-    window.cbirBaixarHTML = cbirBaixarHTML;
-    window.cbirPreviewHTML = cbirPreviewHTML;
-  }, 0);
+  // Pré-registra VIEWS.insights o quanto antes (independente de cbirInit)
+  function cbirPreReg(){
+    if (typeof VIEWS !== 'undefined' && !VIEWS.insights) VIEWS.insights = 'vInsights';
+  }
+  // expose + boot múltiplos pontos (robusto)
+  window.cbirInit = cbirInit;
+  window.cbirGerarNova = cbirGerarNova;
+  window.cbirAbrirEditor = cbirAbrirEditor;
+  window.cbirGerarHTML = cbirGerarHTML;
+  window.cbirBaixarHTML = cbirBaixarHTML;
+  window.cbirPreviewHTML = cbirPreviewHTML;
 
+  try { cbirPreReg(); } catch(e){}
   if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', () => setTimeout(cbirInit, 800));
+    document.addEventListener('DOMContentLoaded', () => {
+      try { cbirPreReg(); } catch(e){}
+      cbirInit();
+      // Re-hook periodicamente para pegar wraps tardios de setView
+      setTimeout(cbirInit, 400);
+      setTimeout(cbirInit, 1500);
+      setTimeout(cbirInit, 3000);
+    });
   } else {
-    setTimeout(cbirInit, 800);
+    cbirInit();
+    setTimeout(cbirInit, 400);
+    setTimeout(cbirInit, 1500);
+    setTimeout(cbirInit, 3000);
   }
 })();
 </script>
