@@ -13449,13 +13449,19 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
             <button class="btn" id="cbir-ed-ia">✨ Revisar com IA</button>
           </div>
 
-          <div class="cbir-section-h">Capa da edição</div>
-          <div class="cbir-materia-card" style="padding:14px 16px;">
+          <div style="margin:16px 0 20px;border:2px dashed #5BBA47;border-radius:12px;padding:18px;background:linear-gradient(135deg,#F0F8EE 0%,#EAE8F5 100%);">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <div style="width:34px;height:34px;background:#5BBA47;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;">🖼️</div>
+              <div>
+                <div style="font-family:Montserrat,sans-serif;font-size:14px;font-weight:800;color:#201747;">Capa da edição</div>
+                <div style="font-size:11.5px;color:#5B6478;">Imagem que aparece no header + frase de abertura</div>
+              </div>
+            </div>
             <div style="display:grid;grid-template-columns:1fr;gap:10px;">
-              <div><span class="label">Subtítulo (frase de 1 linha para o header)</span><input id="cbir-ed-subtitulo" value="${esc(ed.subtitulo||'')}" placeholder="A experiência está ficando maior que o evento…"/></div>
-              <div><span class="label">URL da imagem de capa (opcional — gera hero visual sem foto se vazio)</span><input id="cbir-ed-capa" value="${esc(ed.capa_url||'')}" placeholder="https://… ou faça upload abaixo"/></div>
-              <label class="cbir-btn-secondary" style="width:fit-content;cursor:pointer;">📷 Upload da imagem de capa<input type="file" accept="image/*" id="cbir-ed-capa-file" style="display:none;"/></label>
-              ${ed.capa_url?`<div style="margin-top:4px;"><img src="${esc(ed.capa_url)}" style="max-width:100%;max-height:160px;border-radius:10px;object-fit:cover;"/></div>`:''}
+              <div><span class="label">Subtítulo (frase de 1 linha para o header)</span><input id="cbir-ed-subtitulo" value="${esc(ed.subtitulo||'')}" placeholder="A experiência está ficando maior que o evento…" style="width:100%;padding:9px 12px;border:1px solid #D4D9E0;border-radius:7px;font-family:Montserrat,sans-serif;font-size:13px;"/></div>
+              <div><span class="label">URL da imagem de capa (cole um link OU use upload abaixo)</span><input id="cbir-ed-capa" value="${esc(ed.capa_url||'')}" placeholder="https://…" style="width:100%;padding:9px 12px;border:1px solid #D4D9E0;border-radius:7px;font-family:Montserrat,sans-serif;font-size:13px;"/></div>
+              <label style="width:fit-content;cursor:pointer;background:#201747;color:#fff;padding:10px 18px;border-radius:7px;font-family:Montserrat,sans-serif;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">📷 Fazer upload da imagem<input type="file" accept="image/*" id="cbir-ed-capa-file" style="display:none;"/></label>
+              ${ed.capa_url?`<div style="margin-top:6px;"><img src="${esc(ed.capa_url)}" style="max-width:100%;max-height:200px;border-radius:10px;object-fit:cover;border:1px solid #D4D9E0;"/><div style="font-size:11px;color:#5B6478;margin-top:4px;">✓ Imagem carregada</div></div>`:'<div style="margin-top:6px;padding:12px;background:#fff;border-radius:8px;font-size:11.5px;color:#9CA3AF;text-align:center;">Nenhuma imagem — hero vai usar gradient visual padrão</div>'}
             </div>
           </div>
 
