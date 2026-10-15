@@ -13760,49 +13760,13 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     };
   }
 
-  // Hero header - BT replica o padrão do RD Station (split lilás + imagem + faixa navy)
+  // Hero header - imagem da capa limpa (sem overlay) + bloco navy abaixo. Mesmo padrão para BT e LM.
   function heroHtml(ed){
     const t = cbirTheme(ed);
     const title = esc(ed.titulo || 'Insights & Reviews');
-    const subtitulo = esc(ed.subtitulo || t.tagline);
-    const now = new Date(ed.created_at || Date.now());
-    const mesAno = now.toLocaleDateString('pt-BR',{month:'long', year:'numeric'}).replace(/^\w/, c=>c.toUpperCase());
-    const edNum = ed.numero_edicao ? String(ed.numero_edicao).padStart(2,'0') : '01';
-
-    if ((ed && ed.vertical) === 'bt') {
-      // Layout split (lilás) + faixa navy (como RD Station)
-      const img = ed.capa_url
-        ? `<img src="${esc(ed.capa_url)}" alt="" style="display:block;width:100%;height:260px;object-fit:cover;"/>`
-        : `<div style="width:100%;height:260px;background:linear-gradient(135deg,#C9D4E8 0%,#A5B5D1 100%);"></div>`;
-      return `<tr><td style="padding:0;background:${t.soft};">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td width="55%" valign="middle" style="padding:40px 32px;background:${t.soft};">
-            <div style="font-family:Montserrat,sans-serif;color:${t.primary};font-weight:900;font-size:16px;letter-spacing:-.3px;line-height:1.1;margin-bottom:4px;">CostaBrava</div>
-            <div style="font-family:Montserrat,sans-serif;color:${t.primary};font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:36px;">${t.logoWord}</div>
-            <h1 style="font-family:Montserrat,sans-serif;font-size:40px;font-weight:300;line-height:1.05;margin:0;letter-spacing:-1px;">
-              <span style="color:${t.accent};font-weight:400;">INSIGHTS</span><br/>
-              <span style="color:${t.primary};font-weight:800;">&amp; REVIEWS</span>
-            </h1>
-            <div style="width:60px;height:1px;background:${t.primary};opacity:.35;margin:18px 0 14px;"></div>
-            <div style="font-family:Montserrat,sans-serif;font-size:12.5px;line-height:1.55;color:${t.primary};opacity:.75;max-width:290px;">${subtitulo}</div>
-          </td>
-          <td width="45%" valign="middle" style="padding:0;line-height:0;">${img}</td>
-        </tr></table>
-      </td></tr>
-      <tr><td style="background:${t.primary};padding:14px 32px;">
-        <table role="presentation" width="100%"><tr>
-          <td style="font-family:Montserrat,sans-serif;color:#fff;opacity:.6;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;">Costa Brava Business Travel</td>
-          <td align="right" style="font-family:Montserrat,sans-serif;color:#fff;font-size:11px;">
-            <span style="opacity:.65;">${mesAno}</span><br/>
-            <span style="color:${t.accent};font-weight:800;letter-spacing:.1em;">EDIÇÃO #${edNum}</span>
-          </td>
-        </tr></table>
-      </td></tr>`;
-    }
-
-    // LM mantém o layout atual (imagem limpa + bloco navy)
+    const subtitulo = esc(ed.subtitulo || '');
+    const dt = new Date(ed.created_at || Date.now()).toLocaleDateString('pt-BR',{day:'2-digit', month:'long', year:'numeric'});
     const bloco_imagem = ed.capa_url ? `<tr><td style="padding:0;line-height:0;"><img src="${esc(ed.capa_url)}" alt="" style="display:block;width:100%;height:auto;"/></td></tr>` : '';
-    const dt = now.toLocaleDateString('pt-BR',{day:'2-digit', month:'long', year:'numeric'});
     const bloco_titulo = `<tr><td style="background:${t.primary};padding:36px 32px 32px;color:#fff;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
         <div style="width:60px;height:4px;background:${t.accent};border-radius:3px;"></div>
@@ -13951,13 +13915,10 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F8FA;padding:28px 0;"><tr><td align="center">
   <table role="presentation" class="cbir-container" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 24px rgba(32,23,71,.08);">
     ${heroHtml(ed)}
-    ${(mats.length && ed.vertical!=='bt')?`<tr><td style="padding:22px 32px 0;background:#fff;">
+    ${mats.length?`<tr><td style="padding:22px 32px 0;background:#fff;">
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
         ${[...new Set(mats.map(m=>m.categoria).filter(Boolean))].map(c=>`<span style="display:inline-block;padding:6px 14px;background:${SOFT};color:${PRI};border-radius:99px;font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${esc(c)}</span>`).join('')}
       </div>
-    </td></tr>`:''}
-    ${(mats.length && ed.vertical==='bt' && ed.subtitulo)?`<tr><td style="padding:30px 32px 10px;background:#fff;">
-      <div style="font-family:Montserrat,sans-serif;color:${PRI};font-size:16px;font-weight:800;line-height:1.3;">${esc(ed.subtitulo)}</div>
     </td></tr>`:''}
     ${matHtml}
     ${comsHtml}
