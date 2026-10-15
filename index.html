@@ -13275,9 +13275,7 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     state.vertical = bu;
     document.querySelectorAll('#cbir-tabs .cbir-tab').forEach(t => t.classList.toggle('active', t.dataset.vert===bu));
     const aviso = document.getElementById('cbir-bu-aviso');
-    aviso.innerHTML = bu === 'bt'
-      ? `<div class="cbir-aviso">⚠ Orientações editoriais em definição — resultados ainda em modo rascunho.</div>`
-      : '';
+    aviso.innerHTML = '';
     renderView();
   }
 
@@ -13746,43 +13744,23 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     </div>`;
   }
 
-  // Hero header - usa capa_url se tiver; se não, gera hero visual sofisticado
+  // Hero header - foto LIMPA no topo (sem overlay), título navy abaixo em bloco separado
   function heroHtml(ed){
     const title = esc(ed.titulo || 'Insights & Reviews');
     const subtitulo = esc(ed.subtitulo || '');
     const vLabel = ed.vertical==='bt' ? 'Business Travel' : 'Live Marketing';
     const dt = new Date(ed.created_at || Date.now()).toLocaleDateString('pt-BR',{day:'2-digit', month:'long', year:'numeric'});
-    if (ed.capa_url){
-      return `<tr><td style="padding:0;line-height:0;position:relative;">
-        <div style="position:relative;background:#201747;">
-          <img src="${esc(ed.capa_url)}" alt="" style="display:block;width:100%;height:auto;max-height:360px;object-fit:cover;opacity:.72;"/>
-          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(32,23,71,.4) 0%,rgba(32,23,71,.95) 100%);"></div>
-          <div style="position:absolute;left:0;right:0;bottom:0;padding:36px 32px;color:#fff;">
-            <div style="font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#5BBA47;">Costa Brava · ${esc(vLabel)}</div>
-            <h1 style="font-family:Montserrat,sans-serif;font-size:30px;font-weight:900;letter-spacing:-.5px;line-height:1.1;margin:10px 0 6px;">${title}</h1>
-            ${subtitulo?`<div style="font-family:Montserrat,sans-serif;font-size:14px;line-height:1.5;opacity:.88;max-width:460px;">${subtitulo}</div>`:''}
-            <div style="font-family:Montserrat,sans-serif;font-size:11.5px;opacity:.65;margin-top:10px;">${dt}</div>
-          </div>
-        </div>
-      </td></tr>`;
-    }
-    // Hero sem foto - padrão SVG decorativo
-    return `<tr><td style="background:linear-gradient(135deg,#201747 0%,#2E2560 55%,#5BBA47 180%);padding:44px 32px 36px;color:#fff;position:relative;overflow:hidden;">
-      <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;opacity:.12;" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="340" cy="40" r="80" fill="#5BBA47"/>
-        <circle cx="60" cy="180" r="120" fill="#8B7FD4"/>
-        <path d="M0 100 Q 200 50 400 120" stroke="#fff" stroke-width="2" fill="none" opacity=".4"/>
-      </svg>
-      <div style="position:relative;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <div style="width:36px;height:3px;background:#5BBA47;border-radius:2px;"></div>
-          <div style="font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#5BBA47;">Insights & Reviews · ${esc(vLabel)}</div>
-        </div>
-        <h1 style="font-family:Montserrat,sans-serif;font-size:32px;font-weight:900;letter-spacing:-.6px;line-height:1.1;margin:0 0 10px;">${title}</h1>
-        ${subtitulo?`<div style="font-family:Montserrat,sans-serif;font-size:14.5px;line-height:1.55;opacity:.9;max-width:460px;">${subtitulo}</div>`:''}
-        <div style="font-family:Montserrat,sans-serif;font-size:11.5px;opacity:.65;margin-top:14px;">${dt}</div>
+    const bloco_imagem = ed.capa_url ? `<tr><td style="padding:0;line-height:0;"><img src="${esc(ed.capa_url)}" alt="" style="display:block;width:100%;height:auto;"/></td></tr>` : '';
+    const bloco_titulo = `<tr><td style="background:#201747;padding:36px 32px 32px;color:#fff;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <div style="width:60px;height:4px;background:#5BBA47;border-radius:3px;"></div>
+        <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#5BBA47;">Costa Brava · ${esc(vLabel)}</div>
       </div>
+      <h1 style="font-family:Montserrat,sans-serif;font-size:30px;font-weight:900;letter-spacing:-.5px;line-height:1.15;margin:0 0 10px;">${title}</h1>
+      ${subtitulo?`<div style="font-family:Montserrat,sans-serif;font-size:14.5px;line-height:1.6;opacity:.88;max-width:500px;">${subtitulo}</div>`:''}
+      <div style="font-family:Montserrat,sans-serif;font-size:11.5px;opacity:.6;margin-top:14px;letter-spacing:.04em;">${dt}</div>
     </td></tr>`;
+    return bloco_imagem + bloco_titulo;
   }
 
   // Comentário Costa Brava inline (dentro de uma matéria) ou card standalone
@@ -13809,23 +13787,59 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       if (!ed.subtitulo) ed.subtitulo = ed.materias[0]._edicao_meta.subtitulo || '';
     }
     const title = esc(ed.titulo || 'Insights Costa Brava');
-    const mats = ed.materias || [];
+    const mats = (ed.materias || []).map(m => ({ ...m }));
+    // Redistribui comentarios_cb (array final) para matérias que ainda não têm comentário inline
     const comsFinais = (ed.comentarios_cb || []).filter(c => c && c.texto);
+    if (comsFinais.length && mats.length) {
+      const semComentario = mats.map((m,i) => (!m.comentario_cb || !m.comentario_cb.texto) ? i : -1).filter(i => i>=0);
+      comsFinais.forEach((c, ci) => {
+        const alvo = semComentario[ci % semComentario.length];
+        if (alvo != null) mats[alvo].comentario_cb = { autor: c.autor, cargo: c.cargo, texto: c.texto };
+      });
+    }
 
     const matHtml = mats.map((m,i) => {
       const bnColors = ['#5BBA47','#2E2560','#201747','#8B7FD4'];
       const bns = (m.big_numbers||[]).filter(b=>b && b.valor);
-      // Big numbers: card grande c/ número gigante + barra decorativa
-      const bnsHtml = bns.length ? `<div style="display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;">${bns.map((b,bi) => {
-        const color = bnColors[bi%bnColors.length];
-        return `<div style="flex:1 1 150px;min-width:150px;background:#fff;border:1px solid #EAE8F5;border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;">
-          <div style="position:absolute;top:0;left:0;right:0;height:4px;background:${color};"></div>
-          <div style="position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;background:${color}22;"></div>
-          <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:34px;line-height:1;color:${color};letter-spacing:-1px;">${esc(b.valor)}</div>
-          <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#5B6478;line-height:1.4;margin-top:8px;">${esc(b.label||'')}</div>
+      // Decisão inteligente: nenhum / bignumbers / chart / ambos
+      // Prioridade: campo explícito "visualizacao_dados" > heurística
+      // Heurística: 0 → nada; 1 → só big number destacado; 2 → só big numbers em cards; 3+ → só chart (barras)
+      let viz = m.visualizacao_dados || '';
+      if (!viz) {
+        if (bns.length === 0) viz = 'nenhum';
+        else if (bns.length === 1) viz = 'bignumber_hero';
+        else if (bns.length === 2) viz = 'bignumbers';
+        else viz = 'chart';
+      }
+      let bnsHtml = '', chart = '';
+      if (viz === 'bignumber_hero' && bns.length) {
+        // 1 número gigante no centro, estilo editorial
+        const b = bns[0];
+        bnsHtml = `<div style="margin:18px 0;padding:28px 24px;background:linear-gradient(135deg,#F0F8EE 0%,#EAE8F5 100%);border-radius:16px;text-align:center;">
+          <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:52px;line-height:1;color:#5BBA47;letter-spacing:-2px;">${esc(b.valor)}</div>
+          <div style="font-family:Montserrat,sans-serif;font-size:12.5px;font-weight:600;color:#2E2560;line-height:1.4;margin-top:10px;max-width:360px;margin-left:auto;margin-right:auto;">${esc(b.label||'')}</div>
         </div>`;
-      }).join('')}</div>` : '';
-      const chart = bns.length>=2 ? bigNumsSvg(bns) : '';
+      } else if (viz === 'bignumbers' && bns.length) {
+        bnsHtml = `<div style="display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;">${bns.map((b,bi) => {
+          const color = bnColors[bi%bnColors.length];
+          return `<div style="flex:1 1 160px;min-width:160px;background:#fff;border:1px solid #EAE8F5;border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:0;left:0;right:0;height:4px;background:${color};"></div>
+            <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:34px;line-height:1;color:${color};letter-spacing:-1px;">${esc(b.valor)}</div>
+            <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#5B6478;line-height:1.4;margin-top:8px;">${esc(b.label||'')}</div>
+          </div>`;
+        }).join('')}</div>`;
+      } else if (viz === 'chart' && bns.length >= 2) {
+        chart = bigNumsSvg(bns);
+      } else if (viz === 'ambos' && bns.length) {
+        bnsHtml = `<div style="display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;">${bns.map((b,bi) => {
+          const color = bnColors[bi%bnColors.length];
+          return `<div style="flex:1 1 160px;min-width:160px;background:#fff;border:1px solid #EAE8F5;border-radius:14px;padding:20px 18px;">
+            <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:30px;line-height:1;color:${color};letter-spacing:-1px;">${esc(b.valor)}</div>
+            <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#5B6478;line-height:1.4;margin-top:8px;">${esc(b.label||'')}</div>
+          </div>`;
+        }).join('')}</div>`;
+        if (bns.length >= 2) chart = bigNumsSvg(bns);
+      }
       // Imagem: hero da matéria
       const imgSrc = m.imagem_url || m.imagens?.[0];
       const img = imgSrc ? `<div style="margin:4px 0 18px;border-radius:14px;overflow:hidden;line-height:0;position:relative;">
@@ -13859,14 +13873,8 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       ${i<mats.length-1?`<tr><td style="padding:0 32px;"><div style="height:1px;background:linear-gradient(90deg,transparent,#EAE8F5 20%,#EAE8F5 80%,transparent);"></div></td></tr>`:''}`;
     }).join('');
 
-    const comsHtml = comsFinais.length ? `
-      <tr><td style="padding:34px 32px;background:linear-gradient(180deg,#F7F8FA 0%,#EEF0F5 100%);">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-          <div style="width:30px;height:3px;background:#5BBA47;border-radius:2px;"></div>
-          <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;color:#201747;letter-spacing:.18em;text-transform:uppercase;">O olhar Costa Brava</div>
-        </div>
-        ${comsFinais.map(c => comentarioBlock(c, false)).join('')}
-      </td></tr>` : '';
+    // Comentários Costa Brava agora são redistribuídos pelas matérias (acima); bloco final removido.
+    const comsHtml = '';
 
     return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8"/>
