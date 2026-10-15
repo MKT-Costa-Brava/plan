@@ -13406,6 +13406,19 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     state.current = JSON.parse(JSON.stringify(ed));
     if (!Array.isArray(state.current.materias)) state.current.materias = [];
     if (!Array.isArray(state.current.comentarios_cb)) state.current.comentarios_cb = [];
+    // extrai _edicao_meta do primeiro item (campos capa_url e subtitulo foram guardados lá)
+    if (state.current.materias[0] && state.current.materias[0]._edicao_meta) {
+      state.current.capa_url = state.current.capa_url || state.current.materias[0]._edicao_meta.capa_url || '';
+      state.current.subtitulo = state.current.subtitulo || state.current.materias[0]._edicao_meta.subtitulo || '';
+    }
+    // garantir campos novos por matéria
+    state.current.materias.forEach(m => {
+      if (!m.imagem_url) m.imagem_url = '';
+      if (!m.destaque) m.destaque = '';
+      if (!m.comentario_cb) m.comentario_cb = { autor:'', cargo:'', texto:'' };
+    });
+    if (!state.current.capa_url) state.current.capa_url = '';
+    if (!state.current.subtitulo) state.current.subtitulo = '';
     renderEditor();
     document.getElementById('cbir-editor-ov').classList.add('open');
   }
@@ -13435,11 +13448,23 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
             <div><strong>Revisão IA</strong> — passa todas as matérias pelo filtro anti-jargão e factualidade.</div>
             <button class="btn" id="cbir-ed-ia">✨ Revisar com IA</button>
           </div>
-          <div class="cbir-section-h">Matérias (${ed.materias.length})</div>
+
+          <div class="cbir-section-h">Capa da edição</div>
+          <div class="cbir-materia-card" style="padding:14px 16px;">
+            <div style="display:grid;grid-template-columns:1fr;gap:10px;">
+              <div><span class="label">Subtítulo (frase de 1 linha para o header)</span><input id="cbir-ed-subtitulo" value="${esc(ed.subtitulo||'')}" placeholder="A experiência está ficando maior que o evento…"/></div>
+              <div><span class="label">URL da imagem de capa (opcional — gera hero visual sem foto se vazio)</span><input id="cbir-ed-capa" value="${esc(ed.capa_url||'')}" placeholder="https://… ou faça upload abaixo"/></div>
+              <label class="cbir-btn-secondary" style="width:fit-content;cursor:pointer;">📷 Upload da imagem de capa<input type="file" accept="image/*" id="cbir-ed-capa-file" style="display:none;"/></label>
+              ${ed.capa_url?`<div style="margin-top:4px;"><img src="${esc(ed.capa_url)}" style="max-width:100%;max-height:160px;border-radius:10px;object-fit:cover;"/></div>`:''}
+            </div>
+          </div>
+
+          <div class="cbir-section-h" style="margin-top:28px;">Matérias (${ed.materias.length})</div>
           <div id="cbir-mats"></div>
           <button class="cbir-btn-secondary" id="cbir-add-mat" style="margin-top:8px;">➕ Nova matéria</button>
 
-          <div class="cbir-section-h" style="margin-top:30px;">Olhar Costa Brava</div>
+          <div class="cbir-section-h" style="margin-top:30px;">Olhar Costa Brava (encerramento)</div>
+          <div style="font-size:11.5px;color:#6B7280;margin-bottom:10px;">Comentários aqui aparecem num bloco próprio no fim da edição. Para colocar comentário dentro de uma matéria, use o campo "Comentário CB inline" dentro da matéria.</div>
           <div id="cbir-coms"></div>
           <button class="cbir-btn-secondary" id="cbir-add-com" style="margin-top:8px;">➕ Novo comentário</button>
           <div style="height:40px;"></div>
@@ -13456,8 +13481,22 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     document.getElementById('cbir-ed-preview').onclick = () => cbirPreviewHTML(state.current);
     document.getElementById('cbir-ed-download').onclick = () => cbirBaixarHTML(state.current);
     document.getElementById('cbir-ed-ia').onclick = () => cbirRevisaoIA();
+    document.getElementById('cbir-ed-subtitulo').oninput = e => state.current.subtitulo = e.target.value;
+    document.getElementById('cbir-ed-capa').oninput = e => { state.current.capa_url = e.target.value; };
+    document.getElementById('cbir-ed-capa-file').onchange = async (e) => {
+      const f = e.target.files?.[0]; if (!f) return;
+      try {
+        const path = `insights/${state.current.id}/capa_${Date.now()}_${f.name.replace(/[^a-z0-9._-]/gi,'_')}`;
+        const { error } = await sb().storage.from('cb-diario-imgs').upload(path, f, { upsert:false });
+        if (error) throw error;
+        const { data } = sb().storage.from('cb-diario-imgs').getPublicUrl(path);
+        state.current.capa_url = data?.publicUrl || '';
+        renderEditor();
+        toast('Capa adicionada');
+      } catch(e){ toast('Erro upload capa: '+e.message,'err'); }
+    };
     document.getElementById('cbir-add-mat').onclick = () => {
-      state.current.materias.push({ categoria:'Tendências', titulo:'Nova matéria', resumo:'', texto:'', big_numbers:[], fonte:'', url:'', layout_sugerido:'hero', imagens:[] });
+      state.current.materias.push({ categoria:'Tendências', titulo:'Nova matéria', resumo:'', texto:'', destaque:'', big_numbers:[], fonte:'', url:'', layout_sugerido:'hero', imagens:[], imagem_url:'', comentario_cb:{autor:'',cargo:'',texto:''} });
       renderMaterias();
     };
     document.getElementById('cbir-add-com').onclick = () => {
@@ -13487,25 +13526,33 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
         </div>
         <div style="margin-top:10px;"><span class="label">Resumo</span><input data-f="resumo" value="${esc(m.resumo||'')}"/></div>
         <div style="margin-top:10px;"><span class="label">Texto</span><textarea data-f="texto">${esc(m.texto||'')}</textarea></div>
+        <div style="margin-top:10px;"><span class="label">Citação de destaque (aparece em caixa com borda verde dentro da matéria)</span><input data-f="destaque" value="${esc(m.destaque||'')}" placeholder="Frase curta e opinativa da matéria"/></div>
         <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div><span class="label">Fonte</span><input data-f="fonte" value="${esc(m.fonte||'')}"/></div>
           <div><span class="label">URL</span><input data-f="url" value="${esc(m.url||'')}"/></div>
         </div>
         <div style="margin-top:10px;">
-          <span class="label">Big numbers</span>
+          <span class="label">Imagem da matéria (URL ou upload)</span>
+          <input data-f="imagem_url" value="${esc(m.imagem_url||'')}" placeholder="https://… ou faça upload"/>
+          <label class="cbir-btn-secondary" style="display:inline-block;margin-top:6px;cursor:pointer;font-size:11px;">📷 Upload<input type="file" accept="image/*" data-mat-img-add style="display:none;"/></label>
+          ${m.imagem_url?`<div style="margin-top:8px;"><img src="${esc(m.imagem_url)}" style="max-width:100%;max-height:140px;border-radius:8px;object-fit:cover;"/></div>`:''}
+        </div>
+        <div style="margin-top:10px;">
+          <span class="label">Big numbers (aparecem como cards + gráfico de barras se tiver 2+)</span>
           <div class="cbir-bignums" data-bignums>
             ${(m.big_numbers||[]).map((bn,bi)=>`
-              <div class="cbir-bignum-input"><input class="v" data-bn-v="${bi}" value="${esc(bn.valor||'')}" placeholder="valor"/><input class="l" data-bn-l="${bi}" value="${esc(bn.label||'')}" placeholder="label"/><button data-bn-del="${bi}">✕</button></div>
+              <div class="cbir-bignum-input"><input class="v" data-bn-v="${bi}" value="${esc(bn.valor||'')}" placeholder="42%"/><input class="l" data-bn-l="${bi}" value="${esc(bn.label||'')}" placeholder="crescimento YoY"/><button data-bn-del="${bi}">✕</button></div>
             `).join('')}
             <button class="cbir-btn-secondary" data-bn-add>➕</button>
           </div>
         </div>
-        <div style="margin-top:10px;">
-          <span class="label">Imagens</span>
-          <div class="cbir-imgs">
-            ${(m.imagens||[]).map((img,ii)=>`<div class="thumb" style="background-image:url('${esc(img)}')"><button class="x" data-img-del="${ii}">✕</button></div>`).join('')}
-            <label class="thumb" style="background:#F3F4F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;color:#9CA3AF;">+<input type="file" accept="image/*" data-img-add style="display:none;"/></label>
+        <div style="margin-top:12px;background:#F7F8FA;border-radius:8px;padding:12px;border-left:3px solid #5BBA47;">
+          <span class="label" style="color:#201747;font-weight:800;">💬 Comentário Costa Brava inline (opcional) — aparece dentro desta matéria</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+            <input data-cci="autor" value="${esc(m.comentario_cb?.autor||'')}" placeholder="Autor (ex: Nathalia Ávila)"/>
+            <input data-cci="cargo" value="${esc(m.comentario_cb?.cargo||'')}" placeholder="Cargo (ex: Gerente Operacional)"/>
           </div>
+          <textarea data-cci="texto" style="margin-top:8px;" rows="2" placeholder="Deixe em branco para não exibir">${esc(m.comentario_cb?.texto||'')}</textarea>
         </div>
       </div>
     `).join('');
@@ -13521,10 +13568,24 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       card.querySelectorAll('[data-bn-l]').forEach(inp => inp.oninput = e => { m.big_numbers[+inp.dataset.bnL].label = e.target.value; });
       card.querySelectorAll('[data-bn-del]').forEach(btn => btn.onclick = () => { m.big_numbers.splice(+btn.dataset.bnDel,1); renderMaterias(); });
       card.querySelector('[data-bn-add]').onclick = () => { (m.big_numbers=m.big_numbers||[]).push({valor:'',label:''}); renderMaterias(); };
-      card.querySelectorAll('[data-img-del]').forEach(btn => btn.onclick = () => { m.imagens.splice(+btn.dataset.imgDel,1); renderMaterias(); });
-      card.querySelector('[data-img-add]').onchange = e => {
+      // comentário CB inline por matéria
+      card.querySelectorAll('[data-cci]').forEach(inp => inp.oninput = e => {
+        if (!m.comentario_cb) m.comentario_cb = {autor:'',cargo:'',texto:''};
+        m.comentario_cb[inp.dataset.cci] = e.target.value;
+      });
+      // upload imagem_url por matéria
+      const matImgInput = card.querySelector('[data-mat-img-add]');
+      if (matImgInput) matImgInput.onchange = async (e) => {
         const f = e.target.files?.[0]; if (!f) return;
-        cbirUploadImagem(idx, f);
+        try {
+          const path = `insights/${state.current.id}/mat${idx}_${Date.now()}_${f.name.replace(/[^a-z0-9._-]/gi,'_')}`;
+          const { error } = await sb().storage.from('cb-diario-imgs').upload(path, f, { upsert:false });
+          if (error) throw error;
+          const { data } = sb().storage.from('cb-diario-imgs').getPublicUrl(path);
+          m.imagem_url = data?.publicUrl || '';
+          renderMaterias();
+          toast('Imagem da matéria adicionada');
+        } catch(e){ toast('Erro upload: '+e.message,'err'); }
       };
       // drag reorder
       card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', idx); card.classList.add('dragging'); });
@@ -13579,13 +13640,26 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     const ed = state.current; if (!ed) return;
     const btn = document.getElementById('cbir-ed-save'); btn.disabled=true; btn.textContent='Salvando…';
     try {
+      // persiste capa_url e subtitulo dentro do JSON de materias (ou cria coluna extra se existir)
+      // guardamos em comentarios_cb[?] seria errado; usamos materias[0]._meta ou criamos campo _meta no primeiro item
+      // melhor: codificar no próprio objeto edicao serializado via comentarios_cb como placeholder não é correto
+      // → inserimos _meta como primeiro item especial do array materias? NO.
+      // → melhor abordagem: incluir no título ou guardar num campo escondido do primeiro item.
+      // Para simplicidade sem migrar schema: anexar como propriedades extras no objeto PATCH (serão ignoradas pelo postgres se coluna não existir)
       const payload = {
         titulo: ed.titulo,
         status: ed.status,
-        materias: ed.materias,
+        materias: ed.materias.map(m => ({ ...m })),
         comentarios_cb: ed.comentarios_cb,
         updated_at: new Date().toISOString()
       };
+      // Guardamos capa_url + subtitulo como atributos no primeiro item (chave _edicao_meta) — recuperados ao abrir
+      if (payload.materias.length) {
+        payload.materias[0]._edicao_meta = {
+          capa_url: ed.capa_url || '',
+          subtitulo: ed.subtitulo || ''
+        };
+      }
       const { error } = await sb().from('cb_insights_edicoes').update(payload).eq('id', ed.id);
       if (error) throw error;
       toast('Salvo');
@@ -13615,85 +13689,177 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
   // ───────── Export HTML ─────────
   function iconFor(cat){
     const c = (cat||'').toLowerCase();
-    if (/tend/.test(c)) return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>`;
-    if (/mercado|neg[oó]cios/.test(c)) return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>`;
-    if (/incentiv|experi/.test(c)) return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.3 17 14 18.2 21 12 17.8 5.8 21 7 14 2 9.3 9 8.5 12 2"/></svg>`;
-    if (/esg|sustent/.test(c)) return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>`;
-    if (/inova|criat/.test(c)) return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg>`;
-    if (/agenda|evento/.test(c)) return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`;
-    return `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>`;
+    const base = 'viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+    if (/tend/.test(c)) return `<svg ${base}><path d="M4 22l7-7 5 5 8-10"/><path d="M18 10h6v6"/><circle cx="11" cy="15" r="1.2" fill="currentColor"/><circle cx="16" cy="20" r="1.2" fill="currentColor"/></svg>`;
+    if (/mercado|neg[oó]cios/.test(c)) return `<svg ${base}><rect x="4" y="4" width="24" height="24" rx="3"/><path d="M4 12h24M12 28V12"/><circle cx="20" cy="8" r="1" fill="currentColor"/><circle cx="24" cy="8" r="1" fill="currentColor"/></svg>`;
+    if (/incentiv|experi/.test(c)) return `<svg ${base}><path d="M16 3l3.6 7.3 8 1.2-5.8 5.7 1.4 8L16 21.4 8.8 25.2l1.4-8L4.4 11.5l8-1.2L16 3z"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/></svg>`;
+    if (/esg|sustent/.test(c)) return `<svg ${base}><path d="M16 4c6 0 10 4 10 10 0 7-10 15-10 15S6 21 6 14C6 8 10 4 16 4z"/><path d="M11 14c0-3 2-5 5-5"/><circle cx="16" cy="14" r="3"/></svg>`;
+    if (/inova|criat|intelig/.test(c)) return `<svg ${base}><path d="M12 23h8M13 27h6M16 3c-4.5 0-7.5 3-7.5 7.5 0 2.6 1.3 4.9 3.5 6.4V21h8v-4.1c2.2-1.5 3.5-3.8 3.5-6.4C23.5 6 20.5 3 16 3z"/><path d="M16 10v6"/></svg>`;
+    if (/agenda|evento/.test(c)) return `<svg ${base}><rect x="4" y="6" width="24" height="22" rx="3"/><path d="M22 3v6M10 3v6M4 13h24"/><circle cx="11" cy="19" r="1.4" fill="currentColor"/><circle cx="21" cy="19" r="1.4" fill="currentColor"/><circle cx="16" cy="23" r="1.4" fill="currentColor"/></svg>`;
+    if (/mice|viag|business/.test(c)) return `<svg ${base}><path d="M4 20l12-7 12 7-12 7-12-7z"/><path d="M16 13V5M12 7l4-4 4 4"/></svg>`;
+    return `<svg ${base}><circle cx="16" cy="16" r="12"/><path d="M16 9v8l5 3"/></svg>`;
   }
 
+  // Chart premium: barras com grid e área sutil, OU donut single value
   function bigNumsSvg(bns){
     if (!bns || bns.length < 2) return '';
-    // bar chart simples: tenta extrair número de cada valor
     const parsed = bns.map(b => {
       const n = parseFloat(String(b.valor||'').replace(/[^\d.,-]/g,'').replace(',','.'));
       return { n: isNaN(n)?0:n, label:b.label||'', raw:b.valor };
     });
+    if (!parsed.some(p=>p.n>0)) return '';
     const max = Math.max(...parsed.map(p=>p.n), 1);
-    const bw = 60, gap = 20, h = 120;
-    const W = parsed.length*(bw+gap)+gap;
-    const colors = ['#5BBA47','#2E2560','#201747','#8B7FD4'];
-    return `<svg viewBox="0 0 ${W} ${h+30}" width="100%" style="max-width:${W}px;margin:12px auto;display:block;">
-      ${parsed.map((p,i)=>{
-        const bh = (p.n/max)*h || 4;
-        const x = gap+i*(bw+gap);
-        const y = h-bh;
-        return `<g><rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="${colors[i%colors.length]}"/>
-                <text x="${x+bw/2}" y="${y-6}" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="11" font-weight="700" fill="#201747">${esc(p.raw)}</text>
-                <text x="${x+bw/2}" y="${h+18}" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="9" fill="#6B7280">${esc(p.label.slice(0,14))}</text></g>`;
-      }).join('')}
-    </svg>`;
+    const W = 560, H = 170, PAD_L = 44, PAD_R = 20, PAD_T = 24, PAD_B = 40;
+    const chartW = W - PAD_L - PAD_R, chartH = H - PAD_T - PAD_B;
+    const bw = Math.min(70, chartW / parsed.length * 0.6);
+    const slot = chartW / parsed.length;
+    const colors = ['#5BBA47','#2E2560','#201747','#8B7FD4','#9CC9F3'];
+    // grid
+    const grid = [0,0.25,0.5,0.75,1].map(f => {
+      const y = PAD_T + chartH*(1-f);
+      return `<line x1="${PAD_L}" y1="${y}" x2="${W-PAD_R}" y2="${y}" stroke="#EAE8F5" stroke-width="1"/>
+              <text x="${PAD_L-8}" y="${y+4}" text-anchor="end" font-family="Montserrat,sans-serif" font-size="10" fill="#9CA3AF">${Math.round(max*f)}</text>`;
+    }).join('');
+    const bars = parsed.map((p,i) => {
+      const bh = (p.n/max) * chartH || 2;
+      const x = PAD_L + i*slot + (slot-bw)/2;
+      const y = PAD_T + chartH - bh;
+      const color = colors[i%colors.length];
+      return `<g>
+        <rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="6" fill="${color}"/>
+        <rect x="${x}" y="${y}" width="${bw}" height="5" rx="2" fill="rgba(255,255,255,.3)"/>
+        <text x="${x+bw/2}" y="${y-8}" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="13" font-weight="800" fill="#201747">${esc(p.raw)}</text>
+        <text x="${x+bw/2}" y="${PAD_T+chartH+22}" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="10" font-weight="600" fill="#6B7280">${esc(p.label.slice(0,22))}</text>
+      </g>`;
+    }).join('');
+    return `<div style="background:linear-gradient(180deg,#F7F8FA 0%,#EEF0F5 100%);border-radius:14px;padding:14px 10px;margin:18px 0;">
+      <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">
+        ${grid}
+        ${bars}
+      </svg>
+    </div>`;
+  }
+
+  // Hero header - usa capa_url se tiver; se não, gera hero visual sofisticado
+  function heroHtml(ed){
+    const title = esc(ed.titulo || 'Insights & Reviews');
+    const subtitulo = esc(ed.subtitulo || '');
+    const vLabel = ed.vertical==='bt' ? 'Business Travel' : 'Live Marketing';
+    const dt = new Date(ed.created_at || Date.now()).toLocaleDateString('pt-BR',{day:'2-digit', month:'long', year:'numeric'});
+    if (ed.capa_url){
+      return `<tr><td style="padding:0;line-height:0;position:relative;">
+        <div style="position:relative;background:#201747;">
+          <img src="${esc(ed.capa_url)}" alt="" style="display:block;width:100%;height:auto;max-height:360px;object-fit:cover;opacity:.72;"/>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(32,23,71,.4) 0%,rgba(32,23,71,.95) 100%);"></div>
+          <div style="position:absolute;left:0;right:0;bottom:0;padding:36px 32px;color:#fff;">
+            <div style="font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#5BBA47;">Costa Brava · ${esc(vLabel)}</div>
+            <h1 style="font-family:Montserrat,sans-serif;font-size:30px;font-weight:900;letter-spacing:-.5px;line-height:1.1;margin:10px 0 6px;">${title}</h1>
+            ${subtitulo?`<div style="font-family:Montserrat,sans-serif;font-size:14px;line-height:1.5;opacity:.88;max-width:460px;">${subtitulo}</div>`:''}
+            <div style="font-family:Montserrat,sans-serif;font-size:11.5px;opacity:.65;margin-top:10px;">${dt}</div>
+          </div>
+        </div>
+      </td></tr>`;
+    }
+    // Hero sem foto - padrão SVG decorativo
+    return `<tr><td style="background:linear-gradient(135deg,#201747 0%,#2E2560 55%,#5BBA47 180%);padding:44px 32px 36px;color:#fff;position:relative;overflow:hidden;">
+      <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0;width:100%;height:100%;opacity:.12;" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="340" cy="40" r="80" fill="#5BBA47"/>
+        <circle cx="60" cy="180" r="120" fill="#8B7FD4"/>
+        <path d="M0 100 Q 200 50 400 120" stroke="#fff" stroke-width="2" fill="none" opacity=".4"/>
+      </svg>
+      <div style="position:relative;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="width:36px;height:3px;background:#5BBA47;border-radius:2px;"></div>
+          <div style="font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#5BBA47;">Insights & Reviews · ${esc(vLabel)}</div>
+        </div>
+        <h1 style="font-family:Montserrat,sans-serif;font-size:32px;font-weight:900;letter-spacing:-.6px;line-height:1.1;margin:0 0 10px;">${title}</h1>
+        ${subtitulo?`<div style="font-family:Montserrat,sans-serif;font-size:14.5px;line-height:1.55;opacity:.9;max-width:460px;">${subtitulo}</div>`:''}
+        <div style="font-family:Montserrat,sans-serif;font-size:11.5px;opacity:.65;margin-top:14px;">${dt}</div>
+      </div>
+    </td></tr>`;
+  }
+
+  // Comentário Costa Brava inline (dentro de uma matéria) ou card standalone
+  function comentarioBlock(c, inline){
+    if (!c || !c.texto) return '';
+    const initials = esc((c.autor||'CB').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() || 'CB');
+    return `<div style="display:flex;gap:14px;align-items:flex-start;${inline?'margin:18px 0;background:#F7F8FA;':'margin-bottom:14px;background:#fff;'}padding:16px 18px;border-radius:12px;border-left:4px solid #5BBA47;">
+      <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#201747,#2E2560);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Montserrat,sans-serif;font-weight:800;font-size:14px;flex-shrink:0;letter-spacing:.5px;">${initials}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:12.5px;color:#201747;">${esc(c.autor||'Costa Brava')}</div>
+          <span style="font-family:Montserrat,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5BBA47;background:#EAE8F5;padding:2px 7px;border-radius:99px;">Olhar CB</span>
+        </div>
+        <div style="font-family:Montserrat,sans-serif;font-size:11px;color:#6B7280;margin-bottom:8px;">${esc(c.cargo||'')}</div>
+        <div style="font-family:Montserrat,sans-serif;font-size:13.5px;color:#2E2560;line-height:1.6;font-style:italic;">"${esc(c.texto||'')}"</div>
+      </div>
+    </div>`;
   }
 
   function cbirGerarHTML(ed){
+    // reconstitui capa_url / subtitulo a partir de _edicao_meta se não estiverem no objeto
+    if (ed && ed.materias && ed.materias[0] && ed.materias[0]._edicao_meta) {
+      if (!ed.capa_url) ed.capa_url = ed.materias[0]._edicao_meta.capa_url || '';
+      if (!ed.subtitulo) ed.subtitulo = ed.materias[0]._edicao_meta.subtitulo || '';
+    }
     const title = esc(ed.titulo || 'Insights Costa Brava');
     const mats = ed.materias || [];
-    const coms = ed.comentarios_cb || [];
-    const dt = new Date(ed.created_at || Date.now()).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
-    const vLabel = ed.vertical==='bt' ? 'Business Travel' : 'Live Marketing';
+    const comsFinais = (ed.comentarios_cb || []).filter(c => c && c.texto);
 
     const matHtml = mats.map((m,i) => {
-      const bnColors = ['#5BBA47','#2E2560'];
-      const bns = (m.big_numbers||[]).map((b,bi)=>`<div style="flex:1;min-width:110px;background:${bnColors[bi%2]};color:#fff;padding:16px 14px;border-radius:10px;text-align:center;">
-        <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:26px;line-height:1;">${esc(b.valor)}</div>
-        <div style="font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;opacity:.9;margin-top:6px;">${esc(b.label)}</div>
-      </div>`).join('');
-      const chart = bigNumsSvg(m.big_numbers);
-      const img = m.imagens?.[0] ? `<img src="${esc(m.imagens[0])}" style="width:100%;max-height:260px;object-fit:cover;border-radius:10px;margin:14px 0;"/>` : '';
-      const fonte = m.fonte ? `<div style="font-size:11px;color:#6B7280;margin-top:10px;">Fonte: ${esc(m.fonte)}${m.url?` · <a href="${esc(m.url)}" style="color:#5BBA47;">ver</a>`:''}</div>` : '';
-      const txt = esc(m.texto||'').replace(/\n/g,'<br>');
-      return `<tr><td style="padding:28px 32px 10px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <div style="width:36px;height:36px;background:#EAE8F5;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#201747;">${iconFor(m.categoria)}</div>
-          <div style="font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:800;color:#5BBA47;letter-spacing:.1em;text-transform:uppercase;">${esc(m.categoria||'Insight')}</div>
+      const bnColors = ['#5BBA47','#2E2560','#201747','#8B7FD4'];
+      const bns = (m.big_numbers||[]).filter(b=>b && b.valor);
+      // Big numbers: card grande c/ número gigante + barra decorativa
+      const bnsHtml = bns.length ? `<div style="display:flex;flex-wrap:wrap;gap:12px;margin:18px 0;">${bns.map((b,bi) => {
+        const color = bnColors[bi%bnColors.length];
+        return `<div style="flex:1 1 150px;min-width:150px;background:#fff;border:1px solid #EAE8F5;border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;left:0;right:0;height:4px;background:${color};"></div>
+          <div style="position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:50%;background:${color}22;"></div>
+          <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:34px;line-height:1;color:${color};letter-spacing:-1px;">${esc(b.valor)}</div>
+          <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;color:#5B6478;line-height:1.4;margin-top:8px;">${esc(b.label||'')}</div>
+        </div>`;
+      }).join('')}</div>` : '';
+      const chart = bns.length>=2 ? bigNumsSvg(bns) : '';
+      // Imagem: hero da matéria
+      const imgSrc = m.imagem_url || m.imagens?.[0];
+      const img = imgSrc ? `<div style="margin:4px 0 18px;border-radius:14px;overflow:hidden;line-height:0;position:relative;">
+        <img src="${esc(imgSrc)}" alt="" style="display:block;width:100%;height:auto;max-height:300px;object-fit:cover;"/>
+      </div>` : '';
+      const fonte = m.fonte ? `<div style="font-family:Montserrat,sans-serif;font-size:11px;color:#9CA3AF;margin-top:14px;letter-spacing:.02em;">Fonte: <span style="color:#5B6478;font-weight:600;">${esc(m.fonte)}</span>${m.url?` · <a href="${esc(m.url)}" style="color:#5BBA47;text-decoration:none;font-weight:700;">ver matéria →</a>`:''}</div>` : '';
+      const txt = esc(m.texto||'').split(/\n+/).map(p=>p.trim()).filter(Boolean).map(p=>`<p style="margin:0 0 12px;">${p}</p>`).join('');
+      // Comentário CB inline (se a matéria tiver um)
+      const comentarioInline = m.comentario_cb && m.comentario_cb.texto ? comentarioBlock(m.comentario_cb, true) : '';
+      // Destaque de citação pequena no topo (opcional, do campo "destaque")
+      const destaque = m.destaque ? `<div style="margin:16px 0;padding:16px 20px;background:#F7F8FA;border-left:4px solid #5BBA47;border-radius:0 10px 10px 0;font-family:Montserrat,sans-serif;font-size:14.5px;font-weight:600;color:#201747;line-height:1.5;font-style:italic;">"${esc(m.destaque)}"</div>` : '';
+      return `<tr><td style="padding:34px 32px 20px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <div style="width:44px;height:44px;background:#EAE8F5;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#201747;">${iconFor(m.categoria)}</div>
+          <div>
+            <div style="font-family:Montserrat,sans-serif;font-size:10px;font-weight:800;color:#5BBA47;letter-spacing:.14em;text-transform:uppercase;">${esc(m.categoria||'Insight')}</div>
+            <div style="font-family:Montserrat,sans-serif;font-size:10.5px;color:#9CA3AF;font-weight:600;letter-spacing:.02em;">${String(i+1).padStart(2,'0')} / ${String(mats.length).padStart(2,'0')}</div>
+          </div>
         </div>
-        <h2 style="font-family:Montserrat,sans-serif;color:#201747;font-size:22px;font-weight:800;margin:0 0 10px;line-height:1.25;">${esc(m.titulo||'')}</h2>
-        ${m.resumo?`<p style="font-family:Montserrat,sans-serif;color:#5B6478;font-size:14px;line-height:1.5;margin:0 0 12px;font-weight:500;">${esc(m.resumo)}</p>`:''}
+        <h2 style="font-family:Montserrat,sans-serif;color:#201747;font-size:24px;font-weight:900;margin:0 0 10px;line-height:1.2;letter-spacing:-.3px;">${esc(m.titulo||'')}</h2>
+        ${m.resumo?`<p style="font-family:Montserrat,sans-serif;color:#5B6478;font-size:14.5px;line-height:1.55;margin:0 0 14px;font-weight:500;">${esc(m.resumo)}</p>`:''}
         ${img}
-        ${bns?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;">${bns}</div>`:''}
+        ${bnsHtml}
         ${chart}
-        <div style="font-family:Montserrat,sans-serif;color:#201747;font-size:13.5px;line-height:1.65;">${txt}</div>
-        ${m.url?`<div style="margin-top:16px;"><a href="${esc(m.url)}" style="display:inline-block;background:#201747;color:#fff;text-decoration:none;padding:10px 20px;border-radius:99px;font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;letter-spacing:.05em;">Ler na fonte →</a></div>`:''}
+        ${destaque}
+        <div style="font-family:Montserrat,sans-serif;color:#2E2560;font-size:14px;line-height:1.7;">${txt}</div>
+        ${comentarioInline}
+        ${m.url?`<div style="margin-top:18px;"><a href="${esc(m.url)}" style="display:inline-flex;align-items:center;gap:8px;background:#201747;color:#fff;text-decoration:none;padding:11px 22px;border-radius:99px;font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;letter-spacing:.05em;">Ler na fonte <span style="font-size:14px;">→</span></a></div>`:''}
         ${fonte}
       </td></tr>
-      ${i<mats.length-1?`<tr><td style="padding:0 32px;"><div style="height:1px;background:#EAE8F5;"></div></td></tr>`:''}`;
+      ${i<mats.length-1?`<tr><td style="padding:0 32px;"><div style="height:1px;background:linear-gradient(90deg,transparent,#EAE8F5 20%,#EAE8F5 80%,transparent);"></div></td></tr>`:''}`;
     }).join('');
 
-    const comsHtml = coms.length ? `
-      <tr><td style="padding:28px 32px 10px;background:#F7F8FA;">
-        <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;color:#5BBA47;letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;">Olhar Costa Brava</div>
-        ${coms.map(c => `
-          <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;background:#fff;padding:16px;border-radius:10px;border-left:4px solid #5BBA47;">
-            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#201747,#2E2560);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Montserrat,sans-serif;font-weight:800;font-size:16px;flex-shrink:0;">${esc((c.autor||'?').slice(0,1).toUpperCase())}</div>
-            <div style="flex:1;">
-              <div style="font-family:Montserrat,sans-serif;font-weight:700;font-size:13px;color:#201747;">${esc(c.autor||'')}</div>
-              <div style="font-family:Montserrat,sans-serif;font-size:11px;color:#6B7280;margin-bottom:6px;">${esc(c.cargo||'')}</div>
-              <div style="font-family:Montserrat,sans-serif;font-size:13.5px;color:#2E2560;line-height:1.55;font-style:italic;">"${esc(c.texto||'')}"</div>
-            </div>
-          </div>
-        `).join('')}
+    const comsHtml = comsFinais.length ? `
+      <tr><td style="padding:34px 32px;background:linear-gradient(180deg,#F7F8FA 0%,#EEF0F5 100%);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <div style="width:30px;height:3px;background:#5BBA47;border-radius:2px;"></div>
+          <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;color:#201747;letter-spacing:.18em;text-transform:uppercase;">O olhar Costa Brava</div>
+        </div>
+        ${comsFinais.map(c => comentarioBlock(c, false)).join('')}
       </td></tr>` : '';
 
     return `<!DOCTYPE html>
@@ -13705,33 +13871,31 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
   @media (max-width:620px){
     .cbir-container{width:100% !important;}
     .cbir-container td{padding-left:18px !important;padding-right:18px !important;}
-    .cbir-container h2{font-size:18px !important;}
+    .cbir-container h2{font-size:20px !important;}
     .cbir-container h1{font-size:24px !important;}
   }
+  img{max-width:100%;height:auto;border:0;outline:none;text-decoration:none;}
+  a{color:inherit;}
 </style>
 </head>
 <body>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F8FA;padding:24px 0;"><tr><td align="center">
-  <table role="presentation" class="cbir-container" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:100%;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(32,23,71,.06);">
-    <!-- Hero -->
-    <tr><td style="background:linear-gradient(135deg,#201747 0%,#2E2560 100%);padding:40px 32px 32px;color:#fff;">
-      <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;opacity:.75;">Insights & Reviews · ${esc(vLabel)}</div>
-      <h1 style="font-family:Montserrat,sans-serif;font-size:30px;font-weight:900;letter-spacing:-.5px;margin:12px 0 6px;line-height:1.15;">${title}</h1>
-      <div style="font-family:Montserrat,sans-serif;font-size:12.5px;opacity:.8;">${dt}</div>
-    </td></tr>
-    <!-- Pills -->
-    ${mats.length?`<tr><td style="padding:18px 32px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F8FA;padding:28px 0;"><tr><td align="center">
+  <table role="presentation" class="cbir-container" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 24px rgba(32,23,71,.08);">
+    ${heroHtml(ed)}
+    ${mats.length?`<tr><td style="padding:22px 32px 0;background:#fff;">
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        ${[...new Set(mats.map(m=>m.categoria).filter(Boolean))].map(c=>`<span style="display:inline-block;padding:5px 12px;background:#EAE8F5;color:#201747;border-radius:99px;font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.04em;">${esc(c)}</span>`).join('')}
+        ${[...new Set(mats.map(m=>m.categoria).filter(Boolean))].map(c=>`<span style="display:inline-block;padding:6px 14px;background:#EAE8F5;color:#201747;border-radius:99px;font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${esc(c)}</span>`).join('')}
       </div>
     </td></tr>`:''}
     ${matHtml}
     ${comsHtml}
-    <!-- Rodapé -->
-    <tr><td style="background:#201747;color:#fff;padding:28px 32px;text-align:center;">
-      <div style="font-family:Montserrat,sans-serif;font-size:12px;font-weight:800;letter-spacing:.2em;">COSTA BRAVA</div>
-      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.7;margin-top:8px;">Business Travel · Live Marketing · Costa Brava Experience</div>
-      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.6;margin-top:14px;"><a href="#" style="color:#5BBA47;text-decoration:none;">Descadastrar</a> · Edição gerada por IA e revisada pela equipe</div>
+    <tr><td style="background:linear-gradient(135deg,#201747 0%,#2E2560 100%);color:#fff;padding:32px 32px 28px;text-align:center;">
+      <div style="font-family:Montserrat,sans-serif;font-size:14px;font-weight:900;letter-spacing:.3em;color:#5BBA47;">COSTA BRAVA</div>
+      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.75;margin-top:10px;letter-spacing:.08em;">Business Travel · Live Marketing · Experience</div>
+      <div style="margin:18px auto 0;height:1px;background:rgba(255,255,255,.15);max-width:200px;"></div>
+      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.55;margin-top:14px;">
+        <a href="#" style="color:#5BBA47;text-decoration:none;">Descadastrar</a> · Conteúdo editorial Costa Brava
+      </div>
     </td></tr>
   </table>
 </td></tr></table>
