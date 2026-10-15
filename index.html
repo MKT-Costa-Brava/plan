@@ -13744,17 +13744,69 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     </div>`;
   }
 
-  // Hero header - foto LIMPA no topo (sem overlay), título navy abaixo em bloco separado
+  // Theme por vertical (BT = azul lilás, LM = navy + verde)
+  function cbirTheme(ed){
+    if ((ed && ed.vertical) === 'bt') {
+      return {
+        primary:'#201747', accent:'#4A90E2', accent2:'#7FA8D4', soft:'#EAE8F5',
+        label:'Business Travel', tagline:'Tendências, notícias e análises para líderes e gestores de viagens corporativas',
+        logoWord:'business<span style="color:#4A90E2;">travel</span>'
+      };
+    }
+    return {
+      primary:'#201747', accent:'#5BBA47', accent2:'#8B7FD4', soft:'#EAE8F5',
+      label:'Live Marketing', tagline:'Tendências, mercado, inovação e agenda para profissionais de live marketing',
+      logoWord:'live<span style="color:#5BBA47;">marketing</span>'
+    };
+  }
+
+  // Hero header - BT replica o padrão do RD Station (split lilás + imagem + faixa navy)
   function heroHtml(ed){
+    const t = cbirTheme(ed);
     const title = esc(ed.titulo || 'Insights & Reviews');
-    const subtitulo = esc(ed.subtitulo || '');
-    const vLabel = ed.vertical==='bt' ? 'Business Travel' : 'Live Marketing';
-    const dt = new Date(ed.created_at || Date.now()).toLocaleDateString('pt-BR',{day:'2-digit', month:'long', year:'numeric'});
+    const subtitulo = esc(ed.subtitulo || t.tagline);
+    const now = new Date(ed.created_at || Date.now());
+    const mesAno = now.toLocaleDateString('pt-BR',{month:'long', year:'numeric'}).replace(/^\w/, c=>c.toUpperCase());
+    const edNum = ed.numero_edicao ? String(ed.numero_edicao).padStart(2,'0') : '01';
+
+    if ((ed && ed.vertical) === 'bt') {
+      // Layout split (lilás) + faixa navy (como RD Station)
+      const img = ed.capa_url
+        ? `<img src="${esc(ed.capa_url)}" alt="" style="display:block;width:100%;height:260px;object-fit:cover;"/>`
+        : `<div style="width:100%;height:260px;background:linear-gradient(135deg,#C9D4E8 0%,#A5B5D1 100%);"></div>`;
+      return `<tr><td style="padding:0;background:${t.soft};">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+          <td width="55%" valign="middle" style="padding:40px 32px;background:${t.soft};">
+            <div style="font-family:Montserrat,sans-serif;color:${t.primary};font-weight:900;font-size:16px;letter-spacing:-.3px;line-height:1.1;margin-bottom:4px;">CostaBrava</div>
+            <div style="font-family:Montserrat,sans-serif;color:${t.primary};font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:36px;">${t.logoWord}</div>
+            <h1 style="font-family:Montserrat,sans-serif;font-size:40px;font-weight:300;line-height:1.05;margin:0;letter-spacing:-1px;">
+              <span style="color:${t.accent};font-weight:400;">INSIGHTS</span><br/>
+              <span style="color:${t.primary};font-weight:800;">&amp; REVIEWS</span>
+            </h1>
+            <div style="width:60px;height:1px;background:${t.primary};opacity:.35;margin:18px 0 14px;"></div>
+            <div style="font-family:Montserrat,sans-serif;font-size:12.5px;line-height:1.55;color:${t.primary};opacity:.75;max-width:290px;">${subtitulo}</div>
+          </td>
+          <td width="45%" valign="middle" style="padding:0;line-height:0;">${img}</td>
+        </tr></table>
+      </td></tr>
+      <tr><td style="background:${t.primary};padding:14px 32px;">
+        <table role="presentation" width="100%"><tr>
+          <td style="font-family:Montserrat,sans-serif;color:#fff;opacity:.6;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;">Costa Brava Business Travel</td>
+          <td align="right" style="font-family:Montserrat,sans-serif;color:#fff;font-size:11px;">
+            <span style="opacity:.65;">${mesAno}</span><br/>
+            <span style="color:${t.accent};font-weight:800;letter-spacing:.1em;">EDIÇÃO #${edNum}</span>
+          </td>
+        </tr></table>
+      </td></tr>`;
+    }
+
+    // LM mantém o layout atual (imagem limpa + bloco navy)
     const bloco_imagem = ed.capa_url ? `<tr><td style="padding:0;line-height:0;"><img src="${esc(ed.capa_url)}" alt="" style="display:block;width:100%;height:auto;"/></td></tr>` : '';
-    const bloco_titulo = `<tr><td style="background:#201747;padding:36px 32px 32px;color:#fff;">
+    const dt = now.toLocaleDateString('pt-BR',{day:'2-digit', month:'long', year:'numeric'});
+    const bloco_titulo = `<tr><td style="background:${t.primary};padding:36px 32px 32px;color:#fff;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <div style="width:60px;height:4px;background:#5BBA47;border-radius:3px;"></div>
-        <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#5BBA47;">Costa Brava · ${esc(vLabel)}</div>
+        <div style="width:60px;height:4px;background:${t.accent};border-radius:3px;"></div>
+        <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:${t.accent};">Costa Brava · ${esc(t.label)}</div>
       </div>
       <h1 style="font-family:Montserrat,sans-serif;font-size:30px;font-weight:900;letter-spacing:-.5px;line-height:1.15;margin:0 0 10px;">${title}</h1>
       ${subtitulo?`<div style="font-family:Montserrat,sans-serif;font-size:14.5px;line-height:1.6;opacity:.88;max-width:500px;">${subtitulo}</div>`:''}
@@ -13764,15 +13816,16 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
   }
 
   // Comentário Costa Brava inline (dentro de uma matéria) ou card standalone
-  function comentarioBlock(c, inline){
+  function comentarioBlock(c, inline, accent){
     if (!c || !c.texto) return '';
+    const ACC = accent || '#5BBA47';
     const initials = esc((c.autor||'CB').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() || 'CB');
-    return `<div style="display:flex;gap:14px;align-items:flex-start;${inline?'margin:18px 0;background:#F7F8FA;':'margin-bottom:14px;background:#fff;'}padding:16px 18px;border-radius:12px;border-left:4px solid #5BBA47;">
+    return `<div style="display:flex;gap:14px;align-items:flex-start;${inline?'margin:18px 0;background:#F7F8FA;':'margin-bottom:14px;background:#fff;'}padding:16px 18px;border-radius:12px;border-left:4px solid ${ACC};">
       <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#201747,#2E2560);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Montserrat,sans-serif;font-weight:800;font-size:14px;flex-shrink:0;letter-spacing:.5px;">${initials}</div>
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
           <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:12.5px;color:#201747;">${esc(c.autor||'Costa Brava')}</div>
-          <span style="font-family:Montserrat,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5BBA47;background:#EAE8F5;padding:2px 7px;border-radius:99px;">Olhar CB</span>
+          <span style="font-family:Montserrat,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${ACC};background:#EAE8F5;padding:2px 7px;border-radius:99px;">Olhar CB</span>
         </div>
         <div style="font-family:Montserrat,sans-serif;font-size:11px;color:#6B7280;margin-bottom:8px;">${esc(c.cargo||'')}</div>
         <div style="font-family:Montserrat,sans-serif;font-size:13.5px;color:#2E2560;line-height:1.6;font-style:italic;">"${esc(c.texto||'')}"</div>
@@ -13787,6 +13840,8 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       if (!ed.subtitulo) ed.subtitulo = ed.materias[0]._edicao_meta.subtitulo || '';
     }
     const title = esc(ed.titulo || 'Insights Costa Brava');
+    const theme = cbirTheme(ed);
+    const ACC = theme.accent, PRI = theme.primary, SOFT = theme.soft;
     const mats = (ed.materias || []).map(m => ({ ...m }));
     // Redistribui comentarios_cb (array final) para matérias que ainda não têm comentário inline
     const comsFinais = (ed.comentarios_cb || []).filter(c => c && c.texto);
@@ -13799,7 +13854,7 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     }
 
     const matHtml = mats.map((m,i) => {
-      const bnColors = ['#5BBA47','#2E2560','#201747','#8B7FD4'];
+      const bnColors = [ACC, PRI, theme.accent2, '#2E2560'];
       const bns = (m.big_numbers||[]).filter(b=>b && b.valor);
       // Decisão inteligente: nenhum / bignumbers / chart / ambos
       // Prioridade: campo explícito "visualizacao_dados" > heurística
@@ -13815,8 +13870,8 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       if (viz === 'bignumber_hero' && bns.length) {
         // 1 número gigante no centro, estilo editorial
         const b = bns[0];
-        bnsHtml = `<div style="margin:18px 0;padding:28px 24px;background:linear-gradient(135deg,#F0F8EE 0%,#EAE8F5 100%);border-radius:16px;text-align:center;">
-          <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:52px;line-height:1;color:#5BBA47;letter-spacing:-2px;">${esc(b.valor)}</div>
+        bnsHtml = `<div style="margin:18px 0;padding:28px 24px;background:linear-gradient(135deg,${SOFT} 0%,#F7F8FA 100%);border-radius:16px;text-align:center;">
+          <div style="font-family:Montserrat,sans-serif;font-weight:900;font-size:52px;line-height:1;color:${ACC};letter-spacing:-2px;">${esc(b.valor)}</div>
           <div style="font-family:Montserrat,sans-serif;font-size:12.5px;font-weight:600;color:#2E2560;line-height:1.4;margin-top:10px;max-width:360px;margin-left:auto;margin-right:auto;">${esc(b.label||'')}</div>
         </div>`;
       } else if (viz === 'bignumbers' && bns.length) {
@@ -13845,21 +13900,21 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       const img = imgSrc ? `<div style="margin:4px 0 18px;border-radius:14px;overflow:hidden;line-height:0;position:relative;">
         <img src="${esc(imgSrc)}" alt="" style="display:block;width:100%;height:auto;max-height:300px;object-fit:cover;"/>
       </div>` : '';
-      const fonte = m.fonte ? `<div style="font-family:Montserrat,sans-serif;font-size:11px;color:#9CA3AF;margin-top:14px;letter-spacing:.02em;">Fonte: <span style="color:#5B6478;font-weight:600;">${esc(m.fonte)}</span>${m.url?` · <a href="${esc(m.url)}" style="color:#5BBA47;text-decoration:none;font-weight:700;">ver matéria →</a>`:''}</div>` : '';
+      const fonte = m.fonte ? `<div style="font-family:Montserrat,sans-serif;font-size:11px;color:#9CA3AF;margin-top:14px;letter-spacing:.02em;">Fonte: <span style="color:#5B6478;font-weight:600;">${esc(m.fonte)}</span>${m.url?` · <a href="${esc(m.url)}" style="color:${ACC};text-decoration:none;font-weight:700;">ver matéria →</a>`:''}</div>` : '';
       const txt = esc(m.texto||'').split(/\n+/).map(p=>p.trim()).filter(Boolean).map(p=>`<p style="margin:0 0 12px;">${p}</p>`).join('');
       // Comentário CB inline (se a matéria tiver um)
-      const comentarioInline = m.comentario_cb && m.comentario_cb.texto ? comentarioBlock(m.comentario_cb, true) : '';
+      const comentarioInline = m.comentario_cb && m.comentario_cb.texto ? comentarioBlock(m.comentario_cb, true, ACC) : '';
       // Destaque de citação pequena no topo (opcional, do campo "destaque")
-      const destaque = m.destaque ? `<div style="margin:16px 0;padding:16px 20px;background:#F7F8FA;border-left:4px solid #5BBA47;border-radius:0 10px 10px 0;font-family:Montserrat,sans-serif;font-size:14.5px;font-weight:600;color:#201747;line-height:1.5;font-style:italic;">"${esc(m.destaque)}"</div>` : '';
+      const destaque = m.destaque ? `<div style="margin:16px 0;padding:16px 20px;background:#F7F8FA;border-left:4px solid ${ACC};border-radius:0 10px 10px 0;font-family:Montserrat,sans-serif;font-size:14.5px;font-weight:600;color:${PRI};line-height:1.5;font-style:italic;">"${esc(m.destaque)}"</div>` : '';
       return `<tr><td style="padding:34px 32px 20px;">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
-          <div style="width:44px;height:44px;background:#EAE8F5;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#201747;">${iconFor(m.categoria)}</div>
+          <div style="width:44px;height:44px;background:${SOFT};border-radius:12px;display:flex;align-items:center;justify-content:center;color:${PRI};">${iconFor(m.categoria)}</div>
           <div>
-            <div style="font-family:Montserrat,sans-serif;font-size:10px;font-weight:800;color:#5BBA47;letter-spacing:.14em;text-transform:uppercase;">${esc(m.categoria||'Insight')}</div>
+            <div style="font-family:Montserrat,sans-serif;font-size:10px;font-weight:800;color:${ACC};letter-spacing:.14em;text-transform:uppercase;">${esc(m.categoria||'Insight')}</div>
             <div style="font-family:Montserrat,sans-serif;font-size:10.5px;color:#9CA3AF;font-weight:600;letter-spacing:.02em;">${String(i+1).padStart(2,'0')} / ${String(mats.length).padStart(2,'0')}</div>
           </div>
         </div>
-        <h2 style="font-family:Montserrat,sans-serif;color:#201747;font-size:24px;font-weight:900;margin:0 0 10px;line-height:1.2;letter-spacing:-.3px;">${esc(m.titulo||'')}</h2>
+        <h2 style="font-family:Montserrat,sans-serif;color:${PRI};font-size:24px;font-weight:900;margin:0 0 10px;line-height:1.2;letter-spacing:-.3px;">${esc(m.titulo||'')}</h2>
         ${m.resumo?`<p style="font-family:Montserrat,sans-serif;color:#5B6478;font-size:14.5px;line-height:1.55;margin:0 0 14px;font-weight:500;">${esc(m.resumo)}</p>`:''}
         ${img}
         ${bnsHtml}
@@ -13867,7 +13922,7 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
         ${destaque}
         <div style="font-family:Montserrat,sans-serif;color:#2E2560;font-size:14px;line-height:1.7;">${txt}</div>
         ${comentarioInline}
-        ${m.url?`<div style="margin-top:18px;"><a href="${esc(m.url)}" style="display:inline-flex;align-items:center;gap:8px;background:#201747;color:#fff;text-decoration:none;padding:11px 22px;border-radius:99px;font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;letter-spacing:.05em;">Ler na fonte <span style="font-size:14px;">→</span></a></div>`:''}
+        ${m.url?`<div style="margin-top:18px;"><a href="${esc(m.url)}" style="display:inline-flex;align-items:center;gap:8px;background:${PRI};color:#fff;text-decoration:none;padding:11px 22px;border-radius:99px;font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;letter-spacing:.05em;">Ler na fonte <span style="font-size:14px;">→</span></a></div>`:''}
         ${fonte}
       </td></tr>
       ${i<mats.length-1?`<tr><td style="padding:0 32px;"><div style="height:1px;background:linear-gradient(90deg,transparent,#EAE8F5 20%,#EAE8F5 80%,transparent);"></div></td></tr>`:''}`;
@@ -13896,19 +13951,22 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F8FA;padding:28px 0;"><tr><td align="center">
   <table role="presentation" class="cbir-container" width="640" cellpadding="0" cellspacing="0" style="width:640px;max-width:100%;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 4px 24px rgba(32,23,71,.08);">
     ${heroHtml(ed)}
-    ${mats.length?`<tr><td style="padding:22px 32px 0;background:#fff;">
+    ${(mats.length && ed.vertical!=='bt')?`<tr><td style="padding:22px 32px 0;background:#fff;">
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        ${[...new Set(mats.map(m=>m.categoria).filter(Boolean))].map(c=>`<span style="display:inline-block;padding:6px 14px;background:#EAE8F5;color:#201747;border-radius:99px;font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${esc(c)}</span>`).join('')}
+        ${[...new Set(mats.map(m=>m.categoria).filter(Boolean))].map(c=>`<span style="display:inline-block;padding:6px 14px;background:${SOFT};color:${PRI};border-radius:99px;font-family:Montserrat,sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">${esc(c)}</span>`).join('')}
       </div>
+    </td></tr>`:''}
+    ${(mats.length && ed.vertical==='bt' && ed.subtitulo)?`<tr><td style="padding:30px 32px 10px;background:#fff;">
+      <div style="font-family:Montserrat,sans-serif;color:${PRI};font-size:16px;font-weight:800;line-height:1.3;">${esc(ed.subtitulo)}</div>
     </td></tr>`:''}
     ${matHtml}
     ${comsHtml}
-    <tr><td style="background:linear-gradient(135deg,#201747 0%,#2E2560 100%);color:#fff;padding:32px 32px 28px;text-align:center;">
-      <div style="font-family:Montserrat,sans-serif;font-size:14px;font-weight:900;letter-spacing:.3em;color:#5BBA47;">COSTA BRAVA</div>
-      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.75;margin-top:10px;letter-spacing:.08em;">Business Travel · Live Marketing · Experience</div>
+    <tr><td style="background:linear-gradient(135deg,${PRI} 0%,#2E2560 100%);color:#fff;padding:32px 32px 28px;text-align:center;">
+      <div style="font-family:Montserrat,sans-serif;font-size:14px;font-weight:900;letter-spacing:.3em;color:${ACC};">COSTA BRAVA</div>
+      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.75;margin-top:10px;letter-spacing:.08em;">${theme.label} · Insights &amp; Reviews</div>
       <div style="margin:18px auto 0;height:1px;background:rgba(255,255,255,.15);max-width:200px;"></div>
       <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.55;margin-top:14px;">
-        <a href="#" style="color:#5BBA47;text-decoration:none;">Descadastrar</a> · Conteúdo editorial Costa Brava
+        <a href="#" style="color:${ACC};text-decoration:none;">Descadastrar</a> · Conteúdo editorial Costa Brava
       </div>
     </td></tr>
   </table>
