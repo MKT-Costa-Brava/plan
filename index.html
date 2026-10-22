@@ -11841,7 +11841,7 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
     if (v.querySelector('[data-p-cats]')) return;
     // procura um lugar bom pra colocar o botão
     const hdr = v.querySelector('.cbk-wrap > div:nth-child(4)') || v.querySelector('.cbk-wrap > div:nth-child(3)') || v.querySelector('.cbk-wrap');
-    if (!hdr || !canEdit()) return;
+    if (!hdr) return;
     const btn = document.createElement('button');
     btn.className = 'cbk-btn cbk-btn-ghost';
     btn.dataset.pCats = '1';
