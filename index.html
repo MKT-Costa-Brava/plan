@@ -14367,7 +14367,6 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
         ${destaque}
         <div style="font-family:Montserrat,sans-serif;color:#2E2560;font-size:14px;line-height:1.7;">${txt}</div>
         ${comentarioInline}
-        ${m.url?`<div style="margin-top:18px;"><a href="${esc(m.url)}" style="display:inline-flex;align-items:center;gap:8px;background:${PRI};color:#fff;text-decoration:none;padding:11px 22px;border-radius:99px;font-family:Montserrat,sans-serif;font-size:12px;font-weight:700;letter-spacing:.05em;">Ler na fonte <span style="font-size:14px;">→</span></a></div>`:''}
         ${fonte}
       </td></tr>
       ${i<mats.length-1?`<tr><td style="padding:0 32px;"><div style="height:1px;background:linear-gradient(90deg,transparent,#EAE8F5 20%,#EAE8F5 80%,transparent);"></div></td></tr>`:''}`;
@@ -14403,13 +14402,22 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     </td></tr>`:''}
     ${matHtml}
     ${comsHtml}
-    <tr><td style="background:linear-gradient(135deg,${PRI} 0%,#2E2560 100%);color:#fff;padding:32px 32px 28px;text-align:center;">
-      <div style="font-family:Montserrat,sans-serif;font-size:14px;font-weight:900;letter-spacing:.3em;color:${ACC};">COSTA BRAVA</div>
-      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.75;margin-top:10px;letter-spacing:.08em;">${theme.label} · Insights &amp; Reviews</div>
-      <div style="margin:18px auto 0;height:1px;background:rgba(255,255,255,.15);max-width:200px;"></div>
-      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.55;margin-top:14px;">
-        <a href="#" style="color:${ACC};text-decoration:none;">Descadastrar</a> · Conteúdo editorial Costa Brava
-      </div>
+    <tr><td style="background:#fff;color:${PRI};padding:36px 32px 20px;text-align:center;border-top:1px solid #EAE8F5;">
+      ${ed.vertical==='lm' ? `
+        <div style="font-family:Montserrat,sans-serif;font-size:34px;line-height:1;letter-spacing:-1px;color:${ACC};">
+          <span style="font-weight:800;">live</span><span style="font-weight:400;">marketing</span>
+        </div>
+      ` : ed.vertical==='bt' ? `
+        <div style="font-family:Montserrat,sans-serif;font-size:28px;line-height:1;letter-spacing:-.5px;color:${PRI};">
+          <span style="font-weight:900;">Costa</span><span style="font-weight:300;">Brava</span>
+          <div style="font-family:Montserrat,sans-serif;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:${ACC};margin-top:4px;">business<span style="opacity:.75;">travel</span></div>
+        </div>
+      ` : `
+        <div style="font-family:Montserrat,sans-serif;font-size:14px;font-weight:900;letter-spacing:.3em;color:${ACC};">COSTA BRAVA</div>
+      `}
+    </td></tr>
+    <tr><td style="background:linear-gradient(135deg,${PRI} 0%,#2E2560 100%);color:#fff;padding:18px 32px;text-align:center;">
+      <div style="font-family:Montserrat,sans-serif;font-size:10.5px;opacity:.75;letter-spacing:.08em;">${theme.label} · Insights &amp; Reviews</div>
     </td></tr>
   </table>
 </td></tr></table>
