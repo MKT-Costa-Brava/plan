@@ -13769,6 +13769,11 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
             <input data-cci="autor" value="${esc(m.comentario_cb?.autor||'')}" placeholder="Autor (ex: Nathalia Ávila)"/>
             <input data-cci="cargo" value="${esc(m.comentario_cb?.cargo||'')}" placeholder="Cargo (ex: Gerente Operacional)"/>
           </div>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+            ${m.comentario_cb?.foto_url ? `<img src="${esc(m.comentario_cb.foto_url)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #5BBA47;flex-shrink:0;" alt=""/>` : `<div style="width:38px;height:38px;border-radius:50%;background:#EAE8F5;color:#201747;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;">👤</div>`}
+            <input data-cci="foto_url" value="${esc(m.comentario_cb?.foto_url||'')}" placeholder="URL da foto do(a) comentarista (opcional)" style="flex:1;"/>
+            <button type="button" data-cci-upload="${idx}" style="padding:7px 11px;background:#F3EEF9;color:#5A4570;border:1px solid #E1D5EC;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;">📷 Upload</button>
+          </div>
           <textarea data-cci="texto" style="margin-top:8px;" rows="2" placeholder="Deixe em branco para não exibir">${esc(m.comentario_cb?.texto||'')}</textarea>
         </div>
       </div>
@@ -13790,6 +13795,28 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
         if (!m.comentario_cb) m.comentario_cb = {autor:'',cargo:'',texto:''};
         m.comentario_cb[inp.dataset.cci] = e.target.value;
       });
+      // upload de foto do comentarista
+      const upBtn = card.querySelector('[data-cci-upload]');
+      if (upBtn) upBtn.onclick = async () => {
+        const inpFile = document.createElement('input');
+        inpFile.type = 'file'; inpFile.accept = 'image/*';
+        inpFile.onchange = async () => {
+          const f = inpFile.files[0]; if (!f) return;
+          upBtn.disabled = true; upBtn.textContent = 'Enviando...';
+          try {
+            const client = await sb(); if (!client) throw new Error('sem auth');
+            const nome = `comentaristas/${Date.now()}_${f.name.replace(/[^\w.\-]/g,'_')}`;
+            const { error } = await client.storage.from('cb-diario-imgs').upload(nome, f, { upsert:false });
+            if (error) throw error;
+            const { data: pub } = client.storage.from('cb-diario-imgs').getPublicUrl(nome);
+            if (!m.comentario_cb) m.comentario_cb = {autor:'',cargo:'',texto:''};
+            m.comentario_cb.foto_url = pub.publicUrl;
+            renderMaterias();
+          } catch(e){ alert('Erro no upload: '+e.message); }
+          finally { upBtn.disabled = false; upBtn.textContent = '📷 Upload'; }
+        };
+        inpFile.click();
+      };
       // upload imagem_url por matéria
       const matImgInput = card.querySelector('[data-mat-img-add]');
       if (matImgInput) matImgInput.onchange = async (e) => {
@@ -13946,6 +13973,12 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       case 'progress':      return chartProgresso(parsed, colors, theme);
       case 'waffle':
       case 'dots_grid':     return chartWaffle(parsed, colors, theme);
+      case 'timeline':
+      case 'linha_tempo':   return chartTimeline(parsed, colors, theme);
+      case 'pictograma':
+      case 'pictogram':     return chartPictograma(parsed, colors, theme);
+      case 'gauge':
+      case 'medidor':       return chartGauge(parsed, colors, theme);
       case 'barra_vertical':
       case 'bar_vertical':
       default:              return chartBarVert(parsed, colors, theme);
@@ -14101,6 +14134,87 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     </tr></table>`,'#fff');
   }
 
+  // 7) Timeline — evolução temporal (ótima para anos, trimestres, antes/depois com múltiplas pontas)
+  function chartTimeline(parsed, colors, theme){
+    const W = 560, H = 140, PAD_L = 30, PAD_R = 30, PAD_T = 30, PAD_B = 40;
+    const chartW = W - PAD_L - PAD_R;
+    const step = parsed.length > 1 ? chartW / (parsed.length - 1) : 0;
+    const line = `<line x1="${PAD_L}" y1="${H-PAD_B}" x2="${W-PAD_R}" y2="${H-PAD_B}" stroke="${theme.primary}" stroke-width="2" opacity=".3"/>`;
+    const pts = parsed.map((p,i)=>{
+      const x = PAD_L + i*step;
+      const y = H-PAD_B;
+      const color = colors[i%colors.length];
+      return `<g>
+        <circle cx="${x}" cy="${y}" r="8" fill="${color}" stroke="#fff" stroke-width="3"/>
+        <text x="${x}" y="${y-18}" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="16" font-weight="900" fill="${color}">${esc(p.raw)}</text>
+        <text x="${x}" y="${y+22}" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="10" font-weight="700" letter-spacing=".05em" fill="#6B7280">${esc(p.label.slice(0,16).toUpperCase())}</text>
+      </g>`;
+    }).join('');
+    return _wrapChart(`<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">${line}${pts}</svg>`,'#fff');
+  }
+
+  // 8) Pictograma — 10 figuras, X preenchidas (ótimo para "X em cada 10")
+  function chartPictograma(parsed, colors, theme){
+    const p = parsed[0]||{n:0,raw:'',label:''};
+    // Normaliza para "em cada 10"
+    const rawNum = parseFloat(p.raw);
+    const pct = (/%/.test(p.raw)) ? Math.round(p.n/10) : Math.min(10, Math.max(0, Math.round(rawNum)));
+    const dez = Math.max(0, Math.min(10, pct));
+    const fig = (filled) => {
+      const col = filled ? colors[0] : '#EAE8F5';
+      // Boneco minimalista
+      return `<g fill="${col}"><circle cx="12" cy="7" r="5"/><rect x="4" y="14" width="16" height="18" rx="4"/></g>`;
+    };
+    const figs = Array.from({length:10}, (_,i) => `<g transform="translate(${i*32},0)">${fig(i<dez)}</g>`).join('');
+    return _wrapChart(`<table role="presentation" width="100%"><tr>
+      <td valign="middle" style="padding:16px;">
+        <div style="font-family:Montserrat,sans-serif;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:${theme.primary};opacity:.6;margin-bottom:8px;">EM CADA 10</div>
+        <svg viewBox="0 0 320 36" width="100%" style="display:block;max-width:320px;">${figs}</svg>
+        <div style="font-family:Montserrat,sans-serif;font-size:13px;font-weight:600;color:${theme.primary};margin-top:12px;line-height:1.4;">
+          <strong style="color:${colors[0]};font-size:16px;">${esc(p.raw)}</strong> · ${esc(p.label)}
+        </div>
+      </td>
+    </tr></table>`,'#fff');
+  }
+
+  // 9) Gauge — ponteiro em arco (velocímetro) para 1 valor + opcional meta
+  function chartGauge(parsed, colors, theme){
+    const p = parsed[0]||{n:0,raw:'',label:''};
+    const meta = parsed[1];
+    const val = Math.max(0, Math.min(100, p.n));
+    // Arco de -90° (esq) a +90° (dir), 180° total
+    const toXY = (ang, r) => {
+      const rad = (ang - 180) * Math.PI / 180;
+      return [100 + r*Math.cos(rad), 110 + r*Math.sin(rad)];
+    };
+    const ang = (val/100) * 180;
+    // Arco de fundo
+    const [bx0,by0] = toXY(0, 70), [bx1,by1] = toXY(180, 70);
+    const bgArc = `<path d="M${bx0},${by0} A70,70 0 0 1 ${bx1},${by1}" fill="none" stroke="#EAE8F5" stroke-width="20" stroke-linecap="round"/>`;
+    // Arco preenchido
+    const [vx1, vy1] = toXY(ang, 70);
+    const large = ang > 180 ? 1 : 0;
+    const fillArc = `<path d="M${bx0},${by0} A70,70 0 ${large} 1 ${vx1},${vy1}" fill="none" stroke="${colors[0]}" stroke-width="20" stroke-linecap="round"/>`;
+    // Ponteiro
+    const [px, py] = toXY(ang, 55);
+    const pointer = `<circle cx="100" cy="110" r="8" fill="${theme.primary}"/><line x1="100" y1="110" x2="${px}" y2="${py}" stroke="${theme.primary}" stroke-width="3" stroke-linecap="round"/>`;
+    // Marca da meta
+    const metaMark = meta ? (() => {
+      const mAng = (Math.min(100, meta.n)/100) * 180;
+      const [mx1,my1] = toXY(mAng, 60), [mx2,my2] = toXY(mAng, 82);
+      return `<line x1="${mx1}" y1="${my1}" x2="${mx2}" y2="${my2}" stroke="${colors[2]||colors[1]}" stroke-width="2" stroke-dasharray="2,2"/><text x="${mx2}" y="${my2+10}" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="9" font-weight="700" fill="${colors[2]||colors[1]}">${esc(meta.raw)}</text>`;
+    })() : '';
+    return _wrapChart(`<table role="presentation" width="100%"><tr>
+      <td align="center" valign="middle" style="padding:14px;">
+        <svg viewBox="0 0 200 130" width="100%" style="display:block;max-width:280px;">${bgArc}${fillArc}${metaMark}${pointer}
+          <text x="100" y="100" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="30" font-weight="900" fill="${theme.primary}" letter-spacing="-1">${esc(p.raw)}</text>
+        </svg>
+        <div style="font-family:Montserrat,sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6B7280;margin-top:4px;">${esc(p.label)}</div>
+        ${meta ? `<div style="font-family:Montserrat,sans-serif;font-size:10.5px;color:#9CA3AF;margin-top:4px;">Meta: <strong style="color:${colors[2]||colors[1]};">${esc(meta.raw)}</strong> · ${esc(meta.label)}</div>` : ''}
+      </td>
+    </tr></table>`,'#fff');
+  }
+
   // Theme por vertical (BT = azul lilás, LM = navy + verde)
   function cbirTheme(ed){
     if ((ed && ed.vertical) === 'bt') {
@@ -14141,8 +14255,13 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
     if (!c || !c.texto) return '';
     const ACC = accent || '#5BBA47';
     const initials = esc((c.autor||'CB').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase() || 'CB');
+    // Avatar: foto se tiver, senão iniciais
+    const foto = (c.foto_url || c.foto || '').trim();
+    const avatar = foto
+      ? `<img src="${esc(foto)}" alt="${esc(c.autor||'')}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid ${ACC};background:#EAE8F5;">`
+      : `<div style="width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#201747,#2E2560);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Montserrat,sans-serif;font-weight:800;font-size:15px;flex-shrink:0;letter-spacing:.5px;border:2px solid ${ACC};">${initials}</div>`;
     return `<div style="display:flex;gap:14px;align-items:flex-start;${inline?'margin:18px 0;background:#F7F8FA;':'margin-bottom:14px;background:#fff;'}padding:16px 18px;border-radius:12px;border-left:4px solid ${ACC};">
-      <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#201747,#2E2560);color:#fff;display:flex;align-items:center;justify-content:center;font-family:Montserrat,sans-serif;font-weight:800;font-size:14px;flex-shrink:0;letter-spacing:.5px;">${initials}</div>
+      ${avatar}
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
           <div style="font-family:Montserrat,sans-serif;font-weight:800;font-size:12.5px;color:#201747;">${esc(c.autor||'Costa Brava')}</div>
@@ -14221,7 +14340,12 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
       const img = imgSrc ? `<div style="margin:4px 0 18px;border-radius:14px;overflow:hidden;line-height:0;position:relative;">
         <img src="${esc(imgSrc)}" alt="" style="display:block;width:100%;height:auto;max-height:300px;object-fit:cover;"/>
       </div>` : '';
-      const fonte = m.fonte ? `<div style="font-family:Montserrat,sans-serif;font-size:11px;color:#9CA3AF;margin-top:14px;letter-spacing:.02em;">Fonte: <span style="color:#5B6478;font-weight:600;">${esc(m.fonte)}</span>${m.url?` · <a href="${esc(m.url)}" style="color:${ACC};text-decoration:none;font-weight:700;">ver matéria →</a>`:''}</div>` : '';
+      // Fonte: se tiver URL, o próprio nome da fonte vira hyperlink
+      const fonteNome = esc(m.fonte||'');
+      const fonteLinkada = m.url
+        ? `<a href="${esc(m.url)}" target="_blank" rel="noopener" style="color:${ACC};text-decoration:underline;text-underline-offset:2px;font-weight:700;">${fonteNome}</a>`
+        : `<span style="color:#5B6478;font-weight:600;">${fonteNome}</span>`;
+      const fonte = m.fonte ? `<div style="font-family:Montserrat,sans-serif;font-size:11px;color:#9CA3AF;margin-top:14px;letter-spacing:.02em;">Fonte: ${fonteLinkada}${m.url?` <span style="color:${ACC};font-weight:700;">↗</span>`:''}</div>` : '';
       const txt = esc(m.texto||'').split(/\n+/).map(p=>p.trim()).filter(Boolean).map(p=>`<p style="margin:0 0 12px;">${p}</p>`).join('');
       // Comentário CB inline (se a matéria tiver um)
       const comentarioInline = m.comentario_cb && m.comentario_cb.texto ? comentarioBlock(m.comentario_cb, true, ACC) : '';

@@ -5,6 +5,17 @@ Entradas mais recentes no topo.
 
 ---
 
+## 2026-10-28
+
+- **Insights & Reviews · Fonte linkada** — Nome da fonte em cada matéria agora é hyperlink direto para a URL original (abre em nova aba), com ícone ↗ ao lado. Edições antigas passam a exibir o link automaticamente ao serem reabertas, desde que a matéria tenha o campo URL preenchido. Vale para BT e LM.
+- **Insights & Reviews · Foto do comentarista** — `comentario_cb` passou a aceitar `foto_url`. Avatar com foto circular (borda na cor da vertical) quando disponível, iniciais quando não. Editor da matéria tem campo URL + botão de upload (bucket `cb-diario-imgs`). Vale para BT e LM.
+- **Insights & Reviews · Novos gráficos** — Adicionados 3 formatos: `timeline` (evolução temporal), `pictograma` (10 figuras humanas para "X em cada 10") e `gauge` (medidor em arco com valor + meta). Total agora: 9 formatos de visualização.
+- **Insights & Reviews · Critério editorial reforçado** — Prompt da Edge Function `insights-ia` atualizado: proíbe repetir o mesmo tipo de gráfico na mesma edição; exige que o gráfico só exista se destacar informação relevante e facilitar a leitura (nunca por preencher espaço); guia detalhado de uso por caso. **Requer redeploy da Edge Function no Supabase.**
+
+## 2026-10-27
+
+- **Diário · Imagens** — Correção definitiva do vazamento de zoom sobre o texto na pré-visualização. Toda imagem agora é renderizada dentro de um wrapper `.nl-img-frame` com overflow:hidden e dimensões 100%, garantindo que o `transform:scale` do zoom fique sempre contido no quadro, independentemente de CSS externo. Containers `.nl-media` recebem aspect-ratio fixo por layout.
+
 ## 2026-10-24
 
 - **Diário · Imagens** — Adicionado controle de **zoom** (1×–3×) no modal de ajuste de foco das imagens. Pré-visualizações em tempo real nas 3 proporções (hero, quadrado, retrato). Modelo de dados agora aceita `{url, pos, zoom}` por imagem — totalmente retrocompatível com strings.
