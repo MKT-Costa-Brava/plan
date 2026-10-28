@@ -7,6 +7,7 @@ Entradas mais recentes no topo.
 
 ## 2026-10-28
 
+- **Hotfix · Insights & Reviews** — Correção de bug crítico no editor de matérias: variável `idx` indefinida (deveria ser `i`) no botão de upload de foto do comentarista estava lançando `ReferenceError`, impedindo gerar edições novas e editar as existentes. Fix mínimo (1 caractere).
 - **Insights & Reviews · Fonte linkada** — Nome da fonte em cada matéria agora é hyperlink direto para a URL original (abre em nova aba), com ícone ↗ ao lado. Edições antigas passam a exibir o link automaticamente ao serem reabertas, desde que a matéria tenha o campo URL preenchido. Vale para BT e LM.
 - **Insights & Reviews · Foto do comentarista** — `comentario_cb` passou a aceitar `foto_url`. Avatar com foto circular (borda na cor da vertical) quando disponível, iniciais quando não. Editor da matéria tem campo URL + botão de upload (bucket `cb-diario-imgs`). Vale para BT e LM.
 - **Insights & Reviews · Novos gráficos** — Adicionados 3 formatos: `timeline` (evolução temporal), `pictograma` (10 figuras humanas para "X em cada 10") e `gauge` (medidor em arco com valor + meta). Total agora: 9 formatos de visualização.

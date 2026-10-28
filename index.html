@@ -13772,7 +13772,7 @@ Edge Function 'insights-ia' — ver arquivo insights-ia_index.ts no mesmo diret�
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
             ${m.comentario_cb?.foto_url ? `<img src="${esc(m.comentario_cb.foto_url)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #5BBA47;flex-shrink:0;" alt=""/>` : `<div style="width:38px;height:38px;border-radius:50%;background:#EAE8F5;color:#201747;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;">👤</div>`}
             <input data-cci="foto_url" value="${esc(m.comentario_cb?.foto_url||'')}" placeholder="URL da foto do(a) comentarista (opcional)" style="flex:1;"/>
-            <button type="button" data-cci-upload="${idx}" style="padding:7px 11px;background:#F3EEF9;color:#5A4570;border:1px solid #E1D5EC;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;">📷 Upload</button>
+            <button type="button" data-cci-upload="${i}" style="padding:7px 11px;background:#F3EEF9;color:#5A4570;border:1px solid #E1D5EC;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;">📷 Upload</button>
           </div>
           <textarea data-cci="texto" style="margin-top:8px;" rows="2" placeholder="Deixe em branco para não exibir">${esc(m.comentario_cb?.texto||'')}</textarea>
         </div>
