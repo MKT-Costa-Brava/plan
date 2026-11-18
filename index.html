@@ -7878,7 +7878,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       { view:'base-negocio', lbl:'Base de Negócio', icon:'M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6' },
       { view:'segmentos',    lbl:'Segmentos',       icon:'M12 2v20M2 12h20' },
       { view:'personas',     lbl:'Personas',        icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
-      { view:'icps',         lbl:'ICPs (matriz)',   icon:'M3 3h18v18H3zM3 9h18M9 3v18' },
+      { view:'esteiras',     lbl:'Esteira Comercial', icon:'M3 3h18v18H3zM8 3v18M16 3v18' },
     ], actions:false },
     conteudos: { views:[
       { view:'diario', lbl:'Diário de Bordo', icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
@@ -8137,7 +8137,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         { view:'base-negocio', lbl:'Base de Negócio', icon:'M3 21h18M5 21V7l7-4 7 4v14' },
         { view:'segmentos',    lbl:'Segmentos',       icon:'M12 2v20M2 12h20' },
         { view:'personas',     lbl:'Personas',        icon:'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
-        { view:'icps',         lbl:'ICPs (matriz)',   icon:'M3 3h18v18H3zM3 9h18M9 3v18' },
+        { view:'esteiras',     lbl:'Esteira Comercial', icon:'M3 3h18v18H3zM8 3v18M16 3v18' },
       ],
       conteudos: [
         { view:'soon:diario', lbl:'Diário de Bordo', soon:true, icon:'M4 4h16v16H4zM8 8h8M8 12h8M8 16h5' },
@@ -8818,7 +8818,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // ═════════ Cria as 4 view-pages e registra em VIEWS ═════════
   function ensureViews(){
     const app = document.getElementById('app');
-    ['base-negocio','segmentos','personas','icps','nutricao','diario','diario-editor'].forEach(v => {
+    ['base-negocio','segmentos','personas','icps','esteiras','nutricao','diario','diario-editor'].forEach(v => {
       const id = 'v' + v.replace(/[^a-z]/gi,'').replace(/^./, c=>c.toUpperCase());
       if (document.getElementById(id)) return;
       const el = document.createElement('div');
@@ -8830,8 +8830,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     const orig = window.setView;
     if (orig && !orig.__cbOndaK){
       const wrap = function(v){
+        // alias legado: icps agora é esteiras
+        if (v === 'icps') v = 'esteiras';
         // se é uma view nova, renderiza
-        if (['base-negocio','segmentos','personas','icps','nutricao','diario','diario-editor'].includes(v)){
+        if (['base-negocio','segmentos','personas','esteiras','nutricao','diario','diario-editor'].includes(v)){
           document.querySelectorAll('#app > .view-page').forEach(el=>el.classList.remove('active'));
           const id = 'v' + v.replace(/[^a-z]/gi,'').replace(/^./,c=>c.toUpperCase());
           document.getElementById(id)?.classList.add('active');
@@ -8840,7 +8842,7 @@ document.addEventListener('DOMContentLoaded',()=>{
           if (v==='base-negocio') renderBaseNegocio();
           else if (v==='segmentos') renderSegmentos();
           else if (v==='personas') renderPersonas();
-          else if (v==='icps') renderICPs();
+          else if (v==='esteiras') renderEsteiras();
           else if (v==='nutricao') renderNutricao();
           else if (v==='diario') renderDiario();
           else if (v==='diario-editor') { /* já renderizado pelo caller */ }
@@ -9198,6 +9200,458 @@ document.addEventListener('DOMContentLoaded',()=>{
           <td>${cs.length} <span style="color:#9CA3AF;font-size:11px;">(${cs.filter(x=>x.status==='approved').length} aprovados)</span></td>
         </tr>`;
       }).join('')}</tbody></table></div>`;
+  }
+
+  // ═════════ Esteira Comercial — Framework de atendimento por BU ═════════
+  // Tabelas: cb_framework_esteiras / _stakeholders / _scorecard / _materiais
+  // Reusa cb_segments e cb_personas.
+
+  const ESTEIRAS_BUS = [
+    { k:'all',   lbl:'Todas as BUs' },
+    { k:'bt',    lbl:'Business Travel' },
+    { k:'lm',    lbl:'Live Marketing' },
+    { k:'you',   lbl:'YOU · Viagens a Lazer' },
+    { k:'yougo', lbl:'YouGo · Vale-viagem' },
+  ];
+  const ESTEIRAS_PAPEIS = [
+    { k:'decisor',       lbl:'Decisor' },
+    { k:'co_decisor',    lbl:'Co-decisor' },
+    { k:'influenciador', lbl:'Influenciador' },
+    { k:'usuario',       lbl:'Usuário' },
+    { k:'patrocinador',  lbl:'Patrocinador' },
+  ];
+  // Rótulos específicos para YOU (B2C boutique)
+  const ESTEIRAS_LABELS = {
+    bt:    { c:'PERFIL DE CONSUMO', p:'PRODUTO',     s:'STAKEHOLDERS',       pos:'POSICIONAMENTO',      sc:'SCORECARD ATENDIMENTO',   filtro:'Segmento' },
+    lm:    { c:'PERFIL DE CONSUMO', p:'PRODUTO',     s:'STAKEHOLDERS',       pos:'POSICIONAMENTO',      sc:'SCORECARD ATENDIMENTO',   filtro:'Segmento' },
+    you:   { c:'PERFIL DO VIAJANTE',p:'EXPERIÊNCIA', s:'CÍRCULO DE DECISÃO', pos:'NARRATIVA DE DESEJO', sc:'SCORECARD DE CONCIERGE',  filtro:'Tipo de jornada' },
+    yougo: { c:'PERFIL DE CONSUMO', p:'PRODUTO',     s:'STAKEHOLDERS',       pos:'POSICIONAMENTO',      sc:'SCORECARD ATENDIMENTO',   filtro:'Segmento' },
+  };
+
+  // Injeta CSS da view (uma vez)
+  if (!document.getElementById('cb-esteiras-style')) {
+    const st = document.createElement('style'); st.id = 'cb-esteiras-style';
+    st.textContent = `
+      .esteira-wrap{max-width:1500px;margin:0 auto;padding:22px 24px;}
+      .esteira-head{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:18px 22px;margin-bottom:18px;}
+      .esteira-head h2{font-size:19px;color:#201747;font-weight:800;margin:0 0 4px;}
+      .esteira-head .sub{font-size:12.5px;color:#6B7280;margin-bottom:14px;}
+      .esteira-head .filters{display:flex;gap:12px;align-items:center;padding-top:12px;border-top:1px solid #E5E7EB;}
+      .esteira-head input{padding:8px 14px;border:1px solid #E5E7EB;border-radius:8px;font-size:12px;min-width:240px;font-family:inherit;}
+      .esteira-head .spacer{flex:1;}
+      .esteira-btn-primary{padding:9px 16px;background:#5BBA47;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;}
+      .esteira-btn-primary:hover{background:#4FA33B;}
+      .esteira-btn-ghost{padding:7px 12px;background:#fff;border:1px solid #E5E7EB;color:#201747;border-radius:7px;font-weight:600;font-size:11.5px;cursor:pointer;font-family:inherit;}
+      .esteira-btn-ghost:hover{background:#F7F8FA;}
+
+      .esteira-tabs{display:flex;gap:4px;background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:4px;margin-bottom:16px;}
+      .esteira-tabs button{flex:1;background:transparent;border:none;padding:10px 16px;font-family:inherit;font-weight:700;font-size:12.5px;color:#6B7280;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;}
+      .esteira-tabs button:hover{background:#F7F8FA;color:#201747;}
+      .esteira-tabs button.active{background:#201747;color:#fff;}
+      .esteira-tabs button .cb-badge{font-size:10.5px;background:#F7F8FA;color:#6B7280;padding:2px 8px;border-radius:99px;font-weight:800;}
+      .esteira-tabs button.active .cb-badge{background:rgba(255,255,255,.18);color:#fff;}
+
+      .esteira-lane{background:#fff;border:1px solid #E5E7EB;border-left:3px solid #201747;border-radius:14px;margin-bottom:16px;overflow:hidden;}
+      .esteira-lane-head{display:flex;align-items:center;gap:12px;padding:12px 18px;background:linear-gradient(90deg,#FAFBFC,transparent);border-bottom:1px solid #E5E7EB;}
+      .esteira-num{width:28px;height:28px;background:#201747;color:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0;}
+      .esteira-lane-title{font-weight:800;color:#201747;font-size:13px;}
+      .esteira-lane-sub{font-size:11px;color:#6B7280;margin-top:1px;}
+      .esteira-lane-actions{margin-left:auto;display:flex;gap:2px;}
+      .esteira-lane-actions button{background:transparent;border:none;color:#6B7280;padding:5px 8px;border-radius:5px;font-size:13px;cursor:pointer;}
+      .esteira-lane-actions button:hover{background:#F0F3F7;color:#201747;}
+
+      .esteira-steps{display:grid;grid-template-columns:1.1fr 20px .9fr 20px 1fr 20px 1.1fr 20px 1fr;gap:0;padding:18px 16px 20px;align-items:stretch;}
+      @media (max-width:1100px){.esteira-steps{grid-template-columns:1fr;gap:12px;} .esteira-connector{display:none;}}
+      .esteira-step{background:#FAFBFC;border:1.5px solid #E5E7EB;border-top:2px solid #201747;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-height:220px;}
+      .esteira-step:hover{border-color:#5BBA47;}
+      .esteira-step-head{display:flex;align-items:center;gap:8px;}
+      .esteira-step-ic{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:#fff;border:1.5px solid #E5E7EB;color:#201747;flex-shrink:0;}
+      .esteira-step-ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+      .esteira-step-kind{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#6B7280;}
+      .esteira-step-title{font-weight:800;color:#201747;font-size:13.5px;line-height:1.3;margin-top:2px;}
+      .esteira-step-body{font-size:12px;color:#4B5563;line-height:1.5;flex:1;}
+      .esteira-step .tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;background:#fff;border:1px solid #E5E7EB;color:#4B5563;margin-right:3px;margin-bottom:2px;}
+      .esteira-step-foot{display:flex;gap:6px;align-items:center;padding-top:8px;border-top:1px dashed #DDE1E7;}
+      .esteira-step-foot button{background:transparent;border:1px solid #E5E7EB;border-radius:6px;padding:5px 9px;font-size:10.5px;font-weight:700;color:#201747;cursor:pointer;font-family:inherit;}
+      .esteira-step-foot button:hover{background:#EAE8F5;}
+      .esteira-step-foot .count{font-size:10.5px;color:#6B7280;font-weight:600;margin-left:auto;}
+
+      .esteira-connector{display:flex;align-items:center;justify-content:center;}
+      .esteira-connector svg{width:24px;height:24px;}
+      .esteira-connector svg path{stroke:#5BBA47;stroke-width:2;fill:none;}
+      .esteira-connector svg polygon{fill:#5BBA47;}
+
+      .esteira-comport{font-size:10.5px;color:#6B7280;padding:6px 8px;background:#FAFBFC;border:1px solid #E5E7EB;border-radius:5px;line-height:1.4;}
+      .esteira-comport b{color:#201747;}
+
+      .esteira-seg-filter{display:flex;align-items:center;gap:6px;font-size:10px;color:#6B7280;background:#F0F3F7;padding:4px 8px;border-radius:5px;margin:2px 0 4px;}
+      .esteira-seg-filter span{font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+      .esteira-seg-filter select{border:none;background:transparent;font-size:11px;font-weight:700;color:#201747;padding:0;cursor:pointer;font-family:inherit;}
+
+      .esteira-stake{display:flex;flex-direction:column;gap:3px;padding:7px 9px;background:#fff;border:1px solid #E5E7EB;border-radius:7px;margin-bottom:6px;font-size:11px;}
+      .esteira-stake-top{display:flex;align-items:center;gap:7px;}
+      .esteira-stake .av{width:22px;height:22px;border-radius:50%;background:#201747;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;}
+      .esteira-stake .role{flex:1;line-height:1.2;}
+      .esteira-stake .role b{color:#201747;font-weight:800;}
+      .esteira-stake .role span{color:#6B7280;font-size:10px;}
+      .esteira-stake .papel{display:inline-block;padding:1px 7px;border-radius:99px;font-size:8.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#fff;border:1px solid #E5E7EB;color:#6B7280;}
+      .esteira-stake .papel.decisor{color:#201747;border-color:#201747;}
+      .esteira-stake-focus{font-size:10.5px;color:#4B5563;line-height:1.4;padding:5px 8px;background:#FAFBFC;border-left:2px solid #201747;border-radius:3px;}
+      .esteira-stake-focus b{color:#201747;}
+
+      .esteira-score{display:flex;align-items:flex-start;gap:7px;padding:4px 0;font-size:11.5px;color:#1F2937;line-height:1.4;}
+      .esteira-score .bullet{width:16px;height:16px;background:#fff;border:1.5px solid #201747;color:#201747;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;margin-top:1px;}
+
+      .esteira-attach{display:flex;align-items:center;gap:7px;padding:5px 8px;background:#FAFBFC;border:1px solid #E5E7EB;border-radius:6px;font-size:11px;color:#1F2937;margin-bottom:4px;}
+      .esteira-attach .ic{width:20px;height:20px;border-radius:4px;background:#fff;border:1px solid #E5E7EB;color:#4B5563;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+      .esteira-attach .ic svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+      .esteira-attach .fname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .esteira-attach .fsize{font-size:9.5px;color:#9CA3AF;}
+      .esteira-attach .del{background:transparent;border:none;color:#9CA3AF;cursor:pointer;font-size:12px;padding:0 4px;}
+      .esteira-add-attach{border:1px dashed #E5E7EB;padding:5px 8px;border-radius:6px;font-size:10.5px;color:#6B7280;text-align:center;cursor:pointer;background:transparent;width:100%;font-family:inherit;}
+      .esteira-add-attach:hover{border-color:#5BBA47;color:#5BBA47;}
+
+      .esteira-empty{background:#fff;border:2px dashed #CBD5E1;border-radius:14px;padding:50px 30px;text-align:center;color:#6B7280;}
+      .esteira-empty h3{color:#201747;font-size:16px;margin-bottom:6px;}
+      .esteira-empty p{font-size:12.5px;margin-bottom:16px;}
+    `;
+    document.head.appendChild(st);
+  }
+
+  // SVG icons
+  const CB_ICONS = {
+    perfil:  '<svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-6"/></svg>',
+    produto: '<svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+    stake:   '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    pos:     '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+    score:   '<svg viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6"/></svg>',
+    file:    '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    arrow:   '<svg viewBox="0 0 24 24"><path d="M2 12 L20 12"/><polygon points="20,8 24,12 20,16"/></svg>',
+  };
+
+  let _esteirasBu = 'all';
+  let _esteirasCache = { esteiras:[], stakes:{}, scores:{}, materiais:{}, segments:[], personas:[] };
+
+  async function renderEsteiras(){
+    const v = document.getElementById('vEsteiras'); if (!v) return;
+    v.innerHTML = `<div class="esteira-wrap">
+      <div class="esteira-head">
+        <h2>Esteira Comercial</h2>
+        <div class="sub">Da empresa-cliente ao scorecard de atendimento — guia operacional por BU.</div>
+        <div class="filters">
+          <input id="esteira-busca" placeholder="Buscar perfil, produto, stakeholder...">
+          <div class="spacer"></div>
+          <button class="esteira-btn-primary" id="esteira-nova">+ Nova esteira</button>
+        </div>
+      </div>
+      <div class="esteira-tabs" id="esteira-tabs">
+        ${ESTEIRAS_BUS.map(b => `<button data-bu="${b.k}" class="${b.k===_esteirasBu?'active':''}"><span>${esc(b.lbl)}</span><span class="cb-badge" data-cnt="${b.k}">0</span></button>`).join('')}
+      </div>
+      <div id="esteira-list"></div>
+    </div>`;
+
+    document.querySelectorAll('#esteira-tabs button').forEach(b => b.onclick = () => {
+      _esteirasBu = b.dataset.bu;
+      document.querySelectorAll('#esteira-tabs button').forEach(x => x.classList.toggle('active', x===b));
+      renderEsteirasList();
+    });
+    document.getElementById('esteira-nova').onclick = () => esteiraNova();
+    document.getElementById('esteira-busca').oninput = () => renderEsteirasList();
+
+    await loadEsteirasData();
+    renderEsteirasList();
+  }
+  window.renderEsteiras = renderEsteiras;
+
+  async function loadEsteirasData(){
+    const [{data:est}, {data:stk}, {data:sco}, {data:mat}, {data:segs}, {data:pers}] = await Promise.all([
+      sb.from('cb_framework_esteiras').select('*').eq('ativo', true).order('bu').order('ordem'),
+      sb.from('cb_framework_stakeholders').select('*').order('ordem'),
+      sb.from('cb_framework_scorecard').select('*').order('numero'),
+      sb.from('cb_framework_materiais').select('*').order('ordem'),
+      sb.from('cb_segments').select('id,nome').order('nome'),
+      sb.from('cb_personas').select('id,nome,cargo').order('nome'),
+    ]);
+    _esteirasCache.esteiras = est || [];
+    _esteirasCache.stakes = {};   (stk||[]).forEach(s => (_esteirasCache.stakes[s.esteira_id]   = _esteirasCache.stakes[s.esteira_id]   || []).push(s));
+    _esteirasCache.scores = {};   (sco||[]).forEach(s => (_esteirasCache.scores[s.esteira_id]   = _esteirasCache.scores[s.esteira_id]   || []).push(s));
+    _esteirasCache.materiais = {};(mat||[]).forEach(m => (_esteirasCache.materiais[m.esteira_id]= _esteirasCache.materiais[m.esteira_id]|| []).push(m));
+    _esteirasCache.segments = segs || [];
+    _esteirasCache.personas = pers || [];
+
+    // Atualiza badges
+    const total = {all:_esteirasCache.esteiras.length, bt:0, lm:0, you:0, yougo:0};
+    _esteirasCache.esteiras.forEach(e => { total[e.bu] = (total[e.bu]||0) + 1; });
+    Object.keys(total).forEach(k => { const el = document.querySelector(`[data-cnt="${k}"]`); if (el) el.textContent = total[k]; });
+  }
+
+  function renderEsteirasList(){
+    const holder = document.getElementById('esteira-list'); if (!holder) return;
+    const bu = _esteirasBu;
+    const q = (document.getElementById('esteira-busca')?.value||'').toLowerCase().trim();
+    let list = _esteirasCache.esteiras;
+    if (bu !== 'all') list = list.filter(e => e.bu === bu);
+    if (q) list = list.filter(e => JSON.stringify(e).toLowerCase().includes(q));
+
+    if (!list.length) {
+      holder.innerHTML = `<div class="esteira-empty">
+        <h3>Sem esteiras ${bu!=='all' ? 'nesta BU' : 'cadastradas'}</h3>
+        <p>Crie a primeira esteira para montar o guia de atendimento.</p>
+        <button class="esteira-btn-primary" onclick="esteiraNova()">+ Nova esteira</button>
+      </div>`;
+      return;
+    }
+    holder.innerHTML = list.map((e,i) => renderEsteiraLane(e, i+1)).join('');
+    // bind handlers
+    holder.querySelectorAll('[data-del-esteira]').forEach(b => b.onclick = async () => {
+      if (!confirm('Excluir esta esteira? Stakeholders, scorecard e materiais serão apagados junto.')) return;
+      await sb.from('cb_framework_esteiras').delete().eq('id', b.dataset.delEsteira);
+      await loadEsteirasData(); renderEsteirasList(); toast('Esteira excluída');
+    });
+    holder.querySelectorAll('[data-edit-esteira]').forEach(b => b.onclick = () => esteiraEditarCampo(b.dataset.editEsteira, b.dataset.campo, b.dataset.label));
+    holder.querySelectorAll('[data-edit-stakeholders]').forEach(b => b.onclick = () => esteiraEditarStakeholders(b.dataset.editStakeholders));
+    holder.querySelectorAll('[data-edit-scorecard]').forEach(b => b.onclick = () => esteiraEditarScorecard(b.dataset.editScorecard));
+    holder.querySelectorAll('[data-add-material]').forEach(b => b.onclick = () => esteiraAnexarMaterial(b.dataset.addMaterial));
+    holder.querySelectorAll('[data-del-material]').forEach(b => b.onclick = async () => {
+      if (!confirm('Remover este material?')) return;
+      await sb.from('cb_framework_materiais').delete().eq('id', b.dataset.delMaterial);
+      await loadEsteirasData(); renderEsteirasList();
+    });
+    holder.querySelectorAll('[data-change-seg]').forEach(s => s.onchange = async () => {
+      await sb.from('cb_framework_esteiras').update({ segmento_id: s.value || null }).eq('id', s.dataset.changeSeg);
+      await loadEsteirasData();
+    });
+  }
+
+  function renderEsteiraLane(e, num){
+    const L = ESTEIRAS_LABELS[e.bu] || ESTEIRAS_LABELS.bt;
+    const stakes = _esteirasCache.stakes[e.id] || [];
+    const scores = _esteirasCache.scores[e.id] || [];
+    const mats   = _esteirasCache.materiais[e.id] || [];
+    const seg    = _esteirasCache.segments.find(s => s.id === e.segmento_id);
+    const buLbl = (ESTEIRAS_BUS.find(b=>b.k===e.bu)||{}).lbl || e.bu.toUpperCase();
+
+    const tagsHtml = (arr) => (arr||[]).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+    const connector = `<div class="esteira-connector">${CB_ICONS.arrow}</div>`;
+
+    // Filtro do bloco 2
+    let segFilterHtml = '';
+    if (e.bu === 'you') {
+      const jornadas = ['Celebração','Romance','Família','Aventura','Slow travel','Bleisure premium'];
+      segFilterHtml = `<div class="esteira-seg-filter"><span>${esc(L.filtro)}:</span>
+        <select disabled><option>${esc(e.tipo_jornada || '—')}</option></select></div>`;
+    } else {
+      segFilterHtml = `<div class="esteira-seg-filter"><span>${esc(L.filtro)}:</span>
+        <select data-change-seg="${e.id}">
+          <option value="">— Todos —</option>
+          ${_esteirasCache.segments.map(s => `<option value="${s.id}"${e.segmento_id===s.id?' selected':''}>${esc(s.nome)}</option>`).join('')}
+        </select></div>`;
+    }
+
+    const stakesHtml = stakes.length ? stakes.map(s => {
+      const p = _esteirasCache.personas.find(x => x.id === s.persona_id);
+      const nome = p?.nome || s.label_custom || '—';
+      const cargo = p?.cargo || '';
+      const papelLbl = (ESTEIRAS_PAPEIS.find(x => x.k === s.papel)||{}).lbl || s.papel || '';
+      const ini = (nome||'').split(/\s+/).map(x=>x[0]||'').slice(0,2).join('').toUpperCase();
+      return `<div class="esteira-stake">
+        <div class="esteira-stake-top">
+          <div class="av">${esc(ini)}</div>
+          <div class="role"><b>${esc(nome)}</b>${cargo?`<br><span>${esc(cargo)}</span>`:''}</div>
+          <span class="papel ${s.papel==='decisor'?'decisor':''}">${esc(papelLbl)}</span>
+        </div>
+        ${s.olhar?`<div class="esteira-stake-focus"><b>Olhar:</b> ${esc(s.olhar)}</div>`:''}
+      </div>`;
+    }).join('') : '<div style="font-size:11px;color:#9CA3AF;padding:8px;text-align:center;">Nenhum stakeholder definido</div>';
+
+    const scoresHtml = scores.length ? scores.map(s =>
+      `<div class="esteira-score"><span class="bullet">${s.numero}</span>${esc(s.pergunta)}</div>`
+    ).join('') : '<div style="font-size:11px;color:#9CA3AF;padding:8px;text-align:center;">Nenhum critério definido</div>';
+
+    const matsHtml = mats.map(m => `<div class="esteira-attach">
+      <span class="ic">${CB_ICONS.file}</span>
+      <span class="fname">${m.url ? `<a href="${esc(m.url)}" target="_blank" style="color:inherit;text-decoration:none;">${esc(m.nome)}</a>` : esc(m.nome)}</span>
+      ${m.tamanho_bytes ? `<span class="fsize">${(m.tamanho_bytes/1024/1024).toFixed(1)} MB</span>` : ''}
+      <button class="del" data-del-material="${m.id}" title="Remover">×</button>
+    </div>`).join('');
+
+    return `<div class="esteira-lane" data-bu="${e.bu}">
+      <div class="esteira-lane-head">
+        <div class="esteira-num">${String(num).padStart(2,'0')}</div>
+        <div>
+          <div class="esteira-lane-title">${esc(e.titulo||'(sem título)')}</div>
+          <div class="esteira-lane-sub">${esc(buLbl)}${e.subtitulo?` · ${esc(e.subtitulo)}`:''}</div>
+        </div>
+        <div class="esteira-lane-actions">
+          <button data-edit-esteira="${e.id}" data-campo="titulo" data-label="Título da esteira" title="Editar título">✎</button>
+          <button data-del-esteira="${e.id}" title="Excluir">🗑</button>
+        </div>
+      </div>
+      <div class="esteira-steps">
+        <!-- 1: PERFIL -->
+        <div class="esteira-step">
+          <div class="esteira-step-head"><div class="esteira-step-ic">${CB_ICONS.perfil}</div><div class="esteira-step-kind">${esc(L.c)}</div></div>
+          <div class="esteira-step-title">${esc(e.perfil_titulo||'(sem título)')}</div>
+          <div class="esteira-step-body">${esc(e.perfil_descricao||'')}</div>
+          <div>${tagsHtml(e.perfil_tags)}</div>
+          ${e.perfil_comportamento?`<div class="esteira-comport"><b>Comportamento:</b> ${esc(e.perfil_comportamento)}</div>`:''}
+          <div class="esteira-step-foot">
+            <button data-edit-esteira="${e.id}" data-campo="perfil_titulo" data-label="Título do perfil">Título</button>
+            <button data-edit-esteira="${e.id}" data-campo="perfil_descricao" data-label="Descrição do perfil">Descrição</button>
+            <button data-edit-esteira="${e.id}" data-campo="perfil_comportamento" data-label="Comportamento (volume, frequência)">Comportamento</button>
+          </div>
+        </div>
+        ${connector}
+        <!-- 2: PRODUTO -->
+        <div class="esteira-step">
+          <div class="esteira-step-head"><div class="esteira-step-ic">${CB_ICONS.produto}</div><div class="esteira-step-kind">${esc(L.p)}</div></div>
+          ${segFilterHtml}
+          <div class="esteira-step-title">${esc(e.produto_titulo||'(sem produto)')}</div>
+          <div class="esteira-step-body">${esc(e.produto_descricao||'')}</div>
+          <div>${tagsHtml(e.produto_tags)}</div>
+          <div class="esteira-step-foot">
+            <button data-edit-esteira="${e.id}" data-campo="produto_titulo" data-label="Produto">Produto</button>
+            <button data-edit-esteira="${e.id}" data-campo="produto_descricao" data-label="Descrição do produto">Descrição</button>
+          </div>
+        </div>
+        ${connector}
+        <!-- 3: STAKEHOLDERS -->
+        <div class="esteira-step">
+          <div class="esteira-step-head"><div class="esteira-step-ic">${CB_ICONS.stake}</div><div class="esteira-step-kind">${esc(L.s)}</div></div>
+          <div class="esteira-step-title">Quem está envolvido · o que importa</div>
+          <div style="flex:1;overflow-y:auto;">${stakesHtml}</div>
+          <div class="esteira-step-foot">
+            <button data-edit-stakeholders="${e.id}">Gerenciar</button>
+            <span class="count">${stakes.length} perfil(is)</span>
+          </div>
+        </div>
+        ${connector}
+        <!-- 4: POSICIONAMENTO -->
+        <div class="esteira-step">
+          <div class="esteira-step-head"><div class="esteira-step-ic">${CB_ICONS.pos}</div><div class="esteira-step-kind">${esc(L.pos)}</div></div>
+          <div class="esteira-step-title">${esc(e.posicionamento_titulo||'(sem título)')}</div>
+          <div class="esteira-step-body" style="flex:0;">${esc(e.posicionamento_texto||'')}</div>
+          <div style="margin-top:4px;">${matsHtml}
+            <button class="esteira-add-attach" data-add-material="${e.id}">+ Anexar material</button>
+          </div>
+          <div class="esteira-step-foot">
+            <button data-edit-esteira="${e.id}" data-campo="posicionamento_titulo" data-label="Título do posicionamento">Título</button>
+            <button data-edit-esteira="${e.id}" data-campo="posicionamento_texto" data-label="Texto do posicionamento">Texto</button>
+            <span class="count">${mats.length} material(is)</span>
+          </div>
+        </div>
+        ${connector}
+        <!-- 5: SCORECARD -->
+        <div class="esteira-step">
+          <div class="esteira-step-head"><div class="esteira-step-ic">${CB_ICONS.score}</div><div class="esteira-step-kind">${esc(L.sc)}</div></div>
+          <div class="esteira-step-title">Como atender · o que captar</div>
+          <div style="flex:1;overflow-y:auto;">${scoresHtml}</div>
+          <div class="esteira-step-foot">
+            <button data-edit-scorecard="${e.id}">Editar scorecard</button>
+            <span class="count">${scores.length} critério(s)</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function esteiraNova(){
+    const bu = _esteirasBu !== 'all' ? _esteirasBu : prompt('BU (bt / lm / you / yougo):');
+    if (!bu || !['bt','lm','you','yougo'].includes(bu)) { if (bu) toast('BU inválida','err'); return; }
+    const titulo = prompt('Título da esteira (ex.: Operação de viagens executivas intensiva):');
+    if (!titulo) return;
+    const { data, error } = await sb.from('cb_framework_esteiras').insert({
+      bu, titulo, ordem: Date.now()
+    }).select().single();
+    if (error) { toast('Erro: '+error.message, 'err'); return; }
+    await loadEsteirasData(); renderEsteirasList();
+    toast('Esteira criada');
+  }
+  window.esteiraNova = esteiraNova;
+
+  async function esteiraEditarCampo(id, campo, label){
+    const atual = _esteirasCache.esteiras.find(e => e.id === id);
+    if (!atual) return;
+    const novo = prompt((label||campo)+':', atual[campo]||'');
+    if (novo === null) return;
+    const { error } = await sb.from('cb_framework_esteiras').update({ [campo]: novo, updated_at: new Date().toISOString() }).eq('id', id);
+    if (error) { toast('Erro: '+error.message,'err'); return; }
+    await loadEsteirasData(); renderEsteirasList();
+  }
+
+  async function esteiraEditarStakeholders(esteiraId){
+    const current = _esteirasCache.stakes[esteiraId] || [];
+    const acao = prompt(`Stakeholders atuais: ${current.length}\n\nDigite:\n- ADD para adicionar\n- DEL para remover o último\n- EDIT para editar o último\n- CANCEL`, 'ADD');
+    if (!acao) return;
+    const a = acao.trim().toUpperCase();
+    if (a === 'ADD') {
+      const personasList = _esteirasCache.personas.map((p,i)=>`${i+1}. ${p.nome}`).join('\n');
+      const idx = prompt(`Escolha a persona:\n${personasList}\n\n(digite o número ou deixe vazio para label custom)`, '');
+      let persona_id = null, label_custom = null;
+      if (idx && _esteirasCache.personas[parseInt(idx)-1]) persona_id = _esteirasCache.personas[parseInt(idx)-1].id;
+      else label_custom = prompt('Nome do stakeholder (label livre):', '');
+      if (!persona_id && !label_custom) return;
+      const papel = prompt('Papel (decisor / co_decisor / influenciador / usuario / patrocinador):', 'decisor');
+      const olhar = prompt('Olhar — o que importa para esse stakeholder:', '');
+      const { error } = await sb.from('cb_framework_stakeholders').insert({
+        esteira_id: esteiraId, persona_id, label_custom, papel, olhar, ordem: Date.now()
+      });
+      if (error) { toast('Erro: '+error.message,'err'); return; }
+    } else if (a === 'DEL' && current.length) {
+      await sb.from('cb_framework_stakeholders').delete().eq('id', current[current.length-1].id);
+    } else if (a === 'EDIT' && current.length) {
+      const last = current[current.length-1];
+      const olhar = prompt('Novo olhar para este stakeholder:', last.olhar||'');
+      if (olhar !== null) await sb.from('cb_framework_stakeholders').update({ olhar }).eq('id', last.id);
+    } else return;
+    await loadEsteirasData(); renderEsteirasList();
+  }
+
+  async function esteiraEditarScorecard(esteiraId){
+    const current = _esteirasCache.scores[esteiraId] || [];
+    const txt = current.map(s => `${s.numero}. ${s.pergunta}`).join('\n') || '(vazio)';
+    const novo = prompt(`Scorecard atual:\n${txt}\n\nDigite TODAS as perguntas, uma por linha (sem numerar). Vai substituir o atual.`, current.map(s=>s.pergunta).join('\n'));
+    if (novo === null) return;
+    const linhas = novo.split('\n').map(l=>l.trim()).filter(Boolean);
+    await sb.from('cb_framework_scorecard').delete().eq('esteira_id', esteiraId);
+    if (linhas.length) {
+      const rows = linhas.map((pergunta, i) => ({ esteira_id: esteiraId, numero: i+1, pergunta }));
+      await sb.from('cb_framework_scorecard').insert(rows);
+    }
+    await loadEsteirasData(); renderEsteirasList();
+  }
+
+  async function esteiraAnexarMaterial(esteiraId){
+    const tipo = prompt('Como anexar? Digite URL para link externo OU UPLOAD para enviar arquivo do seu computador', 'URL');
+    if (!tipo) return;
+    if (tipo.trim().toUpperCase() === 'URL') {
+      const url = prompt('Cole o URL do material (Drive, SharePoint, etc.):', '');
+      if (!url) return;
+      const nome = prompt('Nome amigável do material:', url.split('/').pop() || 'Material');
+      if (!nome) return;
+      const { error } = await sb.from('cb_framework_materiais').insert({ esteira_id: esteiraId, nome, url, ordem: Date.now() });
+      if (error) { toast('Erro: '+error.message,'err'); return; }
+    } else {
+      const inp = document.createElement('input'); inp.type = 'file';
+      inp.onchange = async () => {
+        const f = inp.files[0]; if (!f) return;
+        const safe = f.name.replace(/[^\w.\-]/g,'_');
+        const path = `esteiras/${esteiraId}/${Date.now()}_${safe}`;
+        const { error:upErr } = await sb.storage.from('framework-materiais').upload(path, f);
+        if (upErr) { toast('Erro upload: '+upErr.message,'err'); return; }
+        const { data:pub } = sb.storage.from('framework-materiais').getPublicUrl(path);
+        const ext = (f.name.split('.').pop()||'').toLowerCase();
+        const { error:insErr } = await sb.from('cb_framework_materiais').insert({
+          esteira_id: esteiraId, nome: f.name, storage_path: path, url: pub.publicUrl,
+          tamanho_bytes: f.size, tipo_arquivo: ext, ordem: Date.now()
+        });
+        if (insErr) { toast('Erro: '+insErr.message,'err'); return; }
+        await loadEsteirasData(); renderEsteirasList();
+        toast('Material anexado');
+      };
+      inp.click(); return;
+    }
+    await loadEsteirasData(); renderEsteirasList();
   }
 
   // ═════════ Diário de Bordo — construtor de newsletter por categorias ═════════
@@ -11173,7 +11627,36 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
 
   // ═════════ Exclusão com validação por e-mail (K.4) ═════════
   async function requestDeletion(type, id, label){
-    if (!isMaster()){ toast('Somente Master pode excluir.','err'); return; }
+    // Master: exclusão direta com confirmação simples, sem e-mail.
+    // ADM: dispara fluxo de confirmação por e-mail (válido 15 min).
+    // Outros: bloqueado.
+    const role = window._cbRole || 'viewer';
+    if (role !== 'master' && role !== 'adm'){
+      toast('Somente Master e ADM podem excluir.','err'); return;
+    }
+
+    const tableMap = {
+      persona: 'cb_personas',
+      segment: 'cb_segments',
+      esteira: 'cb_framework_esteiras',
+      content: 'cb_contents'
+    };
+
+    if (role === 'master'){
+      if (!confirm(`Excluir "${label}"?\n\nEssa ação não pode ser desfeita.`)) return;
+      const table = tableMap[type];
+      if (!table){ toast('Tipo desconhecido: '+type,'err'); return; }
+      const { error } = await sb.from(table).delete().eq('id', id);
+      if (error){ toast('Erro ao excluir: '+error.message,'err'); return; }
+      toast(`Excluído: ${label}`);
+      // Recarrega a lista correspondente
+      if (type==='persona'  && typeof loadPersonas  === 'function') loadPersonas();
+      if (type==='segment'  && typeof loadSegments  === 'function') loadSegments();
+      if (type==='esteira'  && typeof loadEsteirasData === 'function'){ loadEsteirasData().then(renderEsteirasList); }
+      return;
+    }
+
+    // ADM → fluxo de e-mail
     if (!confirm(`Solicitar exclusão de "${label}"?\n\nUm e-mail de confirmação será enviado para ${email()}.\nO link é válido por 15 minutos.`)) return;
     try {
       const { data, error } = await sb.functions.invoke('deletion-request', {
