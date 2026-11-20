@@ -8630,6 +8630,63 @@ document.addEventListener('DOMContentLoaded',()=>{
   .cbk-nut-item .tt{ font-size:12.5px; color:var(--cb-navy); font-weight:600; line-height:1.3; }
   .cbk-nut-item .dt{ font-size:10.5px; color:#9CA3AF; margin-top:4px; }
 
+  /* ───── Biblioteca visual ───── */
+  .nut-filters-row{ grid-template-columns:repeat(4, 1fr); gap:10px; margin-top:12px; }
+  @media(min-width:1100px){ .nut-filters-row{ grid-template-columns:repeat(8, 1fr); } }
+  .nut-stats{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin:12px 0 6px; }
+  .nut-stat{ background:#fff; border:1px solid #E4E9EF; border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; gap:3px; cursor:pointer; transition:all .12s; }
+  .nut-stat:hover{ border-color:#8CB7C9; }
+  .nut-stat.active{ border-color:var(--cb-navy); background:#F0F6F8; }
+  .nut-stat .n{ font-family:'Montserrat',sans-serif; font-size:20px; font-weight:800; color:var(--cb-navy); letter-spacing:-0.3px; }
+  .nut-stat .l{ font-size:10.5px; font-weight:700; color:#6B7280; letter-spacing:.06em; text-transform:uppercase; }
+  .nut-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 6px; }
+  .nut-chip{ display:inline-flex; align-items:center; gap:5px; background:#EEF5F8; color:var(--cb-navy); font-size:11px; font-weight:600; padding:4px 9px; border-radius:99px; border:1px solid #D7E2E8; }
+  .nut-chip button{ background:none; border:none; cursor:pointer; color:var(--cb-navy); font-size:13px; line-height:1; padding:0; display:flex; align-items:center; }
+  .nut-chip button:hover{ color:#991B1B; }
+  .nut-chip.clear{ background:transparent; border:1px dashed #C6D2E0; color:#6B7280; cursor:pointer; }
+  .nut-chip.clear:hover{ border-color:#991B1B; color:#991B1B; }
+  .nut-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; margin-bottom:24px; }
+  .nut-card{ background:#fff; border:1px solid #E4E9EF; border-radius:12px; padding:14px; cursor:pointer; transition:all .15s; position:relative; overflow:hidden; display:flex; flex-direction:column; min-height:160px; }
+  .nut-card:hover{ border-color:#8CB7C9; transform:translateY(-1px); box-shadow:0 6px 18px rgba(15,32,55,.06); }
+  .nut-card .accent{ position:absolute; left:0; top:0; bottom:0; width:4px; }
+  .nut-card .hd{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .nut-card .ic{ width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .nut-card .ic svg{ width:18px; height:18px; stroke-width:2; }
+  .nut-card .meta-fmt{ font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:#374151; }
+  .nut-card .meta-sub{ font-size:10px; color:#9CA3AF; margin-top:1px; }
+  .nut-card .st-pill{ font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:99px; margin-left:auto; flex-shrink:0; }
+  .nut-card .tt{ font-size:13px; font-weight:700; color:var(--cb-navy); line-height:1.35; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .nut-card .preview{ font-size:11.5px; color:#6B7280; line-height:1.45; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:10px; flex:1; }
+  .nut-card .foot{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:auto; padding-top:8px; border-top:1px solid #F0F3F7; }
+  .nut-card .tag-mini{ font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:5px; background:#EEF5F8; color:var(--cb-navy); text-transform:uppercase; letter-spacing:.05em; }
+  .nut-card .tag-mini.persona{ background:#FEF3C7; color:#92400E; }
+  .nut-card .tag-mini.tema{ background:#F3E8FF; color:#6B21A8; }
+  .nut-card .tag-mini.seg{ background:#DCFCE7; color:#166534; }
+  .nut-card .dt-mini{ font-size:10px; color:#9CA3AF; margin-left:auto; }
+  /* paleta de formatos */
+  .fmt-email-mkt .ic{ background:#DBEAFE; color:#1E40AF; }
+  .fmt-email-mkt .accent{ background:#1E40AF; }
+  .fmt-post-linkedin .ic{ background:#DBEAFE; color:#0369A1; }
+  .fmt-post-linkedin .accent{ background:#0369A1; }
+  .fmt-post-instagram .ic{ background:#FCE7F3; color:#BE185D; }
+  .fmt-post-instagram .accent{ background:#BE185D; }
+  .fmt-artigo-blog .ic{ background:#FEF3C7; color:#92400E; }
+  .fmt-artigo-blog .accent{ background:#92400E; }
+  .fmt-landing-page .ic{ background:#E0E7FF; color:#4338CA; }
+  .fmt-landing-page .accent{ background:#4338CA; }
+  .fmt-default .ic{ background:#F3F4F6; color:#374151; }
+  .fmt-default .accent{ background:#6B7280; }
+  .nut-section-title{ font-family:'Montserrat',sans-serif; font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--cb-navy); margin:18px 0 10px; display:flex; align-items:center; gap:8px; }
+  .nut-section-title .count{ background:#EEF5F8; color:var(--cb-navy); font-size:10.5px; padding:2px 8px; border-radius:99px; }
+  .nut-serie-card{ background:#fff; border:1px solid #E4E9EF; border-radius:11px; padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:all .12s; }
+  .nut-serie-card:hover{ border-color:#8CB7C9; transform:translateX(2px); }
+  .nut-serie-card .top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .nut-serie-card .nome{ font-family:'Montserrat',sans-serif; font-size:14px; font-weight:800; color:var(--cb-navy); }
+  .nut-serie-card .mid{ font-size:11.5px; color:#6B7280; margin-top:4px; }
+  .nut-serie-card .bot{ font-size:10.5px; color:#9CA3AF; margin-top:4px; display:flex; gap:12px; align-items:center; }
+  .nut-serie-card .btns{ margin-left:auto; display:flex; gap:6px; }
+  .nut-bib-empty{ text-align:center; padding:40px 20px; color:#9CA3AF; font-size:13px; background:#F7F8FA; border:1px dashed #D6DDE6; border-radius:12px; }
+
   /* Flow view (Miro-style) para cadências */
   .cbk-flow-wrap{ background:#F0F3F7; padding:20px; border-radius:12px; overflow-x:auto; margin-top:14px; }
   .cbk-flow{ display:flex; gap:44px; align-items:stretch; padding:6px 4px 12px; min-width:min-content; }
@@ -10940,13 +10997,18 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
             </div>
             <div id="nut-mode-biblioteca" style="display:none;">
               <div class="cbk-modal-s" style="margin-top:0;">Todo conteúdo salvo — cadências e peças avulsas. Use os filtros abaixo pra encontrar. Cadências podem ser duplicadas trocando ICP/segmento.</div>
-              <div class="cbk-row" style="grid-template-columns:repeat(5, 1fr);gap:10px;margin-top:12px;">
+              <div id="nut-bib-stats" class="nut-stats"></div>
+              <div class="cbk-row nut-filters-row">
                 <div class="cbk-field" style="margin-bottom:0;"><label>Negócio (BU)</label><select id="nut-bib-bu"><option value="">Todos</option>${BUS.map(b=>`<option value="${b.key}">${b.nome}</option>`).join('')}</select></div>
                 <div class="cbk-field" style="margin-bottom:0;"><label>Segmento</label><select id="nut-bib-seg"><option value="">Todos</option></select></div>
                 <div class="cbk-field" style="margin-bottom:0;"><label>Persona</label><select id="nut-bib-per"><option value="">Todas</option></select></div>
                 <div class="cbk-field" style="margin-bottom:0;"><label>Formato</label><select id="nut-bib-fmt"><option value="">Todos</option>${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
-                <div class="cbk-field" style="margin-bottom:0;"><label>Tema</label><input id="nut-bib-tema" list="nut-tema-list" placeholder="Buscar tema…"></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Status</label><select id="nut-bib-status"><option value="">Todos</option><option value="draft">Rascunho</option><option value="pending_approval">Pendente aprovação</option><option value="approved">Aprovado</option><option value="rejected">Rejeitado</option></select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Período</label><select id="nut-bib-periodo"><option value="">Todos</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Busca</label><input id="nut-bib-tema" list="nut-tema-list" placeholder="Tema, título…"></div>
+                <div class="cbk-field" style="margin-bottom:0;"><label>Visualização</label><select id="nut-bib-view"><option value="grid">Grid visual</option><option value="lista">Lista compacta</option></select></div>
               </div>
+              <div id="nut-bib-chips" class="nut-chips"></div>
               <div id="nut-bib-content" style="margin-top:14px;"></div>
             </div>
             <div class="cbk-actions" id="nut-gerar-wrap"><button class="cbk-btn cbk-btn-primary" id="nut-gerar">✨ Gerar com IA</button></div>
@@ -11235,8 +11297,11 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
       segS.innerHTML = '<option value="">Todos</option>' + (segs||[]).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('');
       perS.innerHTML = '<option value="">Todas</option>' + (pers||[]).map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('');
     }
-    // liga eventos (uma vez)
-    [buS, segS, perS, fmtS].forEach(el => {
+    // liga eventos (uma vez) — inclui status, periodo e view
+    const statusS  = document.getElementById('nut-bib-status');
+    const periodoS = document.getElementById('nut-bib-periodo');
+    const viewS    = document.getElementById('nut-bib-view');
+    [buS, segS, perS, fmtS, statusS, periodoS, viewS].filter(Boolean).forEach(el => {
       if (!el.dataset.bound){ el.dataset.bound='1'; el.addEventListener('change', loadBiblioteca); }
     });
     if (!temaI.dataset.bound){
@@ -11245,71 +11310,177 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
     }
   }
 
+  // Ícones SVG outline por formato
+  const NUT_ICONS = {
+    'email-mkt':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+    'post-linkedin':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>',
+    'post-instagram': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>',
+    'artigo-blog':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>',
+    'landing-page':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+    'default':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+  };
+
   async function loadBiblioteca(){
     const holder = document.getElementById('nut-bib-content'); if (!holder) return;
-    // Filtros próprios da biblioteca (não dependem do contexto do topo)
-    const bu = document.getElementById('nut-bib-bu')?.value || '';
-    const seg = document.getElementById('nut-bib-seg')?.value || '';
-    const per = document.getElementById('nut-bib-per')?.value || '';
+    // Lê todos os filtros
+    const bu       = document.getElementById('nut-bib-bu')?.value || '';
+    const seg      = document.getElementById('nut-bib-seg')?.value || '';
+    const per      = document.getElementById('nut-bib-per')?.value || '';
+    const fmtF     = document.getElementById('nut-bib-fmt')?.value || '';
+    const statusF  = document.getElementById('nut-bib-status')?.value || '';
+    const periodoF = document.getElementById('nut-bib-periodo')?.value || '';
+    const temaF    = document.getElementById('nut-bib-tema')?.value.trim() || '';
+    const viewMode = document.getElementById('nut-bib-view')?.value || 'grid';
     holder.innerHTML = '<div class="cbk-meta">Carregando…</div>';
+
+    // Corte de data para "Período"
+    let dataIni = null;
+    if (periodoF){
+      const d = new Date(); d.setDate(d.getDate() - parseInt(periodoF,10));
+      dataIni = d.toISOString();
+    }
+
+    // Séries
     let qSer = sb.from('cb_content_series').select('*').order('created_at', {ascending:false});
-    if (bu) qSer = qSer.eq('bu', bu);
-    if (seg) qSer = qSer.eq('segment_id', seg);
-    if (per) qSer = qSer.eq('persona_id', per);
-    if (document.getElementById('nut-bib-tema')?.value.trim()) qSer = qSer.ilike('tema', '%'+document.getElementById('nut-bib-tema').value.trim()+'%');
+    if (bu)      qSer = qSer.eq('bu', bu);
+    if (seg)     qSer = qSer.eq('segment_id', seg);
+    if (per)     qSer = qSer.eq('persona_id', per);
+    if (statusF) qSer = qSer.eq('status', statusF);
+    if (dataIni) qSer = qSer.gte('created_at', dataIni);
+    if (temaF)   qSer = qSer.or(`tema.ilike.%${temaF}%,nome.ilike.%${temaF}%`);
     const { data: series } = await qSer;
     const seriesWithCount = await Promise.all((series||[]).map(async s => {
       const { count } = await sb.from('cb_contents').select('*', {count:'exact', head:true}).eq('series_id', s.id);
       const { count: aprv } = await sb.from('cb_contents').select('*', {count:'exact', head:true}).eq('series_id', s.id).eq('status','approved');
       return { ...s, total: count||0, aprovados: aprv||0 };
     }));
-    // Filtros
-    const fmtFilter = document.getElementById('nut-bib-fmt')?.value || '';
-    const temaFilter = document.getElementById('nut-bib-tema')?.value.trim() || '';
-    let qP = sb.from('cb_contents').select('*').order('created_at', {ascending:false}).limit(100);
-    if (bu) qP = qP.eq('bu', bu);
-    if (seg) qP = qP.eq('segment_id', seg);
-    if (per) qP = qP.eq('persona_id', per);
-    if (fmtFilter) qP = qP.eq('formato', fmtFilter);
-    if (temaFilter) qP = qP.ilike('tema', '%'+temaFilter+'%');
+
+    // Peças
+    let qP = sb.from('cb_contents').select('*').order('created_at', {ascending:false}).limit(200);
+    if (bu)      qP = qP.eq('bu', bu);
+    if (seg)     qP = qP.eq('segment_id', seg);
+    if (per)     qP = qP.eq('persona_id', per);
+    if (fmtF)    qP = qP.eq('formato', fmtF);
+    if (statusF) qP = qP.eq('status', statusF);
+    if (dataIni) qP = qP.gte('created_at', dataIni);
+    if (temaF)   qP = qP.or(`tema.ilike.%${temaF}%,titulo.ilike.%${temaF}%`);
     const { data: pecas } = await qP;
+
+    // Mapas de lookup
     const segMap = {}, perMap = {}; const buMap = Object.fromEntries(BUS.map(b => [b.key, b.nome]));
     const { data:allS } = await sb.from('cb_segments').select('id,nome'); (allS||[]).forEach(x => segMap[x.id]=x.nome);
     const { data:allP } = await sb.from('cb_personas').select('id,nome'); (allP||[]).forEach(x => perMap[x.id]=x.nome);
 
-    let html = `<div class="cbk-hi" style="margin-bottom:8px;">Cadências salvas · ${seriesWithCount.length}</div>`;
+    // === Contadores (respeitando filtros atuais) ===
+    const statsHolder = document.getElementById('nut-bib-stats');
+    if (statsHolder){
+      const ct = { total:(pecas||[]).length, draft:0, pending:0, approved:0, rejected:0 };
+      (pecas||[]).forEach(c => {
+        if (c.status==='draft') ct.draft++;
+        else if (c.status==='pending_approval') ct.pending++;
+        else if (c.status==='approved') ct.approved++;
+        else if (c.status==='rejected') ct.rejected++;
+      });
+      statsHolder.innerHTML = `
+        <div class="nut-stat ${statusF===''?'active':''}" data-stat-status=""><div class="n">${ct.total}</div><div class="l">Peças no total</div></div>
+        <div class="nut-stat ${statusF==='draft'?'active':''}" data-stat-status="draft"><div class="n" style="color:#6B7280;">${ct.draft}</div><div class="l">Rascunho</div></div>
+        <div class="nut-stat ${statusF==='pending_approval'?'active':''}" data-stat-status="pending_approval"><div class="n" style="color:#B45309;">${ct.pending}</div><div class="l">Pendente</div></div>
+        <div class="nut-stat ${statusF==='approved'?'active':''}" data-stat-status="approved"><div class="n" style="color:#166534;">${ct.approved}</div><div class="l">Aprovado</div></div>
+        <div class="nut-stat ${statusF==='rejected'?'active':''}" data-stat-status="rejected"><div class="n" style="color:#991B1B;">${ct.rejected}</div><div class="l">Rejeitado</div></div>`;
+      statsHolder.querySelectorAll('[data-stat-status]').forEach(el => el.addEventListener('click', () => {
+        const stEl = document.getElementById('nut-bib-status');
+        if (stEl){ stEl.value = el.dataset.statStatus; loadBiblioteca(); }
+      }));
+    }
+
+    // === Chips de filtros ativos ===
+    const chipsHolder = document.getElementById('nut-bib-chips');
+    if (chipsHolder){
+      const chips = [];
+      if (bu)       chips.push({ k:'nut-bib-bu',      lbl:'BU: '+(buMap[bu]||bu) });
+      if (seg)      chips.push({ k:'nut-bib-seg',     lbl:'Segmento: '+(segMap[seg]||'?') });
+      if (per)      chips.push({ k:'nut-bib-per',     lbl:'Persona: '+(perMap[per]||'?') });
+      if (fmtF)     chips.push({ k:'nut-bib-fmt',     lbl:'Formato: '+(FORMATOS.find(f=>f.key===fmtF)?.lbl||fmtF) });
+      if (statusF)  chips.push({ k:'nut-bib-status',  lbl:'Status: '+(STATUS_LBL[statusF]||statusF) });
+      if (periodoF) chips.push({ k:'nut-bib-periodo', lbl:'Últimos '+periodoF+' dias' });
+      if (temaF)    chips.push({ k:'nut-bib-tema',    lbl:'Busca: '+temaF });
+      chipsHolder.innerHTML = chips.map(c => `<span class="nut-chip">${esc(c.lbl)} <button data-clear="${c.k}" title="Remover">×</button></span>`).join('')
+        + (chips.length ? `<span class="nut-chip clear" id="nut-chip-clear-all">Limpar tudo</span>` : '');
+      chipsHolder.querySelectorAll('[data-clear]').forEach(b => b.addEventListener('click', () => {
+        const el = document.getElementById(b.dataset.clear); if (el){ el.value = ''; loadBiblioteca(); }
+      }));
+      document.getElementById('nut-chip-clear-all')?.addEventListener('click', () => {
+        ['nut-bib-bu','nut-bib-seg','nut-bib-per','nut-bib-fmt','nut-bib-status','nut-bib-periodo','nut-bib-tema'].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+        loadBiblioteca();
+      });
+    }
+
+    const seriesNameMap = Object.fromEntries((series||[]).map(s => [s.id, s.nome]));
+
+    // === Cadências ===
+    let html = `<div class="nut-section-title">Cadências salvas <span class="count">${seriesWithCount.length}</span></div>`;
     if (!seriesWithCount.length){
-      html += '<div class="cbk-empty" style="margin-bottom:20px;">Nenhuma cadência salva pra esse contexto.</div>';
+      html += '<div class="nut-bib-empty" style="margin-bottom:20px;">Nenhuma cadência para esses filtros.</div>';
     } else {
-      html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">';
+      html += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:22px;">';
       seriesWithCount.forEach(s => {
         const st = s.status || 'draft';
         const stColor = STATUS_COLOR[st] || '#6B7280';
         const stLbl = STATUS_LBL[st] || st;
-        html += `<div class="cbk-card" style="margin:0;padding:14px 16px;cursor:pointer;" data-open-ser="${s.id}">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="flex:1;">
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <div style="font-family:'Montserrat',sans-serif;font-size:14px;font-weight:700;color:var(--cb-navy);">${esc(s.nome)}</div>
-                <span style="background:${stColor}20;color:${stColor};padding:2px 8px;border-radius:5px;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">${stLbl}</span>
-                ${s.tema?`<span style="background:#F3E8FF;color:#6B21A8;padding:2px 8px;border-radius:5px;font-size:9.5px;font-weight:600;">🏷 ${esc(s.tema)}</span>`:''}
-              </div>
-              <div style="font-size:11.5px;color:#6B7280;margin-top:2px;">${esc(buMap[s.bu]||s.bu||'—')} · ${esc(segMap[s.segment_id]||'sem segmento')} · ${esc(perMap[s.persona_id]||'sem persona')}</div>
-              <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">${s.total} peças · ${s.aprovados} aprovadas · ${fmt(s.created_at)}</div>
+        html += `<div class="nut-serie-card" data-open-ser="${s.id}">
+          <div class="top">
+            <span class="nome">${esc(s.nome)}</span>
+            <span class="st-pill" style="background:${stColor}20;color:${stColor};">${stLbl}</span>
+            ${s.tema?`<span class="tag-mini tema">🏷 ${esc(s.tema)}</span>`:''}
+            <div class="btns">
+              <button class="cbk-btn cbk-btn-ghost" data-view-ser="${s.id}" style="font-size:11px;padding:5px 10px;">Ver peças</button>
+              ${(st==='draft'||st==='rejected') && canEdit() ? `<button class="cbk-btn cbk-btn-primary" data-send-ser="${s.id}" style="font-size:11px;padding:5px 10px;background:#B45309;">Enviar p/ aprovação</button>` : ''}
+              <button class="cbk-btn cbk-btn-primary" data-dup-ser="${s.id}" style="font-size:11px;padding:5px 10px;">↻ Duplicar</button>
             </div>
-            <button class="cbk-btn cbk-btn-ghost" data-view-ser="${s.id}" style="font-size:11.5px;">Ver peças</button>
-            ${(st==='draft'||st==='rejected') && canEdit() ? `<button class="cbk-btn cbk-btn-primary" data-send-ser="${s.id}" style="font-size:11.5px;background:#B45309;">Enviar p/ aprovação</button>` : ''}
-            <button class="cbk-btn cbk-btn-primary" data-dup-ser="${s.id}" style="font-size:11.5px;">↻ Duplicar</button>
           </div>
+          <div class="mid">${esc(buMap[s.bu]||s.bu||'—')} · ${esc(segMap[s.segment_id]||'sem segmento')} · ${esc(perMap[s.persona_id]||'sem persona')}</div>
+          <div class="bot"><span>${s.total} peças</span><span style="color:#166534;">${s.aprovados} aprovadas</span><span>${fmt(s.created_at)}</span></div>
         </div>`;
       });
       html += '</div>';
     }
-    // mapa nome de séries pra taggar peças
-    const seriesNameMap = Object.fromEntries((series||[]).map(s => [s.id, s.nome]));
-    html += `<div class="cbk-hi" style="margin-bottom:8px;">Todas as peças · ${(pecas||[]).length}</div>`;
+
+    // === Peças — grid visual ou lista compacta ===
+    html += `<div class="nut-section-title">Peças avulsas & da cadência <span class="count">${(pecas||[]).length}</span></div>`;
     if (!pecas?.length){
-      html += '<div class="cbk-empty">Nenhuma peça pra esse contexto/formato.</div>';
+      html += '<div class="nut-bib-empty">Nenhuma peça encontrada.</div>';
+    } else if (viewMode === 'grid'){
+      html += '<div class="nut-grid">';
+      pecas.forEach(c => {
+        const fmtKey = c.formato || 'default';
+        const fmtLbl = FORMATOS.find(f=>f.key===c.formato)?.lbl || c.formato || '—';
+        const ic = NUT_ICONS[fmtKey] || NUT_ICONS.default;
+        const stColor = STATUS_COLOR[c.status] || '#6B7280';
+        const stLbl   = STATUS_LBL[c.status] || c.status || '';
+        const seriesName = c.series_id ? seriesNameMap[c.series_id] : null;
+        const preview = (c.edited_output || c.ai_output || '').replace(/<[^>]+>/g,' ').slice(0, 220);
+        html += `<div class="nut-card fmt-${fmtKey}" data-load="${c.id}">
+          <div class="accent"></div>
+          <div class="hd">
+            <div class="ic">${ic}</div>
+            <div>
+              <div class="meta-fmt">${esc(fmtLbl)}</div>
+              <div class="meta-sub">${esc(buMap[c.bu]||c.bu||'—')}</div>
+            </div>
+            <span class="st-pill" style="background:${stColor}20;color:${stColor};">${stLbl}</span>
+          </div>
+          <div class="tt">${esc(c.titulo||'Sem título')}</div>
+          <div class="preview">${esc(preview)}</div>
+          <div class="foot">
+            ${c.persona_id?`<span class="tag-mini persona">${esc(perMap[c.persona_id]||'?')}</span>`:''}
+            ${c.segment_id?`<span class="tag-mini seg">${esc(segMap[c.segment_id]||'?')}</span>`:''}
+            ${c.tema?`<span class="tag-mini tema">🏷 ${esc(c.tema)}</span>`:''}
+            ${seriesName?`<span class="tag-mini">série</span>`:''}
+            <span class="dt-mini">${fmt(c.created_at)}</span>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
     } else {
       html += '<div style="display:flex;flex-direction:column;gap:6px;">';
       pecas.forEach(c => {
