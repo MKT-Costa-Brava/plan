@@ -8686,6 +8686,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   .nut-serie-card .bot{ font-size:10.5px; color:#9CA3AF; margin-top:4px; display:flex; gap:12px; align-items:center; }
   .nut-serie-card .btns{ margin-left:auto; display:flex; gap:6px; }
   .nut-bib-empty{ text-align:center; padding:40px 20px; color:#9CA3AF; font-size:13px; background:#F7F8FA; border:1px dashed #D6DDE6; border-radius:12px; }
+  /* Motivo da criação (briefing) */
+  .motivo-box{ background:#FFFBEB; border-left:3px solid #D97706; border-radius:6px; padding:8px 10px; margin:6px 0 10px; }
+  .motivo-box.small{ margin:4px 0 8px; padding:6px 9px; }
+  .motivo-box.empty{ background:transparent; border-left-color:#E4E9EF; color:#9CA3AF; font-size:11px; font-style:italic; }
+  .motivo-lbl{ font-size:9.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#92400E; margin-bottom:2px; }
+  .motivo-txt{ font-size:11.5px; color:#374151; line-height:1.45; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .motivo-box.small .motivo-txt{ -webkit-line-clamp:2; font-size:11px; }
+  /* Série grid */
+  .nut-serie-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:12px; margin-bottom:24px; }
+  .nut-serie-card{ display:flex; flex-direction:column; gap:8px; padding:14px 16px; }
+  .nut-serie-card .top{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .nut-serie-card .mid{ display:flex; flex-wrap:wrap; gap:5px; margin-top:0; }
+  .nut-serie-card .bot{ font-size:10.5px; color:#9CA3AF; display:flex; gap:12px; align-items:center; margin-top:0; }
+  .nut-serie-card .bot strong{ color:var(--cb-navy); }
+  .nut-serie-card .btns{ display:flex; gap:6px; margin-top:4px; padding-top:8px; border-top:1px solid #F0F3F7; flex-wrap:wrap; margin-left:0; }
+  /* Botões dentro do card de peça */
+  .nut-card .card-actions{ display:flex; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid #F0F3F7; }
+  .nut-card .card-act{ flex:1; }
 
   /* Flow view (Miro-style) para cadências */
   .cbk-flow-wrap{ background:#F0F3F7; padding:20px; border-radius:12px; overflow-x:auto; margin-top:14px; }
@@ -11235,18 +11253,19 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
       const nome = prompt('Dê um nome pra esta cadência (ex: "Nurturing CFO Agro Q1"):', '');
       if (!nome || !nome.trim()){ toast('Nome da cadência é obrigatório','err'); return; }
       const btn = document.getElementById('cad-save-all'); btn.disabled=true; btn.textContent='Salvando…';
-      // cria série
+      // cria série (guarda o briefing como descricao → vira "motivo" na biblioteca)
       const cadTema = document.getElementById('nut-cad-tema')?.value.trim() || null;
+      const briefing = document.getElementById('nut-cad-campanha')?.value.trim() || null;
       const { data:serie, error:sErr } = await sb.from('cb_content_series').insert({
-        nome: nome.trim(), bu: ctx.bu, segment_id: ctx.segment_id, persona_id: ctx.persona_id,
+        nome: nome.trim(), descricao: briefing, bu: ctx.bu, segment_id: ctx.segment_id, persona_id: ctx.persona_id,
         tipo:'cadencia', tema: cadTema, created_by: email()
       }).select().single();
       if (sErr){ toast('Erro criando série: '+sErr.message,'err'); btn.disabled=false; btn.textContent='💾 Salvar cadência'; return; }
-      // insere peças ligadas
+      // insere peças ligadas — prompt_input guarda o briefing original para reaproveitamento
       const rows = pecas.map((p, i) => ({
         ...ctx, formato: p.formato || 'email-mkt', titulo: p.titulo || null,
         tema: cadTema,
-        prompt_input: `[${nome.trim()}] ${p.titulo||'Peça '+(p.ordem||i+1)}`,
+        prompt_input: briefing || `[${nome.trim()}] ${p.titulo||'Peça '+(p.ordem||i+1)}`,
         ai_output: p.output, edited_output: list.querySelector(`textarea[data-idx="${i}"]`).value,
         status:'draft', created_by: email(), series_id: serie.id, ordem: p.ordem || (i+1)
       }));
@@ -11418,35 +11437,45 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
     const seriesNameMap = Object.fromEntries((series||[]).map(s => [s.id, s.nome]));
 
     // === Cadências ===
-    let html = `<div class="nut-section-title">Cadências salvas <span class="count">${seriesWithCount.length}</span></div>`;
+    let html = `<div class="nut-section-title">Cadências salvas <span class="count">${seriesWithCount.length}</span><span style="font-size:11px;font-weight:600;color:#6B7280;margin-left:auto;text-transform:none;letter-spacing:0;">Clique no card para abrir · Reaproveitar duplica para outro ICP</span></div>`;
     if (!seriesWithCount.length){
       html += '<div class="nut-bib-empty" style="margin-bottom:20px;">Nenhuma cadência para esses filtros.</div>';
     } else {
-      html += '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:22px;">';
+      html += '<div class="nut-serie-grid">';
       seriesWithCount.forEach(s => {
         const st = s.status || 'draft';
         const stColor = STATUS_COLOR[st] || '#6B7280';
         const stLbl = STATUS_LBL[st] || st;
+        const motivo = (s.descricao || '').trim();
         html += `<div class="nut-serie-card" data-open-ser="${s.id}">
           <div class="top">
             <span class="nome">${esc(s.nome)}</span>
             <span class="st-pill" style="background:${stColor}20;color:${stColor};">${stLbl}</span>
-            ${s.tema?`<span class="tag-mini tema">🏷 ${esc(s.tema)}</span>`:''}
-            <div class="btns">
-              <button class="cbk-btn cbk-btn-ghost" data-view-ser="${s.id}" style="font-size:11px;padding:5px 10px;">Ver peças</button>
-              ${(st==='draft'||st==='rejected') && canEdit() ? `<button class="cbk-btn cbk-btn-primary" data-send-ser="${s.id}" style="font-size:11px;padding:5px 10px;background:#B45309;">Enviar p/ aprovação</button>` : ''}
-              <button class="cbk-btn cbk-btn-primary" data-dup-ser="${s.id}" style="font-size:11px;padding:5px 10px;">↻ Duplicar</button>
-            </div>
           </div>
-          <div class="mid">${esc(buMap[s.bu]||s.bu||'—')} · ${esc(segMap[s.segment_id]||'sem segmento')} · ${esc(perMap[s.persona_id]||'sem persona')}</div>
-          <div class="bot"><span>${s.total} peças</span><span style="color:#166534;">${s.aprovados} aprovadas</span><span>${fmt(s.created_at)}</span></div>
+          ${motivo ? `<div class="motivo-box"><div class="motivo-lbl">Motivo da criação</div><div class="motivo-txt">${esc(motivo)}</div></div>` : '<div class="motivo-box empty">Sem briefing registrado</div>'}
+          <div class="mid">
+            <span class="tag-mini">${esc(buMap[s.bu]||s.bu||'—')}</span>
+            <span class="tag-mini seg">${esc(segMap[s.segment_id]||'sem seg.')}</span>
+            <span class="tag-mini persona">${esc(perMap[s.persona_id]||'sem persona')}</span>
+            ${s.tema?`<span class="tag-mini tema">🏷 ${esc(s.tema)}</span>`:''}
+          </div>
+          <div class="bot">
+            <span><strong>${s.total}</strong> peças</span>
+            <span style="color:#166534;"><strong>${s.aprovados}</strong> aprovadas</span>
+            <span class="dt-mini">${fmt(s.created_at)}</span>
+          </div>
+          <div class="btns">
+            <button class="cbk-btn cbk-btn-ghost" data-view-ser="${s.id}" style="font-size:11px;padding:5px 10px;">Ver peças</button>
+            ${(st==='draft'||st==='rejected') && canEdit() ? `<button class="cbk-btn cbk-btn-primary" data-send-ser="${s.id}" style="font-size:11px;padding:5px 10px;background:#B45309;">Enviar p/ aprovação</button>` : ''}
+            <button class="cbk-btn cbk-btn-primary" data-dup-ser="${s.id}" style="font-size:11px;padding:5px 10px;" title="Duplicar a cadência inteira para outro ICP, segmento ou mailing">↻ Reaproveitar</button>
+          </div>
         </div>`;
       });
       html += '</div>';
     }
 
     // === Peças — grid visual ou lista compacta ===
-    html += `<div class="nut-section-title">Peças avulsas & da cadência <span class="count">${(pecas||[]).length}</span></div>`;
+    html += `<div class="nut-section-title">Peças <span class="count">${(pecas||[]).length}</span><span style="font-size:11px;font-weight:600;color:#6B7280;margin-left:auto;text-transform:none;letter-spacing:0;">Clique no título para abrir e editar · Reaproveitar carrega no editor com o briefing original</span></div>`;
     if (!pecas?.length){
       html += '<div class="nut-bib-empty">Nenhuma peça encontrada.</div>';
     } else if (viewMode === 'grid'){
@@ -11458,25 +11487,30 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
         const stColor = STATUS_COLOR[c.status] || '#6B7280';
         const stLbl   = STATUS_LBL[c.status] || c.status || '';
         const seriesName = c.series_id ? seriesNameMap[c.series_id] : null;
-        const preview = (c.edited_output || c.ai_output || '').replace(/<[^>]+>/g,' ').slice(0, 220);
+        const motivo = (c.prompt_input || '').replace(/^\[[^\]]+\]\s*/,'').trim();
+        const preview = (c.edited_output || c.ai_output || '').replace(/<[^>]+>/g,' ').slice(0, 260);
         html += `<div class="nut-card fmt-${fmtKey}" data-load="${c.id}">
           <div class="accent"></div>
           <div class="hd">
             <div class="ic">${ic}</div>
-            <div>
+            <div style="flex:1;min-width:0;">
               <div class="meta-fmt">${esc(fmtLbl)}</div>
-              <div class="meta-sub">${esc(buMap[c.bu]||c.bu||'—')}</div>
+              <div class="meta-sub">${esc(buMap[c.bu]||c.bu||'—')}${seriesName?` · série: ${esc(seriesName)}`:''}</div>
             </div>
             <span class="st-pill" style="background:${stColor}20;color:${stColor};">${stLbl}</span>
           </div>
           <div class="tt">${esc(c.titulo||'Sem título')}</div>
+          ${motivo ? `<div class="motivo-box small"><div class="motivo-lbl">Motivo</div><div class="motivo-txt">${esc(motivo)}</div></div>` : ''}
           <div class="preview">${esc(preview)}</div>
           <div class="foot">
             ${c.persona_id?`<span class="tag-mini persona">${esc(perMap[c.persona_id]||'?')}</span>`:''}
             ${c.segment_id?`<span class="tag-mini seg">${esc(segMap[c.segment_id]||'?')}</span>`:''}
             ${c.tema?`<span class="tag-mini tema">🏷 ${esc(c.tema)}</span>`:''}
-            ${seriesName?`<span class="tag-mini">série</span>`:''}
             <span class="dt-mini">${fmt(c.created_at)}</span>
+          </div>
+          <div class="card-actions">
+            <button class="cbk-btn cbk-btn-ghost card-act" data-load-btn="${c.id}" style="font-size:10.5px;padding:4px 10px;">Abrir</button>
+            <button class="cbk-btn cbk-btn-primary card-act" data-reuse="${c.id}" style="font-size:10.5px;padding:4px 10px;" title="Carrega esta peça no editor como ponto de partida para uma nova criação">↻ Reaproveitar</button>
           </div>
         </div>`;
       });
@@ -11514,9 +11548,25 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
       loadBiblioteca();
       if (isMaster()) renderMasterApprovals();
     }));
-    holder.querySelectorAll('[data-load]').forEach(el => el.addEventListener('click', async () => {
+    holder.querySelectorAll('[data-load]').forEach(el => el.addEventListener('click', async (e) => {
+      if (e.target.closest('.card-actions')) return; // deixa botões próprios cuidarem
       const { data } = await sb.from('cb_contents').select('*').eq('id', el.dataset.load).single();
       if (data){ document.querySelector('.cbk-tab[data-mode="unico"]').click(); loadIntoEditor(data); }
+    }));
+    holder.querySelectorAll('[data-load-btn]').forEach(b => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const { data } = await sb.from('cb_contents').select('*').eq('id', b.dataset.loadBtn).single();
+      if (data){ document.querySelector('.cbk-tab[data-mode="unico"]').click(); loadIntoEditor(data); }
+    }));
+    holder.querySelectorAll('[data-reuse]').forEach(b => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const { data } = await sb.from('cb_contents').select('*').eq('id', b.dataset.reuse).single();
+      if (!data) return;
+      // Clona no editor como novo rascunho, mantendo briefing original
+      document.querySelector('.cbk-tab[data-mode="unico"]').click();
+      const clone = { ...data, id:null, titulo:(data.titulo||'')+' (reaproveitado)', status:'draft', series_id:null, created_at:null };
+      loadIntoEditor(clone);
+      toast('Peça carregada no editor como novo rascunho — ajuste BU/segmento/persona e salve');
     }));
   }
 
