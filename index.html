@@ -8727,6 +8727,48 @@ document.addEventListener('DOMContentLoaded',()=>{
   /* dentro do gerenciador, as stats ocupam o container */
   .nut-ger-main .nut-stats{ margin-top:0; }
 
+  /* ───── Lista larga de peças ───── */
+  .nut-list{ display:flex; flex-direction:column; gap:10px; }
+  .nut-row{ display:grid; grid-template-columns:90px 1fr 220px 130px; gap:18px; background:#fff; border:1px solid #E4E9EF; border-radius:12px; padding:14px 18px; cursor:pointer; transition:all .15s; align-items:center; position:relative; overflow:hidden; }
+  .nut-row:hover{ border-color:#8CB7C9; box-shadow:0 4px 14px rgba(15,32,55,.06); }
+  .nut-row::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:#6B7280; }
+  .nut-row.fmt-email-mkt::before{ background:#1E40AF; }
+  .nut-row.fmt-post-linkedin::before{ background:#0369A1; }
+  .nut-row.fmt-post-instagram::before{ background:#BE185D; }
+  .nut-row.fmt-artigo-blog::before{ background:#92400E; }
+  .nut-row.fmt-landing-page::before{ background:#4338CA; }
+  /* Coluna 1: ícone + formato */
+  .nut-row-ic{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .nut-row-ic .ic{ width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:#F3F4F6; color:#374151; }
+  .nut-row-ic .ic svg{ width:20px; height:20px; stroke-width:2; }
+  .nut-row-ic .fmt-lbl{ font-size:9.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#6B7280; text-align:center; line-height:1.1; }
+  .nut-row.fmt-email-mkt     .ic{ background:#DBEAFE; color:#1E40AF; }
+  .nut-row.fmt-post-linkedin .ic{ background:#DBEAFE; color:#0369A1; }
+  .nut-row.fmt-post-instagram .ic{ background:#FCE7F3; color:#BE185D; }
+  .nut-row.fmt-artigo-blog   .ic{ background:#FEF3C7; color:#92400E; }
+  .nut-row.fmt-landing-page  .ic{ background:#E0E7FF; color:#4338CA; }
+  /* Coluna 2: título + motivo + preview */
+  .nut-row-main{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+  .nut-row-top{ display:flex; align-items:center; gap:10px; }
+  .nut-row-title{ font-family:'Montserrat',sans-serif; font-size:14px; font-weight:700; color:var(--cb-navy); line-height:1.3; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nut-row-motivo{ font-size:11.5px; color:#92400E; background:#FFFBEB; border-left:3px solid #D97706; padding:5px 9px; border-radius:5px; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .nut-row-motivo .lbl{ font-size:9px; font-weight:900; letter-spacing:.1em; color:#92400E; margin-right:6px; }
+  .nut-row-preview{ font-size:11.5px; color:#6B7280; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  /* Coluna 3: chips + data */
+  .nut-row-meta{ display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .nut-row-chips{ display:flex; flex-wrap:wrap; gap:4px; }
+  .nut-row-chips .tag-mini{ font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:5px; text-transform:none; letter-spacing:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .nut-row-date{ font-size:10.5px; color:#9CA3AF; }
+  /* Coluna 4: ações */
+  .nut-row-actions{ display:flex; flex-direction:column; gap:6px; align-items:stretch; }
+  .nut-row-actions .cbk-btn{ white-space:nowrap; }
+  @media(max-width:900px){
+    .nut-row{ grid-template-columns:70px 1fr; }
+    .nut-row-meta, .nut-row-actions{ grid-column:1 / -1; flex-direction:row; justify-content:space-between; align-items:center; margin-top:4px; padding-top:10px; border-top:1px solid #F0F3F7; }
+    .nut-row-actions{ gap:8px; }
+    .nut-row-actions .cbk-btn{ flex:1; }
+  }
+
   /* Flow view (Miro-style) para cadências */
   .cbk-flow-wrap{ background:#F0F3F7; padding:20px; border-radius:12px; overflow-x:auto; margin-top:14px; }
   .cbk-flow{ display:flex; gap:44px; align-items:stretch; padding:6px 4px 12px; min-width:min-content; }
@@ -11080,7 +11122,7 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
             <div class="cbk-field"><label>Formato</label><select id="nut-bib-fmt"><option value="">Todos</option>${FORMATOS.map(f=>`<option value="${f.key}">${f.lbl}</option>`).join('')}</select></div>
             <div class="cbk-field"><label>Status</label><select id="nut-bib-status"><option value="">Todos</option><option value="draft">Rascunho</option><option value="pending_approval">Pendente aprovação</option><option value="approved">Aprovado</option><option value="rejected">Rejeitado</option></select></div>
             <div class="cbk-field"><label>Período</label><select id="nut-bib-periodo"><option value="">Todos</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select></div>
-            <div class="cbk-field"><label>Visualização</label><select id="nut-bib-view"><option value="grid">Grid visual</option><option value="lista">Lista compacta</option></select></div>
+            <div class="cbk-field"><label>Visualização</label><select id="nut-bib-view"><option value="lista" selected>Lista larga</option><option value="grid">Cards</option></select></div>
           </aside>
 
           <div class="nut-ger-main">
@@ -11385,7 +11427,7 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
     const statusF  = document.getElementById('nut-bib-status')?.value || '';
     const periodoF = document.getElementById('nut-bib-periodo')?.value || '';
     const temaF    = document.getElementById('nut-bib-tema')?.value.trim() || '';
-    const viewMode = document.getElementById('nut-bib-view')?.value || 'grid';
+    const viewMode = document.getElementById('nut-bib-view')?.value || 'lista';
     holder.innerHTML = '<div class="cbk-meta">Carregando…</div>';
 
     // Corte de data para "Período"
@@ -11552,18 +11594,44 @@ body{font-family:'Montserrat',sans-serif;max-width:820px;margin:20px auto;paddin
       });
       html += '</div>';
     } else {
-      html += '<div style="display:flex;flex-direction:column;gap:6px;">';
+      // === Lista larga — uma peça por linha, bem respirada, 4 colunas visuais ===
+      html += '<div class="nut-list">';
       pecas.forEach(c => {
+        const fmtKey = c.formato || 'default';
+        const fmtLbl = FORMATOS.find(f=>f.key===c.formato)?.lbl || c.formato || '—';
+        const ic = NUT_ICONS[fmtKey] || NUT_ICONS.default;
+        const stColor = STATUS_COLOR[c.status] || '#6B7280';
+        const stLbl   = STATUS_LBL[c.status] || c.status || '';
         const seriesName = c.series_id ? seriesNameMap[c.series_id] : null;
-        html += `<div class="cbk-nut-item" data-load="${c.id}">
-          <div class="hd">
-            <span class="fmt">${esc(FORMATOS.find(f=>f.key===c.formato)?.lbl||c.formato)}</span>
-            ${c.tema?`<span class="fmt" style="background:#F3E8FF;color:#6B21A8;padding:2px 7px;border-radius:5px;font-size:9.5px;">🏷 ${esc(c.tema)}</span>`:''}
-            ${seriesName?`<span class="fmt" style="background:#EEF5F8;color:var(--cb-navy);padding:2px 7px;border-radius:5px;font-size:9.5px;">série: ${esc(seriesName)}</span>`:''}
-            <span class="st" style="background:${STATUS_COLOR[c.status]}20;color:${STATUS_COLOR[c.status]};margin-left:auto;">${STATUS_LBL[c.status]||c.status}</span>
+        const motivo = (c.prompt_input || '').replace(/^\[[^\]]+\]\s*/,'').trim();
+        const preview = (c.edited_output || c.ai_output || '').replace(/<[^>]+>/g,' ').slice(0, 320);
+        html += `<div class="nut-row fmt-${fmtKey}" data-load="${c.id}">
+          <div class="nut-row-ic">
+            <div class="ic">${ic}</div>
+            <div class="fmt-lbl">${esc(fmtLbl)}</div>
           </div>
-          <div class="tt">${esc(c.titulo||'Sem título')}</div>
-          <div class="dt">${fmt(c.created_at)} · ${esc(buMap[c.bu]||c.bu||'—')}${c.segment_id?` · ${esc(segMap[c.segment_id]||'?')}`:''}${c.persona_id?` · ${esc(perMap[c.persona_id]||'?')}`:''}</div>
+          <div class="nut-row-main">
+            <div class="nut-row-top">
+              <div class="nut-row-title">${esc(c.titulo||'Sem título')}</div>
+              <span class="st-pill" style="background:${stColor}20;color:${stColor};">${stLbl}</span>
+            </div>
+            ${motivo ? `<div class="nut-row-motivo"><span class="lbl">MOTIVO</span> ${esc(motivo)}</div>` : ''}
+            <div class="nut-row-preview">${esc(preview)}</div>
+          </div>
+          <div class="nut-row-meta">
+            <div class="nut-row-chips">
+              <span class="tag-mini">${esc(buMap[c.bu]||c.bu||'—')}</span>
+              ${c.segment_id?`<span class="tag-mini seg">${esc(segMap[c.segment_id]||'?')}</span>`:''}
+              ${c.persona_id?`<span class="tag-mini persona">${esc(perMap[c.persona_id]||'?')}</span>`:''}
+              ${c.tema?`<span class="tag-mini tema">🏷 ${esc(c.tema)}</span>`:''}
+              ${seriesName?`<span class="tag-mini" title="Pertence à cadência ${esc(seriesName)}">série: ${esc(seriesName)}</span>`:''}
+            </div>
+            <div class="nut-row-date">${fmt(c.created_at)}</div>
+          </div>
+          <div class="nut-row-actions">
+            <button class="cbk-btn cbk-btn-ghost card-act" data-load-btn="${c.id}" style="font-size:11px;padding:6px 12px;">Abrir</button>
+            <button class="cbk-btn cbk-btn-primary card-act" data-reuse="${c.id}" style="font-size:11px;padding:6px 12px;" title="Carrega esta peça no editor como novo rascunho">↻ Reaproveitar</button>
+          </div>
         </div>`;
       });
       html += '</div>';
